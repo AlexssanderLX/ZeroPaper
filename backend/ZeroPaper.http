@@ -1,0 +1,6 @@
+@ZeroPaper_HostAddress = http://localhost:5097
+
+GET {{ZeroPaper_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
