@@ -1,15 +1,14 @@
 import Link from "next/link";
+import { LoginAccessForm } from "@/components/login-access-form";
 
-const accessTypes = [
+const accessCards = [
   {
-    title: "Restaurante cliente",
-    text: "Para donos, gerentes e equipe que usam o sistema no dia a dia.",
-    hint: "Use email e senha cadastrados no sistema.",
+    title: "Acesso da unidade",
+    text: "Para dono, gerencia e equipe do restaurante.",
   },
   {
-    title: "Administracao ZeroPaper",
-    text: "Para quem gerencia clientes, onboarding e operacao da plataforma.",
-    hint: "Acesso interno da sua operacao.",
+    title: "Acesso da operacao",
+    text: "Para gestao interna da plataforma ZeroPaper.",
   },
 ];
 
@@ -18,57 +17,42 @@ export default function LoginPage() {
     <main className="page-shell">
       <section className="top-link-row">
         <Link className="ghost-link" href="/">
-          Voltar para a apresentacao
+          ZeroPaper
         </Link>
       </section>
 
       <section className="login-layout">
-        <section className="surface-card">
-          <div className="section-title">
-            <span className="eyebrow">Entrada</span>
-            <h1 className="login-title">Escolha o tipo de acesso e entre no sistema</h1>
+        <section className="surface-card login-copy-card ambient-panel subtle">
+          <div className="brand-lockup compact">
+            <div className="brand-mark small" aria-hidden="true">
+              <span>Z</span>
+              <span>P</span>
+            </div>
+            <div className="brand-copy">
+              <span className="eyebrow">ZeroPaper</span>
+              <strong>Secure Access</strong>
+            </div>
           </div>
 
+          <h1 className="login-title">Entre na sua operacao</h1>
+          <p className="body-copy">
+            Acesse seu ambiente e siga direto para o controle da unidade.
+          </p>
+
           <div className="access-list">
-            {accessTypes.map((item) => (
-              <article key={item.title} className="access-card">
+            {accessCards.map((item) => (
+              <article key={item.title} className="access-card interactive-card">
                 <h2>{item.title}</h2>
                 <p>{item.text}</p>
-                <span>{item.hint}</span>
               </article>
             ))}
           </div>
         </section>
 
         <section className="surface-card login-form-card">
-          <div className="section-title">
-            <span className="eyebrow">Login</span>
-            <h2>Entrar</h2>
-          </div>
-
-          <form className="login-form">
-            <div className="field-group">
-              <label htmlFor="accessType">Tipo de acesso</label>
-              <select id="accessType" name="accessType" defaultValue="restaurant">
-                <option value="restaurant">Restaurante cliente</option>
-                <option value="admin">Administracao ZeroPaper</option>
-              </select>
-            </div>
-
-            <div className="field-group">
-              <label htmlFor="email">Email</label>
-              <input id="email" name="email" type="email" placeholder="voce@empresa.com" />
-            </div>
-
-            <div className="field-group">
-              <label htmlFor="password">Senha</label>
-              <input id="password" name="password" type="password" placeholder="Sua senha" />
-            </div>
-
-            <button className="primary-link button-link" type="submit">
-              Entrar
-            </button>
-          </form>
+          <span className="eyebrow">Login</span>
+          <h2 className="form-title">Identificacao</h2>
+          <LoginAccessForm />
         </section>
       </section>
     </main>

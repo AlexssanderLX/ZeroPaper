@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Manrope, Playfair_Display } from "next/font/google";
+import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 
-const manrope = Manrope({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-body",
 });
 
-const playfairDisplay = Playfair_Display({
+const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
 });
 
 export const metadata: Metadata = {
   title: "ZeroPaper | Restaurantes",
-  description: "MVP de onboarding e operacao para restaurantes dentro do ecossistema ZeroPaper.",
+  description: "Plataforma para restaurantes com pedidos, cozinha e operacao no mesmo fluxo.",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${manrope.variable} ${playfairDisplay.variable}`}>
+      <body className={`${dmSans.variable} ${fraunces.variable}`}>
         {children}
       </body>
     </html>

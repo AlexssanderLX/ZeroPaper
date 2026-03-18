@@ -1,83 +1,95 @@
 import Link from "next/link";
 
-const currentClientCapabilities = [
+const highlights = [
   {
-    title: "Entrar no sistema da empresa",
-    text: "Cada restaurante acessa o proprio ambiente dentro da estrutura da ZeroPaper, sem precisar manter um dominio separado.",
+    title: "Pedidos por QR",
+    text: "Receba pedidos com mais fluidez direto na operacao da unidade.",
   },
   {
-    title: "Receber pedidos por QR Code",
-    text: "O cliente final pode iniciar a jornada por QR Code e o restaurante centraliza esse fluxo dentro da operacao.",
+    title: "Cozinha alinhada",
+    text: "Organize preparo, prioridade e saida com mais clareza para a equipe.",
   },
   {
-    title: "Organizar o fluxo para cozinha",
-    text: "Os pedidos podem seguir uma linha mais clara para preparo, acompanhamento e saida dentro de cada local.",
-  },
-  {
-    title: "Acompanhar operacao e estoque",
-    text: "A base do sistema ja foi pensada para ajudar o restaurante a reduzir tarefa manual e ganhar mais controle do dia a dia.",
+    title: "Estoque sob controle",
+    text: "Acompanhe itens criticos e reduza falhas no ritmo do dia a dia.",
   },
 ];
 
-const workflow = [
-  "Cliente acessa o restaurante pelo QR Code",
-  "O pedido entra no fluxo operacional da empresa",
-  "A equipe acompanha preparo e saida para a cozinha",
-  "A operacao ganha apoio no controle e reposicao de estoque",
+const valuePoints = [
+  "Atendimento mais agil no salao",
+  "Menos tarefa manual para a equipe",
+  "Mais visibilidade para a cozinha",
+  "Mais controle sobre a operacao",
 ];
 
-const modules = ["Pedidos", "Cozinha", "QR Code", "Estoque", "Acesso"];
+const modules = ["Salao", "Cozinha", "Pedidos", "QR Code", "Estoque"];
 
 export default function Home() {
   return (
     <main className="page-shell">
-      <section className="hero-block">
-        <div className="hero-content">
-          <span className="eyebrow">Plataforma ZeroPaper</span>
-          <h1>ZeroPaper</h1>
-          <p className="lead lead-strong">
-            Sistema para restaurantes com pedidos por QR Code, organizacao de cozinha
-            e apoio ao controle de estoque.
-          </p>
-          <p className="lead">
-            O foco da plataforma e reduzir tarefas manuais, centralizar a operacao
-            de cada empresa e manter tudo dentro do seu proprio ecossistema.
+      <section className="hero-panel">
+        <div className="hero-stack">
+          <div className="brand-lockup">
+            <div className="brand-mark" aria-hidden="true">
+              <span>Z</span>
+              <span>P</span>
+            </div>
+            <div className="brand-copy">
+              <span className="eyebrow">ZeroPaper</span>
+              <strong>Restaurant Operating System</strong>
+            </div>
+          </div>
+
+          <h1>Operacao, pedidos e estoque no mesmo fluxo.</h1>
+          <p className="hero-description">
+            Uma plataforma pensada para restaurantes que querem atender melhor,
+            organizar a cozinha e manter a operacao mais leve ao longo do dia.
           </p>
 
           <div className="hero-actions">
             <Link className="primary-link" href="/login">
-              Entrar no sistema
+              Acessar plataforma
             </Link>
+          </div>
+        </div>
+
+        <div className="hero-showcase ambient-panel">
+          <div className="showcase-header">
+            <span className="eyebrow">Destaques</span>
+            <strong>Recursos centrais da experiencia</strong>
+          </div>
+
+          <div className="highlight-grid">
+            {highlights.map((item) => (
+              <article key={item.title} className="info-card interactive-card">
+                <h2>{item.title}</h2>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="showcase-footer">
+            <span />
+            <p>Uma plataforma unica para atendimento, cozinha e operacao.</p>
           </div>
         </div>
       </section>
 
-      <section className="section-grid">
-        <section className="surface-card">
-          <div className="section-title">
-            <span className="eyebrow">Cliente hoje</span>
-            <h2>O que o restaurante ja pode fazer</h2>
-          </div>
-
-          <div className="feature-grid">
-            {currentClientCapabilities.map((feature) => (
-              <article key={feature.title} className="feature-card">
-                <h3>{feature.title}</h3>
-                <p>{feature.text}</p>
-              </article>
-            ))}
-          </div>
+      <section className="content-grid">
+        <section className="surface-card emphasis-card ambient-panel subtle interactive-card">
+          <span className="eyebrow">Para a rotina da casa</span>
+          <h2>Mais ritmo no atendimento. Mais previsibilidade na operacao.</h2>
+          <p className="body-copy">
+            ZeroPaper conecta entrada de pedidos, fluxo de cozinha e acompanhamento
+            operacional em uma experiencia mais simples para a equipe.
+          </p>
         </section>
 
         <section className="surface-card">
-          <div className="section-title">
-            <span className="eyebrow">Como funciona</span>
-            <h2>Fluxo inicial pensado para uso real</h2>
-          </div>
-
-          <div className="workflow-list">
-            {workflow.map((item, index) => (
-              <div key={item} className="workflow-item">
+          <span className="eyebrow">Na pratica</span>
+          <div className="point-list">
+            {valuePoints.map((item, index) => (
+              <div key={item} className="point-item interactive-card">
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <p>{item}</p>
               </div>
@@ -86,33 +98,19 @@ export default function Home() {
         </section>
       </section>
 
-      <section className="section-grid bottom">
-        <section className="surface-card">
-          <div className="section-title">
-            <span className="eyebrow">ZeroPaper</span>
-            <h2>Um unico ambiente para operar cada restaurante</h2>
-          </div>
+      <section className="surface-card modules-card ambient-panel subtle">
+        <div className="modules-header">
+          <span className="eyebrow">ZeroPaper</span>
+          <h2>Uma experiencia unica para cada unidade.</h2>
+        </div>
 
-          <p className="body-copy">
-            Cada cliente entra no proprio ambiente dentro da plataforma e usa a
-            operacao web que voce entrega.
-          </p>
-        </section>
-
-        <section className="surface-card">
-          <div className="section-title">
-            <span className="eyebrow">Operacao</span>
-            <h2>Frentes centrais da plataforma</h2>
-          </div>
-
-          <div className="tag-grid">
-            {modules.map((module) => (
-              <span key={module} className="tag-item">
-                {module}
-              </span>
-            ))}
-          </div>
-        </section>
+        <div className="tag-grid">
+          {modules.map((module) => (
+            <span key={module} className="tag-item interactive-card">
+              {module}
+            </span>
+          ))}
+        </div>
       </section>
     </main>
   );
