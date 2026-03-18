@@ -5,6 +5,8 @@ namespace ZeroPaper.Domain.Entities;
 
 public class AppUser : TenantOwnedEntity
 {
+    private readonly List<AppSession> _sessions = [];
+
     private AppUser()
     {
     }
@@ -32,6 +34,7 @@ public class AppUser : TenantOwnedEntity
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
+    public IReadOnlyCollection<AppSession> Sessions => _sessions.AsReadOnly();
 
     public void ChangeIdentity(string fullName, string email)
     {

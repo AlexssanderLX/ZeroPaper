@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logoutPortal } from "@/lib/api";
 import type { PortalSession } from "@/lib/owner-portal";
 import { PORTAL_SESSION_KEY } from "@/lib/owner-portal";
 
 type SessionContextValue = {
   session: PortalSession;
-  clearSession: () => void;
+  clearSession: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -50,7 +51,13 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
   const value: SessionContextValue = {
     session,
-    clearSession: () => {
+    clearSession: async () => {
+      try {
+        await logoutPortal(session.token);
+      } catch {
+        // Best-effort logout keeps the local session from surviving stale tokens.
+      }
+
       window.sessionStorage.removeItem(PORTAL_SESSION_KEY);
       setSession(null);
       router.replace("/login");

@@ -3,6 +3,12 @@
 import Link from "next/link";
 import type { PortalModule } from "@/lib/owner-portal";
 import { useAppSession } from "@/components/app-session-provider";
+import { KitchenModule } from "@/components/modules/kitchen-module";
+import { OrdersModule } from "@/components/modules/orders-module";
+import { SettingsModule } from "@/components/modules/settings-module";
+import { StockModule } from "@/components/modules/stock-module";
+import { TablesModule } from "@/components/modules/tables-module";
+import { TeamModule } from "@/components/modules/team-module";
 
 export function ModuleScreen({ module }: { module: PortalModule }) {
   const { session, clearSession } = useAppSession();
@@ -25,62 +31,41 @@ export function ModuleScreen({ module }: { module: PortalModule }) {
           <Link className="ghost-link" href="/app">
             Voltar ao lobby
           </Link>
-          <button className="ghost-link button-link" type="button" onClick={clearSession}>
+          <button className="ghost-link button-link" type="button" onClick={() => void clearSession()}>
             Sair
           </button>
         </div>
       </header>
 
-      <section className="module-detail-layout">
-        <section className="hero-panel module-main-panel">
-          <div className="hero-stack">
-            <span className="eyebrow">{module.eyebrow}</span>
-            <h1>{module.title}</h1>
-            <p className="hero-description">{module.summary}</p>
+      <section className="hero-panel module-main-panel">
+        <div className="hero-stack">
+          <span className="eyebrow">{module.eyebrow}</span>
+          <h1>{module.title}</h1>
+          <p className="hero-description">{module.summary}</p>
+        </div>
 
-            <div className="hero-actions">
-              <Link className="primary-link" href="/app">
-                Voltar ao painel
-              </Link>
-            </div>
+        <section className="hero-showcase ambient-panel">
+          <div className="showcase-header">
+            <span className="eyebrow">Unidade</span>
+            <strong>{session.restaurantName}</strong>
           </div>
 
-          <section className="hero-showcase ambient-panel">
-            <div className="showcase-header">
-              <span className="eyebrow">Foco da area</span>
-              <strong>Rotina central da unidade</strong>
-            </div>
-
-            <div className="highlight-grid">
-              {module.highlights.map((item) => (
-                <article key={item} className="info-card interactive-card">
-                  <h2>{item}</h2>
-                  <p>Area preparada para concentrar essa parte da rotina da unidade.</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <div className="highlight-grid">
+            {module.highlights.map((item) => (
+              <article key={item} className="info-card interactive-card">
+                <h2>{item}</h2>
+              </article>
+            ))}
+          </div>
         </section>
-
-        <aside className="module-side-stack">
-          <section className="surface-card interactive-card">
-            <span className="eyebrow">Unidade</span>
-            <h2>{session.restaurantName}</h2>
-            <p>{session.ownerName}</p>
-          </section>
-
-          <section className="surface-card interactive-card">
-            <span className="eyebrow">Entradas da area</span>
-            <div className="module-stat-list">
-              {module.stats.map((stat) => (
-                <span key={stat} className="mini-chip">
-                  {stat}
-                </span>
-              ))}
-            </div>
-          </section>
-        </aside>
       </section>
+
+      {module.slug === "mesas" ? <TablesModule token={session.token} onUnauthorized={clearSession} /> : null}
+      {module.slug === "pedidos" ? <OrdersModule token={session.token} onUnauthorized={clearSession} /> : null}
+      {module.slug === "cozinha" ? <KitchenModule token={session.token} onUnauthorized={clearSession} /> : null}
+      {module.slug === "estoque" ? <StockModule token={session.token} onUnauthorized={clearSession} /> : null}
+      {module.slug === "equipe" ? <TeamModule token={session.token} onUnauthorized={clearSession} /> : null}
+      {module.slug === "ajustes" ? <SettingsModule token={session.token} onUnauthorized={clearSession} /> : null}
     </main>
   );
 }

@@ -1,14 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ApiError, getWorkspaceOverview, type WorkspaceOverview } from "@/lib/api";
 import { ownerModules } from "@/lib/owner-portal";
 import { useAppSession } from "@/components/app-session-provider";
-
-const quickOverview = [
-  { label: "Frente da casa", value: "Mesas e pedidos em um so fluxo" },
-  { label: "Cozinha", value: "Fila organizada por preparo" },
-  { label: "Estoque", value: "Visibilidade dos itens criticos" },
-];
 
 const quickActions = [
   { label: "Abrir mesas", href: "/app/mesas" },
@@ -18,6 +14,46 @@ const quickActions = [
 
 export function OwnerLobby() {
   const { session, clearSession } = useAppSession();
+  const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void (async () => {
+      try {
+        const response = await getWorkspaceOverview(session.token);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setOverview(response);
+        setErrorMessage("");
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 401) {
+          await clearSession();
+          return;
+        }
+
+        setErrorMessage("Nao foi possivel carregar a visao geral agora.");
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session.token]);
+
+  const quickOverview = [
+    { label: "Mesas ativas", value: String(overview?.activeTables ?? 0) },
+    { label: "Pedidos abertos", value: String(overview?.openOrders ?? 0) },
+    { label: "Alertas de estoque", value: String(overview?.lowStockItems ?? 0) },
+  ];
 
   return (
     <main className="page-shell app-shell">
@@ -38,7 +74,7 @@ export function OwnerLobby() {
             <span>{session.ownerName}</span>
             <small>{session.email}</small>
           </div>
-          <button className="ghost-link button-link" type="button" onClick={clearSession}>
+          <button className="ghost-link button-link" type="button" onClick={() => void clearSession()}>
             Sair
           </button>
         </div>
@@ -82,22 +118,24 @@ export function OwnerLobby() {
       <section className="metrics-grid">
         <article className="surface-card metric-card interactive-card">
           <span className="eyebrow">Conta</span>
-          <strong>{session.profile === "admin" ? "Operacao interna" : "Acesso da unidade"}</strong>
+          <strong>{session.profile === "admin" ? "Operacao interna" : session.role}</strong>
           <p>Entre no ambiente principal da unidade e siga o turno com mais clareza.</p>
         </article>
 
         <article className="surface-card metric-card interactive-card">
           <span className="eyebrow">Acesso</span>
           <strong>Entradas centralizadas</strong>
-          <p>Mesas, pedidos, cozinha e estoque ficam no mesmo ponto de acesso.</p>
+          <p>{overview?.activeTables ?? 0} mesas e {overview?.openOrders ?? 0} pedidos no mesmo ponto de acesso.</p>
         </article>
 
         <article className="surface-card metric-card interactive-card">
           <span className="eyebrow">Fluxo</span>
           <strong>Base operacional unica</strong>
-          <p>Atendimento, preparo e controle caminham juntos na rotina da casa.</p>
+          <p>{overview?.teamMembers ?? 0} acessos ativos e {overview?.lowStockItems ?? 0} alertas de reposicao.</p>
         </article>
       </section>
+
+      {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
 
       <section className="module-grid">
         {ownerModules.map((module) => (

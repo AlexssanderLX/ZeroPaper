@@ -1,7 +1,8 @@
 bin/
 obj/
 .vs/
-.dotnet/
+.dotnet*/
+.build/
 .idea/
 
 backend/bin/

@@ -20,9 +20,19 @@ public class ZeroPaperDbContextFactory : IDesignTimeDbContextFactory<ZeroPaperDb
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: true)
             .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddUserSecrets<ZeroPaperDbContextFactory>(optional: true)
             .AddEnvironmentVariables()
             .Build();
+
+        if (string.IsNullOrWhiteSpace(configuration.GetConnectionString("DefaultConnection")))
+        {
+            configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile($"appsettings.{environment}.json", optional: true)
+                .AddEnvironmentVariables()
+                .AddUserSecrets<ZeroPaperDbContextFactory>(optional: true)
+                .Build();
+        }
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection was not configured.");
@@ -31,7 +41,7 @@ public class ZeroPaperDbContextFactory : IDesignTimeDbContextFactory<ZeroPaperDb
 
         optionsBuilder.UseMySql(
             connectionString,
-            ServerVersion.AutoDetect(connectionString));
+            new MySqlServerVersion(new Version(8, 0, 36)));
 
         return new ZeroPaperDbContext(optionsBuilder.Options);
     }

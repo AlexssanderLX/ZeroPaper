@@ -15,10 +15,11 @@ public class QrCodeAccess : TenantOwnedEntity
         string label,
         string accessPath,
         bool isSingleUse = false,
-        DateTime? expiresAtUtc = null) : base(tenantId)
+        DateTime? expiresAtUtc = null,
+        string? publicCode = null) : base(tenantId)
     {
         CompanyId = companyId;
-        PublicCode = Guid.NewGuid().ToString("N");
+        PublicCode = string.IsNullOrWhiteSpace(publicCode) ? Guid.NewGuid().ToString("N") : publicCode.Trim().ToLowerInvariant();
         UpdateDestination(label, accessPath);
         IsSingleUse = isSingleUse;
         ExpiresAtUtc = expiresAtUtc;
@@ -37,6 +38,7 @@ public class QrCodeAccess : TenantOwnedEntity
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
+    public DiningTable? DiningTable { get; private set; }
 
     public void UpdateDestination(string label, string accessPath)
     {

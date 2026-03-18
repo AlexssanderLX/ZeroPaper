@@ -1,0 +1,307 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
+
+type RequestOptions = {
+  method?: "GET" | "POST" | "PUT" | "PATCH";
+  body?: unknown;
+  token?: string;
+};
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+export type LoginPayload = {
+  email: string;
+  password: string;
+  profile: "restaurant" | "admin";
+};
+
+export type LoginResult = {
+  token: string;
+  expiresAtUtc: string;
+  email: string;
+  ownerName: string;
+  role: string;
+  restaurantName: string;
+};
+
+export type WorkspaceOverview = {
+  activeTables: number;
+  openOrders: number;
+  lowStockItems: number;
+  teamMembers: number;
+};
+
+export type DiningTable = {
+  id: string;
+  name: string;
+  internalCode: string;
+  seats: number;
+  status: string;
+  openOrderCount: number;
+  publicCode: string;
+  accessUrl: string;
+};
+
+export type OrderItemInput = {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  notes?: string;
+};
+
+export type OrderItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string | null;
+};
+
+export type CustomerOrder = {
+  id: string;
+  number: number;
+  tableId: string;
+  tableName: string;
+  status: string;
+  customerName?: string | null;
+  notes?: string | null;
+  totalAmount: number;
+  submittedAtUtc: string;
+  items: OrderItem[];
+};
+
+export type StockItem = {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  currentQuantity: number;
+  minimumQuantity: number;
+  isLowStock: boolean;
+};
+
+export type TeamMember = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  lastLoginAtUtc?: string | null;
+};
+
+export type CompanySettings = {
+  legalName: string;
+  tradeName: string;
+  accessSlug: string;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+};
+
+export type PublicTableView = {
+  restaurantName: string;
+  tableName: string;
+  accessCode: string;
+};
+
+async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers({
+    Accept: "application/json",
+  });
+
+  if (options.body !== undefined) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (options.token) {
+    headers.set("Authorization", `Bearer ${options.token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    let message = "Nao foi possivel concluir a requisicao.";
+
+    try {
+      const errorBody = (await response.json()) as { detail?: string; title?: string };
+      message = errorBody.detail || errorBody.title || message;
+    } catch {
+      message = response.statusText || message;
+    }
+
+    throw new ApiError(message, response.status);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+export function loginPortal(payload: LoginPayload) {
+  return apiRequest<LoginResult>("/api/auth/login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function logoutPortal(token: string) {
+  return apiRequest<void>("/api/auth/logout", {
+    method: "POST",
+    token,
+  });
+}
+
+export function getWorkspaceOverview(token: string) {
+  return apiRequest<WorkspaceOverview>("/api/workspace/overview", { token });
+}
+
+export function getTables(token: string) {
+  return apiRequest<DiningTable[]>("/api/workspace/tables", { token });
+}
+
+export function createTable(token: string, payload: { name: string; seats: number }) {
+  return apiRequest<DiningTable>("/api/workspace/tables", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function getOrders(token: string, kitchenOnly = false) {
+  return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}`, { token });
+}
+
+export function createOrder(
+  token: string,
+  payload: {
+    tableId?: string;
+    customerName?: string;
+    notes?: string;
+    items: OrderItemInput[];
+  },
+) {
+  return apiRequest<CustomerOrder>("/api/workspace/orders", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateOrderStatus(token: string, orderId: string, status: string) {
+  return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}/status`, {
+    method: "PATCH",
+    token,
+    body: { status },
+  });
+}
+
+export function getStockItems(token: string) {
+  return apiRequest<StockItem[]>("/api/workspace/stock", { token });
+}
+
+export function createStockItem(
+  token: string,
+  payload: {
+    name: string;
+    category: string;
+    unit: string;
+    currentQuantity: number;
+    minimumQuantity: number;
+  },
+) {
+  return apiRequest<StockItem>("/api/workspace/stock", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateStockItem(
+  token: string,
+  stockItemId: string,
+  payload: {
+    name: string;
+    category: string;
+    unit: string;
+    currentQuantity: number;
+    minimumQuantity: number;
+  },
+) {
+  return apiRequest<StockItem>(`/api/workspace/stock/${stockItemId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function getTeamMembers(token: string) {
+  return apiRequest<TeamMember[]>("/api/workspace/team", { token });
+}
+
+export function createTeamMember(
+  token: string,
+  payload: {
+    fullName: string;
+    email: string;
+    password: string;
+    role: string;
+  },
+) {
+  return apiRequest<TeamMember>("/api/workspace/team", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function getCompanySettings(token: string) {
+  return apiRequest<CompanySettings>("/api/workspace/settings", { token });
+}
+
+export function updateCompanySettings(
+  token: string,
+  payload: {
+    legalName: string;
+    tradeName: string;
+    contactEmail?: string;
+    contactPhone?: string;
+  },
+) {
+  return apiRequest<CompanySettings>("/api/workspace/settings", {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function getPublicTable(publicCode: string) {
+  return apiRequest<PublicTableView>(`/api/public/tables/${publicCode}`);
+}
+
+export function createPublicOrder(
+  publicCode: string,
+  payload: {
+    customerName?: string;
+    notes?: string;
+    items: OrderItemInput[];
+  },
+) {
+  return apiRequest<CustomerOrder>(`/api/public/tables/${publicCode}/orders`, {
+    method: "POST",
+    body: payload,
+  });
+}

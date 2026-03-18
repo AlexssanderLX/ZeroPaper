@@ -2,12 +2,8 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  buildOwnerName,
-  PORTAL_SESSION_KEY,
-  type AccessProfile,
-  type PortalSession,
-} from "@/lib/owner-portal";
+import { ApiError, loginPortal } from "@/lib/api";
+import { PORTAL_SESSION_KEY, type AccessProfile, type PortalSession } from "@/lib/owner-portal";
 
 export function LoginAccessForm() {
   const router = useRouter();
@@ -29,24 +25,36 @@ export function LoginAccessForm() {
 
     setErrorMessage("");
 
-    const ownerName = buildOwnerName(email) || "Responsavel da unidade";
-    const restaurantName =
-      profile === "admin"
-        ? "Operacao ZeroPaper"
-        : email === "teste.bairro@zeropaper.local"
-          ? "Restaurante Teste Bairro"
-          : `Unidade ${ownerName}`;
-
-    const session: PortalSession = {
-      email,
-      profile,
-      ownerName,
-      restaurantName,
-    };
-
     startTransition(() => {
-      window.sessionStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
-      router.replace("/app");
+      void (async () => {
+        try {
+          const response = await loginPortal({
+            email,
+            password,
+            profile,
+          });
+
+          const session: PortalSession = {
+            token: response.token,
+            expiresAtUtc: response.expiresAtUtc,
+            email: response.email,
+            profile,
+            ownerName: response.ownerName,
+            restaurantName: response.restaurantName,
+            role: response.role,
+          };
+
+          window.sessionStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
+          router.replace("/app");
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 401) {
+            setErrorMessage("Email ou senha invalidos.");
+            return;
+          }
+
+          setErrorMessage("Nao foi possivel entrar agora.");
+        }
+      })();
     });
   }
 

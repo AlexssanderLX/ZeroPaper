@@ -1,10 +1,13 @@
 export type AccessProfile = "restaurant" | "admin";
 
 export type PortalSession = {
+  token: string;
   email: string;
   profile: AccessProfile;
   restaurantName: string;
   ownerName: string;
+  role: string;
+  expiresAtUtc: string;
 };
 
 export type PortalModule = {
@@ -88,4 +91,3 @@ export function buildOwnerName(email: string) {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
-
