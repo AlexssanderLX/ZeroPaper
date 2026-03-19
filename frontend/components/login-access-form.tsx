@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ApiError, loginPortal } from "@/lib/api";
 import { PORTAL_SESSION_KEY, type AccessProfile, type PortalSession } from "@/lib/owner-portal";
 
@@ -45,7 +46,7 @@ export function LoginAccessForm() {
           };
 
           window.sessionStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
-          router.replace("/app");
+          router.replace(profile === "admin" ? "/admin" : "/app");
         } catch (error) {
           if (error instanceof ApiError && error.status === 401) {
             setErrorMessage("Email ou senha invalidos.");
@@ -83,6 +84,15 @@ export function LoginAccessForm() {
       <button className="primary-link button-link" type="submit" disabled={isPending}>
         {isPending ? "Entrando..." : "Entrar"}
       </button>
+
+      <div className="form-link-row">
+        <Link className="ghost-link inline-link" href="/redefinir-solicitacao">
+          Esqueci minha senha
+        </Link>
+        <Link className="ghost-link inline-link" href="/cadastro">
+          Cadastrar unidade
+        </Link>
+      </div>
     </form>
   );
 }

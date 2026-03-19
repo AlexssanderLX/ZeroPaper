@@ -47,6 +47,9 @@ export default function Home() {
           </p>
 
           <div className="hero-actions">
+            <Link className="ghost-link" href="/cadastro">
+              Cadastrar minha unidade
+            </Link>
             <Link className="primary-link" href="/login">
               Acessar plataforma
             </Link>
@@ -110,6 +113,25 @@ export default function Home() {
               {module}
             </span>
           ))}
+        </div>
+      </section>
+
+      <section className="surface-card signup-banner ambient-panel subtle interactive-card">
+        <div className="signup-banner-copy">
+          <span className="eyebrow">Novo por aqui</span>
+          <h2>Cadastre sua unidade e comece a operar na ZeroPaper.</h2>
+          <p className="body-copy">
+            O cadastro e liberado por codigo de acesso, para que cada nova unidade entre na plataforma com aprovacao previa.
+          </p>
+        </div>
+
+        <div className="signup-banner-actions">
+          <Link className="primary-link" href="/cadastro">
+            Fazer cadastro
+          </Link>
+          <Link className="ghost-link" href="/login">
+            Ja tenho acesso
+          </Link>
         </div>
       </section>
     </main>

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZeroPaper.Data;
 
@@ -11,9 +12,11 @@ using ZeroPaper.Data;
 namespace ZeroPaper.Migrations
 {
     [DbContext(typeof(ZeroPaperDbContext))]
-    partial class ZeroPaperDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318214642_SignupCodeAccessControl")]
+    partial class SignupCodeAccessControl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -342,45 +345,6 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CustomerOrderId");
 
                     b.ToTable("OrderItems", (string)null);
-                });
-
-            modelBuilder.Entity("ZeroPaper.Domain.Entities.PasswordResetRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("AppUserId")
-                        .HasColumnType("char(36)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("UsedAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("AppUserId", "IsActive");
-
-                    b.ToTable("PasswordResetRequests", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.QrCodeAccess", b =>
@@ -761,17 +725,6 @@ namespace ZeroPaper.Migrations
                         .IsRequired();
 
                     b.Navigation("CustomerOrder");
-                });
-
-            modelBuilder.Entity("ZeroPaper.Domain.Entities.PasswordResetRequest", b =>
-                {
-                    b.HasOne("ZeroPaper.Domain.Entities.AppUser", "AppUser")
-                        .WithMany()
-                        .HasForeignKey("AppUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AppUser");
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.QrCodeAccess", b =>

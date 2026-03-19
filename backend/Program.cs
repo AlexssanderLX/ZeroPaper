@@ -75,10 +75,19 @@ builder.Services.AddScoped<IQrCodeAccessRepository, QrCodeAccessRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IAdminSignupCodeService, AdminSignupCodeService>();
+builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestNotificationService>();
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
+builder.Services.AddSingleton<PlatformRootSeeder>();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var rootSeeder = scope.ServiceProvider.GetRequiredService<PlatformRootSeeder>();
+    await rootSeeder.EnsureRootAccountAsync();
+}
 
 app.UseExceptionHandler(errorApp =>
 {

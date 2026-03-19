@@ -8,7 +8,7 @@ const accessCards = [
   },
   {
     title: "Acesso da operacao",
-    text: "Para gestao interna da plataforma ZeroPaper.",
+    text: "Para root e liberacoes internas da plataforma ZeroPaper.",
   },
 ];
 

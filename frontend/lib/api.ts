@@ -111,6 +111,82 @@ export type PublicTableView = {
   accessCode: string;
 };
 
+export type RestaurantSignupPayload = {
+  restaurantName: string;
+  legalName: string;
+  ownerName: string;
+  ownerEmail: string;
+  accessCode: string;
+  ownerPassword: string;
+  contactPhone?: string;
+  planName: string;
+  monthlyPrice: number;
+  maxUsers: number;
+};
+
+export type RestaurantSignupResult = {
+  tenantIdentifier: string;
+  accessSlug: string;
+  accessUrl: string;
+  ownerEmail: string;
+  planName: string;
+};
+
+export type SignupCode = {
+  id: string;
+  label: string;
+  boundEmail?: string | null;
+  allowedPlanName?: string | null;
+  allowedMaxUsers?: number | null;
+  expiresAtUtc: string;
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
+  createdAtUtc: string;
+};
+
+export type CreateSignupCodePayload = {
+  label: string;
+  boundEmail?: string;
+  expiresInDays: number;
+  maxUses: number;
+  allowedPlanName?: string;
+  allowedMaxUsers?: number;
+};
+
+export type CreateSignupCodeResult = SignupCode & {
+  rawCode: string;
+};
+
+export type AccessRequestPayload = {
+  restaurantName: string;
+  legalName?: string;
+  ownerName: string;
+  ownerEmail: string;
+  contactPhone?: string;
+  cityRegion?: string;
+  notes?: string;
+};
+
+export type AccessRequestResult = {
+  accepted: boolean;
+  message: string;
+};
+
+export type PasswordResetRequestPayload = {
+  email: string;
+};
+
+export type PasswordResetRequestResult = {
+  accepted: boolean;
+  message: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  newPassword: string;
+};
+
 async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers({
     Accept: "application/json",
@@ -153,6 +229,46 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
 
 export function loginPortal(payload: LoginPayload) {
   return apiRequest<LoginResult>("/api/auth/login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function createRestaurantSignup(payload: RestaurantSignupPayload) {
+  return apiRequest<RestaurantSignupResult>("/api/onboarding/restaurants", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function getSignupCodes(token: string) {
+  return apiRequest<SignupCode[]>("/api/admin/signup-codes", { token });
+}
+
+export function createSignupCode(token: string, payload: CreateSignupCodePayload) {
+  return apiRequest<CreateSignupCodeResult>("/api/admin/signup-codes", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function createAccessRequest(payload: AccessRequestPayload) {
+  return apiRequest<AccessRequestResult>("/api/public/access-requests", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function requestPasswordReset(payload: PasswordResetRequestPayload) {
+  return apiRequest<PasswordResetRequestResult>("/api/auth/password/request-reset", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function resetPassword(payload: ResetPasswordPayload) {
+  return apiRequest<void>("/api/auth/password/reset", {
     method: "POST",
     body: payload,
   });

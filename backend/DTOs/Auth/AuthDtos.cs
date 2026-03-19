@@ -17,3 +17,19 @@ public class LoginResponseDto
     public string RestaurantName { get; set; } = string.Empty;
 }
 
+public class PasswordResetRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class PasswordResetRequestResponseDto
+{
+    public bool Accepted { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+public class ResetPasswordDto
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}

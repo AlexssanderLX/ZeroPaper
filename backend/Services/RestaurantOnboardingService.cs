@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
 using ZeroPaper.Data;
@@ -45,6 +46,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         RestaurantOnboardingRequestDto request,
         CancellationToken cancellationToken = default)
     {
+        var signupCode = await ValidateSignupCodeAsync(request.AccessCode, request.OwnerEmail, cancellationToken);
         var tenantIdentifier = await EnsureUniqueTenantIdentifierAsync(
             request.TenantIdentifier ?? request.RestaurantName,
             cancellationToken);
@@ -74,9 +76,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
 
         var subscription = new Subscription(
             tenant.Id,
-            request.PlanName,
+            signupCode.AllowedPlanName ?? request.PlanName,
             request.MonthlyPrice,
-            request.MaxUsers,
+            signupCode.AllowedMaxUsers ?? request.MaxUsers,
             DateTime.UtcNow,
             SubscriptionStatus.Active);
 
@@ -93,6 +95,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         await _appUserRepository.AddAsync(owner, cancellationToken);
         await _subscriptionRepository.AddAsync(subscription, cancellationToken);
         await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
+        signupCode.RegisterUse(DateTime.UtcNow);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -105,6 +108,23 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             OwnerEmail = owner.Email,
             PlanName = subscription.PlanName
         };
+    }
+
+    private async Task<SignupCode> ValidateSignupCodeAsync(string rawCode, string ownerEmail, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rawCode);
+
+        var normalizedHash = ComputeSignupCodeHash(rawCode);
+        var signupCode = await _context.SignupCodes
+            .FirstOrDefaultAsync(item => item.CodeHash == normalizedHash, cancellationToken)
+            ?? throw new InvalidOperationException("Codigo de liberacao invalido ou expirado.");
+
+        if (!signupCode.IsAvailable(ownerEmail))
+        {
+            throw new InvalidOperationException("Codigo de liberacao invalido ou expirado.");
+        }
+
+        return signupCode;
     }
 
     private async Task<string> EnsureUniqueTenantIdentifierAsync(string baseIdentifier, CancellationToken cancellationToken)
@@ -163,5 +183,11 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
 
         var slug = collapsed.Trim('-');
         return string.IsNullOrWhiteSpace(slug) ? "tenant" : slug;
+    }
+
+    private static string ComputeSignupCodeHash(string rawCode)
+    {
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            Encoding.UTF8.GetBytes(SignupCode.NormalizeRawCode(rawCode))));
     }
 }

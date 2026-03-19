@@ -20,6 +20,8 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<StockItem> StockItems => Set<StockItem>();
+    public DbSet<SignupCode> SignupCodes => Set<SignupCode>();
+    public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -283,6 +285,43 @@ public class ZeroPaperDbContext : DbContext
                 .WithMany(x => x.StockItems)
                 .HasForeignKey(x => x.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SignupCode>(entity =>
+        {
+            entity.ToTable("SignupCodes");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Label).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.CodeHash).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.BoundEmail).HasMaxLength(180);
+            entity.Property(x => x.AllowedPlanName).HasMaxLength(120);
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            entity.Property(x => x.ExpiresAtUtc).IsRequired();
+
+            entity.HasIndex(x => x.CodeHash).IsUnique();
+        });
+
+        modelBuilder.Entity<PasswordResetRequest>(entity =>
+        {
+            entity.ToTable("PasswordResetRequests");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            entity.Property(x => x.ExpiresAtUtc).IsRequired();
+
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.AppUserId, x.IsActive });
+
+            entity.HasOne(x => x.AppUser)
+                .WithMany()
+                .HasForeignKey(x => x.AppUserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

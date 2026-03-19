@@ -28,6 +28,10 @@ public class RestaurantOnboardingRequestDto
     public string OwnerEmail { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(60)]
+    public string AccessCode { get; set; } = string.Empty;
+
+    [Required]
     [MinLength(6)]
     [MaxLength(100)]
     public string OwnerPassword { get; set; } = string.Empty;

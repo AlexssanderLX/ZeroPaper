@@ -10,10 +10,12 @@ namespace ZeroPaper.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthSessionService _authSessionService;
+    private readonly IPasswordResetService _passwordResetService;
 
-    public AuthController(IAuthSessionService authSessionService)
+    public AuthController(IAuthSessionService authSessionService, IPasswordResetService passwordResetService)
     {
         _authSessionService = authSessionService;
+        _passwordResetService = passwordResetService;
     }
 
     [HttpPost("login")]
@@ -33,5 +35,27 @@ public class AuthController : ControllerBase
         await _authSessionService.LogoutAsync(Request.Headers.Authorization.ToString(), cancellationToken);
         return NoContent();
     }
-}
 
+    [HttpPost("password/request-reset")]
+    [EnableRateLimiting("public-write")]
+    [ProducesResponseType(typeof(PasswordResetRequestResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RequestPasswordResetAsync(
+        [FromBody] PasswordResetRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _passwordResetService.RequestAsync(request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("password/reset")]
+    [EnableRateLimiting("public-write")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPasswordAsync(
+        [FromBody] ResetPasswordDto request,
+        CancellationToken cancellationToken)
+    {
+        var succeeded = await _passwordResetService.ResetAsync(request, cancellationToken);
+        return succeeded ? NoContent() : BadRequest();
+    }
+}

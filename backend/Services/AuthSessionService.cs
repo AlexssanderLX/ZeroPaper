@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ZeroPaper.Data;
 using ZeroPaper.Domain.Entities;
+using ZeroPaper.Domain.Enums;
 using ZeroPaper.DTOs.Auth;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
@@ -50,8 +51,14 @@ public class AuthSessionService : IAuthSessionService
 
         var user = matches[0];
 
-        if (request.Profile.Equals("admin", StringComparison.OrdinalIgnoreCase) &&
-            !user.Email.EndsWith("@zeropaper.local", StringComparison.OrdinalIgnoreCase))
+        if (request.Profile.Equals("admin", StringComparison.OrdinalIgnoreCase))
+        {
+            if (user.Role != UserRole.Root)
+            {
+                return null;
+            }
+        }
+        else if (user.Role == UserRole.Root)
         {
             return null;
         }
