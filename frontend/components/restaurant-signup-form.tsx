@@ -165,8 +165,6 @@ export function RestaurantSignupForm() {
   return (
     <>
       <form ref={formRef} className="login-form signup-form" onSubmit={handleSubmit}>
-        <p className="signup-form-note">Campos marcados como obrigatorios precisam ser preenchidos.</p>
-
         <div className="module-inline-grid">
           <div className="field-group">
             <label className="field-label-row" htmlFor="restaurantName">
@@ -299,7 +297,6 @@ export function RestaurantSignupForm() {
       <div className="request-access-card">
         <span className="eyebrow">Sem codigo</span>
         <strong>Solicite sua liberacao</strong>
-        <p>Sem codigo? Envie a verificacao com os dados que voce ja preencheu.</p>
         {requestMessage ? <p className={`module-feedback ${requestStatus ?? "success"}`}>{requestMessage}</p> : null}
         <button className="ghost-link button-link" type="button" onClick={handleAccessRequest} disabled={isRequestPending}>
           {isRequestPending ? "Enviando..." : "Solicitar verificacao"}

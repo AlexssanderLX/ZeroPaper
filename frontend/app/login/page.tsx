@@ -2,8 +2,8 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { LoginAccessForm } from "@/components/login-access-form";
 
-const loginMarks = ["Unidade", "Operacao", "Recuperacao segura"];
-const loginEntries = ["Perfil liberado", "Email validado", "Entrada no painel"];
+const loginMarks = ["Unidade", "Root", "Recuperacao"];
+const loginEntries = ["Identificacao", "Sessao", "Painel"];
 
 export default function LoginPage() {
   return (
@@ -20,15 +20,12 @@ export default function LoginPage() {
             <BrandMark small />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
-              <strong>Acesso seguro</strong>
+              <strong>Acesso</strong>
             </div>
           </div>
 
-          <h1 className="login-title">Sua entrada na operacao comeca aqui.</h1>
-          <p className="body-copy">
-            Entre com o acesso da sua unidade ou da operacao ZeroPaper e siga
-            direto para o painel certo.
-          </p>
+          <h1 className="login-title">Entrar na ZeroPaper.</h1>
+          <p className="body-copy">Escolha o perfil e siga para o painel.</p>
 
           <div className="login-mark-row">
             {loginMarks.map((item) => (
@@ -42,8 +39,8 @@ export default function LoginPage() {
             <div className="login-stage-orb" />
 
             <article className="login-stage-window login-stage-window-main">
-              <span className="eyebrow">Entrada segura</span>
-              <strong>Acesso imediato</strong>
+              <span className="eyebrow">Sessao</span>
+              <strong>Entrada segura</strong>
 
               <div className="login-stage-rail">
                 {loginEntries.map((entry) => (
@@ -55,7 +52,7 @@ export default function LoginPage() {
             <article className="login-stage-window login-stage-window-accent">
               <span className="eyebrow">Perfil</span>
               <strong>Unidade</strong>
-              <p>Painel do dono</p>
+              <p>Painel</p>
             </article>
 
             <article className="login-stage-window login-stage-window-chip">

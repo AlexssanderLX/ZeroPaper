@@ -403,7 +403,6 @@ export function AdminSignupCodeManager() {
           <div className="admin-header-copy">
             <span className="eyebrow">ZeroPaper Root</span>
             <h1 className="admin-title">Admin</h1>
-            <p className="body-copy">Cadastros e contas em um painel mais limpo.</p>
           </div>
 
           <div className="admin-stat-row">
@@ -484,12 +483,11 @@ export function AdminSignupCodeManager() {
 
           {loading ? (
             <p className="loading-state">Carregando codigos...</p>
-          ) : codes.length === 0 ? (
-            <div className="module-empty-state">
-              <strong>Nenhum codigo gerado.</strong>
-              <p>Crie o primeiro codigo para liberar o cadastro de uma nova unidade.</p>
-            </div>
-          ) : (
+        ) : codes.length === 0 ? (
+          <div className="module-empty-state">
+            <strong>Nenhum codigo gerado.</strong>
+          </div>
+        ) : (
             <div className="module-card-list">
               {codes.map((code) => {
                 const status = resolveCodeStatus(code);
@@ -526,11 +524,7 @@ export function AdminSignupCodeManager() {
         ) : users.length === 0 ? (
           <div className="module-empty-state">
             <strong>{accountsUnavailable ? "Contas indisponiveis agora." : "Nenhuma conta cadastrada ainda."}</strong>
-            <p>
-              {accountsUnavailable
-                ? "Reinicie a API para liberar a lista de contas desta tela."
-                : "As contas criadas no sistema aparecem aqui com status e sessao."}
-            </p>
+            {accountsUnavailable ? <p>Reinicie a API para liberar esta lista.</p> : null}
           </div>
         ) : (
           <div className="module-card-list">

@@ -3,19 +3,19 @@ import { BrandMark } from "@/components/brand-mark";
 
 const pillars = [
   {
-    eyebrow: "QR nas mesas",
-    title: "Agora voce recebe pedidos direto da mesa.",
-    text: "O cliente acessa o QR, envia o pedido e sua unidade acompanha tudo no mesmo fluxo.",
+    eyebrow: "Mesas",
+    title: "Pedidos pelo QR",
+    text: "Cada mesa entra pronta para abrir no celular.",
   },
   {
-    eyebrow: "Cozinha em ritmo",
-    title: "Agora voce acompanha o que entrou e o que precisa sair.",
-    text: "A fila da cozinha fica mais clara para sua operacao responder com mais ritmo.",
+    eyebrow: "Pedidos",
+    title: "Fila organizada",
+    text: "Os pedidos chegam em um fluxo direto para a unidade.",
   },
   {
-    eyebrow: "Estoque essencial",
-    title: "Agora voce enxerga os itens criticos antes da falta.",
-    text: "O basico da reposicao fica visivel no mesmo sistema, sem controle solto por fora.",
+    eyebrow: "Estoque",
+    title: "Controle essencial",
+    text: "O basico do dia a dia fica no mesmo painel.",
   },
 ];
 
@@ -34,12 +34,8 @@ export default function Home() {
             </div>
           </div>
 
-          <h1>Agora voce acompanha pedidos, cozinha e estoque no mesmo fluxo.</h1>
-          <p className="hero-description">
-            Com a ZeroPaper, voce centraliza o que entra pelas mesas, acompanha
-            o andamento da cozinha e mantem a operacao da unidade mais organizada
-            ao longo do dia.
-          </p>
+          <h1>Agora voce conduz a unidade em um fluxo mais direto.</h1>
+          <p className="hero-description">Pedidos, mesas e operacao no mesmo painel.</p>
 
           <div className="hero-actions">
             <Link className="primary-link" href="/cadastro">
@@ -71,7 +67,7 @@ export default function Home() {
 
             <div className="sales-window-head">
               <strong>Fluxo da unidade</strong>
-              <small>ao vivo</small>
+              <small>ZeroPaper</small>
             </div>
 
             <div className="sales-order-stack">
@@ -131,7 +127,7 @@ export default function Home() {
 
       <section className="surface-card sales-banner ambient-panel subtle">
         <span className="eyebrow">ZeroPaper</span>
-        <h2>Agora voce conduz a unidade com mais controle no dia a dia.</h2>
+        <h2>Entrada, pedidos e mesas no mesmo ritmo.</h2>
       </section>
     </main>
   );

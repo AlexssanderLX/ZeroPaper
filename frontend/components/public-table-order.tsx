@@ -172,7 +172,6 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
             <div className="public-menu-header">
               <div>
                 <h1 className="public-title">{table?.tableName}</h1>
-                <p className="body-copy">Escolha os itens e envie o pedido para a casa.</p>
               </div>
 
               <div className="public-menu-total">
@@ -208,7 +207,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
                             <div>
                               {item.accentLabel ? <span className="eyebrow">{item.accentLabel}</span> : null}
                               <h2>{item.name}</h2>
-                              <p>{item.description || "Pronto para pedir na mesa."}</p>
+                              {item.description ? <p>{item.description}</p> : null}
                             </div>
                             <strong>{formatCurrency(item.price)}</strong>
                           </div>
@@ -248,7 +247,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
 
                   {cartItems.length === 0 ? (
                     <div className="module-empty-state compact-empty-state">
-                      <p>Toque nos itens do cardapio para montar o pedido.</p>
+                      <p>Nenhum item.</p>
                     </div>
                   ) : (
                     <div className="public-cart-stack">
@@ -283,7 +282,6 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
             ) : (
               <div className="module-empty-state">
                 <strong>Cardapio indisponivel.</strong>
-                <p>Essa unidade ainda nao publicou itens para pedido pela mesa.</p>
               </div>
             )}
           </>
@@ -295,7 +293,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
           <section className="surface-card public-success-card">
             <span className="eyebrow">Pedido enviado</span>
             <h2>Pedido #{createdOrder.number}</h2>
-            <p>{createdOrder.items.length} itens enviados para a operacao.</p>
+            <p>{createdOrder.items.length} itens</p>
             <p>{formatCurrency(createdOrder.totalAmount)}</p>
             <Link className="ghost-link" href={`/q/${publicCode}`}>
               Fazer novo pedido

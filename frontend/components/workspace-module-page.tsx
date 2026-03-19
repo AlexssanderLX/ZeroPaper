@@ -15,18 +15,18 @@ export function WorkspaceModulePage({
 
   return (
     <WorkspaceShell>
-      <section className="hero-panel module-main-panel">
-        <div className="hero-stack">
-          <span className="eyebrow">{module.eyebrow}</span>
-          <h1>{module.title}</h1>
-        </div>
+      <section className="surface-card workspace-summary-card module-summary-card">
+        <div className="workspace-summary-head">
+          <div className="hero-stack">
+            <span className="eyebrow">{module.eyebrow}</span>
+            <h1>{module.title}</h1>
+          </div>
 
-        <section className="hero-showcase ambient-panel">
-          <div className="showcase-header">
+          <div className="workspace-owner-chip">
             <span className="eyebrow">Unidade</span>
             <strong>{session.restaurantName}</strong>
           </div>
-        </section>
+        </div>
       </section>
 
       {children}

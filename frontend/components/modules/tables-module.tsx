@@ -91,9 +91,6 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
         <section className="surface-card module-form-card table-creation-card">
           <span className="eyebrow">Nova mesa</span>
           <h2>Criar mesa com QR pronto</h2>
-          <p className="body-copy">
-            Cadastre a mesa uma vez e deixe o acesso publico pronto para o cliente abrir no celular.
-          </p>
 
           <form className="module-form" onSubmit={handleSubmit}>
             <div className="field-group">
@@ -184,8 +181,7 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
             </div>
           ) : (
             <div className="module-empty-state">
-              <strong>Crie a primeira mesa.</strong>
-              <p>Assim que uma mesa for criada, o QR e o link publico aparecem aqui.</p>
+              <strong>Nenhuma mesa criada.</strong>
             </div>
           )}
         </section>
@@ -202,7 +198,6 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
         ) : tables.length === 0 ? (
           <div className="module-empty-state">
             <strong>Nenhuma mesa criada.</strong>
-            <p>Cadastre a primeira mesa para liberar o acesso publico por QR e receber pedidos.</p>
           </div>
         ) : (
           <div className="module-card-list">

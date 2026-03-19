@@ -1386,12 +1386,12 @@ select {
 
 .request-access-card {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   padding: 18px;
-  margin-top: 18px;
-  border-radius: 20px;
+  margin-top: 16px;
+  border-radius: 22px;
   border: 1px solid rgba(109, 83, 67, 0.14);
-  background: rgba(255, 250, 245, 0.9);
+  background: rgba(255, 251, 247, 0.92);
 }
 
 .request-access-card strong {
@@ -1511,6 +1511,10 @@ select {
 .admin-header-card,
 .admin-inline-note {
   padding-block: 18px;
+}
+
+.admin-header-card {
+  gap: 14px;
 }
 
 .admin-header-row {
@@ -1633,6 +1637,41 @@ select {
   gap: 18px;
 }
 
+.workspace-summary-card,
+.module-summary-card {
+  gap: 18px;
+}
+
+.workspace-summary-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.workspace-owner-chip {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(109, 83, 67, 0.12);
+  background: rgba(255, 251, 247, 0.88);
+}
+
+.workspace-owner-chip strong {
+  color: var(--card-title);
+  font-size: 1rem;
+}
+
+.workspace-overview-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compact-info-card {
+  padding: 16px 18px;
+}
+
 .overview-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1668,8 +1707,11 @@ select {
 }
 
 .module-card {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 16px;
+  min-height: 124px;
 }
 
 .module-entry-link {
@@ -1677,7 +1719,7 @@ select {
 }
 
 .module-entry-link .ghost-link {
-  justify-self: start;
+  flex: 0 0 auto;
   pointer-events: none;
 }
 
@@ -1804,15 +1846,15 @@ select {
 
 .table-preview-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 24px;
-  align-items: center;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
 }
 
 .table-qr-frame {
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 16px;
   border-radius: 28px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 233, 223, 0.9));
@@ -1824,7 +1866,7 @@ select {
 
 .table-qr-image {
   display: block;
-  width: min(100%, 240px);
+  width: min(100%, 228px);
   height: auto;
   border-radius: 20px;
   background: #ffffff;
@@ -1832,7 +1874,8 @@ select {
 
 .table-preview-copy {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  min-width: 0;
 }
 
 .table-preview-stat-row {
@@ -1871,16 +1914,18 @@ select {
 
 .table-preview-code strong {
   color: var(--card-title);
-  font-family: var(--font-display), serif;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  letter-spacing: -0.03em;
-  line-height: 0.95;
+  font-family: var(--font-ui), sans-serif;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  word-break: break-all;
 }
 
 .table-link-stack p {
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.5;
   word-break: break-all;
+  font-size: 0.94rem;
 }
 
 .table-preview-actions,
@@ -1949,12 +1994,12 @@ select {
 
 .public-menu-card {
   display: grid;
-  gap: 20px;
+  gap: 22px;
 }
 
 .public-menu-header {
   display: flex;
-  align-items: end;
+  align-items: start;
   justify-content: space-between;
   gap: 16px;
 }
@@ -1962,7 +2007,7 @@ select {
 .public-menu-total {
   display: grid;
   gap: 6px;
-  min-width: 150px;
+  min-width: 170px;
   padding: 16px 18px;
   border-radius: 22px;
   border: 1px solid rgba(109, 83, 67, 0.12);
@@ -1984,8 +2029,9 @@ select {
 
 .public-menu-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .public-menu-main {
@@ -2007,7 +2053,7 @@ select {
 
 .public-product-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 
@@ -2020,7 +2066,7 @@ select {
 
 .public-product-card {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   padding: 20px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -2035,28 +2081,34 @@ select {
 .public-product-top {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  align-items: start;
+  gap: 18px;
+}
+
+.public-product-top > div {
+  min-width: 0;
 }
 
 .public-product-top h2 {
   margin: 8px 0 0;
   color: var(--card-title);
   font-family: var(--font-display), serif;
-  font-size: 1.8rem;
-  line-height: 0.96;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 0.92;
 }
 
 .public-product-top p {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: var(--card-text);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .public-product-top strong {
   color: var(--card-title);
   font-family: var(--font-display), serif;
-  font-size: 1.6rem;
-  line-height: 0.96;
+  font-size: 1.35rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .public-product-actions {
@@ -2087,6 +2139,9 @@ select {
   display: grid;
   gap: 16px;
   align-self: start;
+  position: sticky;
+  top: 24px;
+  padding: 22px;
 }
 
 .module-form-card,
@@ -2110,6 +2165,7 @@ select {
 
 .public-title {
   font-size: clamp(2.4rem, 6vw, 4.4rem);
+  max-width: 9ch;
 }
 
 .module-section-head {
@@ -2469,6 +2525,12 @@ select {
     justify-content: flex-start;
   }
 
+  .workspace-summary-head,
+  .module-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .sales-stage {
     min-height: 620px;
   }
@@ -2572,6 +2634,12 @@ select {
   .topbar-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .workspace-owner-chip,
+  .public-cart-card {
+    min-width: 0;
+    position: static;
   }
 
   .account-pill {

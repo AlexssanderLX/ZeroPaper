@@ -88,8 +88,6 @@ export function LoginAccessForm() {
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
-      <p className="login-form-note">Use o email e a senha liberados para o seu acesso.</p>
-
       <div className="field-group">
         <label className="field-label-row" htmlFor="accessType">
           <span>Perfil</span>

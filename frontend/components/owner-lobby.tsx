@@ -52,27 +52,27 @@ export function OwnerLobby() {
 
   return (
     <WorkspaceShell backHref="/login" backLabel="Trocar acesso">
-      <section className="workspace-hero hero-panel">
-        <div className="hero-stack">
-          <span className="eyebrow">Painel da unidade</span>
-          <h1>{session.restaurantName}</h1>
-        </div>
+      <section className="surface-card workspace-summary-card">
+        <div className="workspace-summary-head">
+          <div className="hero-stack">
+            <span className="eyebrow">Unidade</span>
+            <h1>{session.restaurantName}</h1>
+          </div>
 
-        <section className="hero-showcase ambient-panel">
-          <div className="showcase-header">
-            <span className="eyebrow">Conta ativa</span>
+          <div className="workspace-owner-chip">
+            <span className="eyebrow">Dono</span>
             <strong>{session.ownerName}</strong>
           </div>
+        </div>
 
-          <div className="overview-grid">
-            {quickOverview.map((item) => (
-              <article key={item.label} className="info-card interactive-card">
-                <p className="overview-label">{item.label}</p>
-                <h2>{item.value}</h2>
-              </article>
-            ))}
-          </div>
-        </section>
+        <div className="overview-grid workspace-overview-grid">
+          {quickOverview.map((item) => (
+            <article key={item.label} className="info-card interactive-card compact-info-card">
+              <p className="overview-label">{item.label}</p>
+              <h2>{item.value}</h2>
+            </article>
+          ))}
+        </div>
       </section>
 
       {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
@@ -82,12 +82,7 @@ export function OwnerLobby() {
           <Link key={module.slug} className="surface-card module-card interactive-card module-entry-link" href={`/app/${module.slug}`}>
             <span className="eyebrow">{module.eyebrow}</span>
             <h2>{module.title}</h2>
-
-            <div className="module-card-footer">
-              <span className="ghost-link">
-                {module.actionLabel}
-              </span>
-            </div>
+            <span className="ghost-link">{module.actionLabel}</span>
           </Link>
         ))}
       </section>

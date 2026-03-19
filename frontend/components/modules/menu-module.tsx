@@ -209,7 +209,6 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
         ) : categories.length === 0 ? (
           <div className="module-empty-state">
             <strong>Nenhuma categoria criada.</strong>
-            <p>Monte o cardapio da unidade para liberar pedidos por toque na pagina da mesa.</p>
           </div>
         ) : (
           <div className="menu-category-stack">
@@ -227,7 +226,7 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
 
                 {category.items.length === 0 ? (
                   <div className="module-empty-state compact-empty-state">
-                    <p>Adicione o primeiro item dessa categoria.</p>
+                    <p>Sem itens.</p>
                   </div>
                 ) : (
                   <div className="menu-item-stack">

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { RestaurantSignupForm } from "@/components/restaurant-signup-form";
 
-const signupMarks = ["Codigo validado", "Entrada imediata", "Painel liberado"];
-const signupSteps = ["Dados da unidade", "Codigo de liberacao", "Entrada no painel"];
+const signupMarks = ["Codigo", "Cadastro", "Entrada"];
+const signupSteps = ["Unidade", "Liberacao", "Painel"];
 
 export default function SignupPage() {
   return (
@@ -20,15 +20,12 @@ export default function SignupPage() {
             <BrandMark small />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
-              <strong>Nova unidade</strong>
+              <strong>Cadastro</strong>
             </div>
           </div>
 
-          <h1 className="login-title">Sua unidade entra pronta para operar.</h1>
-          <p className="body-copy">
-            Preencha os dados principais, valide o codigo de liberacao e entre
-            direto no painel da sua unidade.
-          </p>
+          <h1 className="login-title">Criar acesso inicial.</h1>
+          <p className="body-copy">Cadastro da unidade com entrada imediata.</p>
 
           <div className="signup-mark-row">
             {signupMarks.map((item) => (
@@ -42,8 +39,8 @@ export default function SignupPage() {
             <div className="signup-stage-orb" />
 
             <article className="signup-stage-window signup-stage-window-main">
-              <span className="eyebrow">Entrada inicial</span>
-              <strong>Cadastro liberado</strong>
+              <span className="eyebrow">Cadastro</span>
+              <strong>Entrada inicial</strong>
 
               <div className="signup-stage-rail">
                 {signupSteps.map((step) => (
@@ -59,14 +56,14 @@ export default function SignupPage() {
             </article>
 
             <article className="signup-stage-window signup-stage-window-accent">
-              <span className="eyebrow">Acesso</span>
-              <strong>Codigo ativo</strong>
-              <p>Validacao imediata</p>
+              <span className="eyebrow">Codigo</span>
+              <strong>Liberado</strong>
+              <p>5 min</p>
             </article>
 
             <article className="signup-stage-window signup-stage-window-chip">
               <span className="eyebrow">Painel</span>
-              <strong>Unidade pronta</strong>
+              <strong>Unidade</strong>
             </article>
           </div>
         </section>
