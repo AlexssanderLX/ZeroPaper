@@ -20,6 +20,8 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<StockItem> StockItems => Set<StockItem>();
+    public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
+    public DbSet<MenuItem> MenuItems => Set<MenuItem>();
     public DbSet<SignupCode> SignupCodes => Set<SignupCode>();
     public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
 
@@ -284,6 +286,60 @@ public class ZeroPaperDbContext : DbContext
             entity.HasOne(x => x.Company)
                 .WithMany(x => x.StockItems)
                 .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MenuCategory>(entity =>
+        {
+            entity.ToTable("MenuCategories");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => new { x.CompanyId, x.Name }).IsUnique();
+
+            entity.HasOne(x => x.Tenant)
+                .WithMany(x => x.MenuCategories)
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.MenuCategories)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MenuItem>(entity =>
+        {
+            entity.ToTable("MenuItems");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(260);
+            entity.Property(x => x.AccentLabel).HasMaxLength(60);
+            entity.Property(x => x.Price).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => new { x.CompanyId, x.MenuCategoryId, x.Name }).IsUnique();
+
+            entity.HasOne(x => x.Tenant)
+                .WithMany(x => x.MenuItems)
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.MenuItems)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.MenuCategory)
+                .WithMany(x => x.Items)
+                .HasForeignKey(x => x.MenuCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

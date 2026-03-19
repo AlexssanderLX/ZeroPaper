@@ -24,6 +24,15 @@ export const PORTAL_SESSION_KEY = "zp.portal.session";
 
 export const ownerModules: PortalModule[] = [
   {
+    slug: "cardapio",
+    title: "Cardapio",
+    eyebrow: "Venda",
+    summary: "Monte o cardapio da unidade com categorias e itens prontos para o cliente pedir pelo QR.",
+    actionLabel: "Abrir cardapio",
+    stats: ["Categorias", "Itens", "Pedido rapido"],
+    highlights: ["Montar vitrine", "Organizar secoes", "Liberar pedido por toque"],
+  },
+  {
     slug: "mesas",
     title: "Mesas e QR",
     eyebrow: "Salao",

@@ -1,22 +1,34 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { createPublicOrder, getPublicTable, type CustomerOrder, type PublicTableView } from "@/lib/api";
 import {
-  buildOrderPayload,
-  emptyOrderDraftItem,
-  formatCurrency,
-  handleApiError,
-  type OrderDraftItem,
-} from "@/components/modules/module-utils";
+  createPublicOrder,
+  getPublicTable,
+  type CustomerOrder,
+  type MenuCategory,
+  type PublicTableView,
+} from "@/lib/api";
+import { formatCurrency, handleApiError } from "@/components/modules/module-utils";
+
+type MenuSelectionState = Record<string, { quantity: number; notes: string }>;
+
+function buildSelectionPayload(selectionState: MenuSelectionState) {
+  return Object.entries(selectionState)
+    .filter(([, value]) => value.quantity > 0)
+    .map(([menuItemId, value]) => ({
+      menuItemId,
+      quantity: value.quantity,
+      notes: value.notes.trim() || undefined,
+    }));
+}
 
 export function PublicTableOrder({ publicCode }: { publicCode: string }) {
   const [table, setTable] = useState<PublicTableView | null>(null);
-  const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<OrderDraftItem[]>([emptyOrderDraftItem()]);
+  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [orderNotes, setOrderNotes] = useState("");
+  const [selectionState, setSelectionState] = useState<MenuSelectionState>({});
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -26,7 +38,9 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     setLoading(true);
 
     try {
-      setTable(await getPublicTable(publicCode));
+      const response = await getPublicTable(publicCode);
+      setTable(response);
+      setActiveCategoryId(response.menu[0]?.id ?? "");
       setErrorMessage("");
     } catch (error) {
       await handleApiError(error, async () => undefined, setErrorMessage, "Nao foi possivel abrir a mesa.");
@@ -39,27 +53,99 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     void loadTable();
   }, [publicCode]);
 
-  function updateItem(index: number, field: keyof OrderDraftItem, value: string) {
-    setItems((current) =>
-      current.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
-    );
+  const activeCategory = useMemo(
+    () => table?.menu.find((category) => category.id === activeCategoryId) ?? table?.menu[0] ?? null,
+    [activeCategoryId, table],
+  );
+
+  const cartItems = useMemo(() => {
+    const items = new Map<string, { item: MenuCategory["items"][number]; categoryName: string }>();
+
+    table?.menu.forEach((category) => {
+      category.items.forEach((item) => {
+        items.set(item.id, { item, categoryName: category.name });
+      });
+    });
+
+    return Object.entries(selectionState)
+      .filter(([, value]) => value.quantity > 0)
+      .map(([menuItemId, value]) => {
+        const resolved = items.get(menuItemId);
+
+        if (!resolved) {
+          return null;
+        }
+
+        return {
+          menuItemId,
+          categoryName: resolved.categoryName,
+          item: resolved.item,
+          quantity: value.quantity,
+          notes: value.notes,
+          totalPrice: resolved.item.price * value.quantity,
+        };
+      })
+      .filter(Boolean) as Array<{
+      menuItemId: string;
+      categoryName: string;
+      item: MenuCategory["items"][number];
+      quantity: number;
+      notes: string;
+      totalPrice: number;
+    }>;
+  }, [selectionState, table]);
+
+  const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+  function updateItemQuantity(menuItemId: string, nextQuantity: number) {
+    setSelectionState((currentValue) => {
+      if (nextQuantity <= 0) {
+        const nextState = { ...currentValue };
+        delete nextState[menuItemId];
+        return nextState;
+      }
+
+      return {
+        ...currentValue,
+        [menuItemId]: {
+          quantity: nextQuantity,
+          notes: currentValue[menuItemId]?.notes ?? "",
+        },
+      };
+    });
+  }
+
+  function updateItemNotes(menuItemId: string, nextNotes: string) {
+    setSelectionState((currentValue) => ({
+      ...currentValue,
+      [menuItemId]: {
+        quantity: currentValue[menuItemId]?.quantity ?? 1,
+        notes: nextNotes,
+      },
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const menuSelections = buildSelectionPayload(selectionState);
+
+    if (menuSelections.length === 0) {
+      setErrorMessage("Escolha pelo menos um item para enviar o pedido.");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
       const response = await createPublicOrder(publicCode, {
-        customerName: customerName.trim() || undefined,
-        notes: notes.trim() || undefined,
-        items: buildOrderPayload(items),
+        notes: orderNotes.trim() || undefined,
+        menuSelections,
       });
 
       setCreatedOrder(response);
-      setCustomerName("");
-      setNotes("");
-      setItems([emptyOrderDraftItem()]);
+      setOrderNotes("");
+      setSelectionState({});
       setErrorMessage("");
     } catch (error) {
       await handleApiError(error, async () => undefined, setErrorMessage, "Nao foi possivel enviar o pedido.");
@@ -70,7 +156,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
 
   return (
     <main className="page-shell public-shell">
-      <section className="surface-card public-card ambient-panel">
+      <section className="surface-card public-card ambient-panel public-menu-card">
         <div className="brand-lockup compact">
           <BrandMark small />
           <div className="brand-copy">
@@ -83,63 +169,123 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
           <p className="loading-state">Abrindo mesa...</p>
         ) : (
           <>
-            <h1 className="public-title">{table?.tableName}</h1>
-            <p className="body-copy">Envie o pedido direto para a operacao da casa.</p>
-
-            <form className="module-form" onSubmit={handleSubmit}>
-              <div className="module-inline-grid">
-                <div className="field-group">
-                  <label>Nome</label>
-                  <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Seu nome" />
-                </div>
-                <div className="field-group">
-                  <label>Observacoes</label>
-                  <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Sem gelo, bem passado..." />
-                </div>
+            <div className="public-menu-header">
+              <div>
+                <h1 className="public-title">{table?.tableName}</h1>
+                <p className="body-copy">Escolha os itens e envie o pedido para a casa.</p>
               </div>
 
-              <div className="dynamic-item-stack">
-                {items.map((item, index) => (
-                  <div key={`public-item-${index}`} className="dynamic-item-card">
-                    <div className="module-inline-grid triple">
-                      <div className="field-group">
-                        <label>Item</label>
-                        <input value={item.name} onChange={(event) => updateItem(index, "name", event.target.value)} />
-                      </div>
-                      <div className="field-group">
-                        <label>Qtd.</label>
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={item.quantity}
-                          onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                        />
-                      </div>
-                      <div className="field-group">
-                        <label>Valor</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unitPrice}
-                          onChange={(event) => updateItem(index, "unitPrice", event.target.value)}
-                        />
-                      </div>
-                    </div>
+              <div className="public-menu-total">
+                <span>Total</span>
+                <strong>{formatCurrency(totalAmount)}</strong>
+              </div>
+            </div>
+
+            {table?.menu.length ? (
+              <form className="public-menu-layout" onSubmit={handleSubmit}>
+                <div className="public-menu-main">
+                  <div className="public-category-row">
+                    {table.menu.map((category) => (
+                      <button
+                        key={category.id}
+                        className={`ghost-link button-link public-category-chip ${activeCategory?.id === category.id ? "is-active" : ""}`}
+                        type="button"
+                        onClick={() => setActiveCategoryId(category.id)}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              <div className="toolbar-actions">
-                <button className="ghost-link button-link" type="button" onClick={() => setItems((current) => [...current, emptyOrderDraftItem()])}>
-                  Adicionar item
-                </button>
-                <button className="primary-link button-link" type="submit" disabled={isSaving}>
-                  {isSaving ? "Enviando..." : "Enviar pedido"}
-                </button>
+                  <div className="public-product-grid">
+                    {activeCategory?.items.map((item) => {
+                      const selected = selectionState[item.id];
+                      const quantity = selected?.quantity ?? 0;
+
+                      return (
+                        <article key={item.id} className={`public-product-card ${quantity > 0 ? "is-selected" : ""}`}>
+                          <div className="public-product-top">
+                            <div>
+                              {item.accentLabel ? <span className="eyebrow">{item.accentLabel}</span> : null}
+                              <h2>{item.name}</h2>
+                              <p>{item.description || "Pronto para pedir na mesa."}</p>
+                            </div>
+                            <strong>{formatCurrency(item.price)}</strong>
+                          </div>
+
+                          <div className="public-product-actions">
+                            <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, Math.max(0, quantity - 1))}>
+                              -
+                            </button>
+                            <span>{quantity}</span>
+                            <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, quantity + 1)}>
+                              +
+                            </button>
+                          </div>
+
+                          {quantity > 0 ? (
+                            <div className="field-group">
+                              <label htmlFor={`notes-${item.id}`}>Observacoes</label>
+                              <input
+                                id={`notes-${item.id}`}
+                                value={selected?.notes ?? ""}
+                                onChange={(event) => updateItemNotes(item.id, event.target.value)}
+                                placeholder="Sem cebola, ponto da carne..."
+                              />
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <aside className="surface-card public-cart-card">
+                  <div className="module-section-head">
+                    <span className="eyebrow">Pedido</span>
+                    <strong>{cartItems.length} itens</strong>
+                  </div>
+
+                  {cartItems.length === 0 ? (
+                    <div className="module-empty-state compact-empty-state">
+                      <p>Toque nos itens do cardapio para montar o pedido.</p>
+                    </div>
+                  ) : (
+                    <div className="public-cart-stack">
+                      {cartItems.map((entry) => (
+                        <div key={entry.menuItemId} className="public-cart-row">
+                          <div>
+                            <strong>{entry.item.name}</strong>
+                            <p>{entry.quantity}x {formatCurrency(entry.item.price)}</p>
+                            {entry.notes ? <p>{entry.notes}</p> : null}
+                          </div>
+                          <strong>{formatCurrency(entry.totalPrice)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="field-group">
+                    <label htmlFor="orderNotes">Observacoes do pedido</label>
+                    <input
+                      id="orderNotes"
+                      value={orderNotes}
+                      onChange={(event) => setOrderNotes(event.target.value)}
+                      placeholder="Algo geral para a cozinha ou atendimento"
+                    />
+                  </div>
+
+                  <button className="primary-link button-link" type="submit" disabled={isSaving}>
+                    {isSaving ? "Enviando..." : "Enviar pedido"}
+                  </button>
+                </aside>
+              </form>
+            ) : (
+              <div className="module-empty-state">
+                <strong>Cardapio indisponivel.</strong>
+                <p>Essa unidade ainda nao publicou itens para pedido pela mesa.</p>
               </div>
-            </form>
+            )}
           </>
         )}
 

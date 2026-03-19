@@ -12,6 +12,8 @@ public class Tenant : BaseEntity
     private readonly List<DiningTable> _tables = [];
     private readonly List<CustomerOrder> _orders = [];
     private readonly List<StockItem> _stockItems = [];
+    private readonly List<MenuCategory> _menuCategories = [];
+    private readonly List<MenuItem> _menuItems = [];
 
     private Tenant()
     {
@@ -34,6 +36,8 @@ public class Tenant : BaseEntity
     public IReadOnlyCollection<DiningTable> Tables => _tables.AsReadOnly();
     public IReadOnlyCollection<CustomerOrder> Orders => _orders.AsReadOnly();
     public IReadOnlyCollection<StockItem> StockItems => _stockItems.AsReadOnly();
+    public IReadOnlyCollection<MenuCategory> MenuCategories => _menuCategories.AsReadOnly();
+    public IReadOnlyCollection<MenuItem> MenuItems => _menuItems.AsReadOnly();
 
     public void Rename(string name)
     {

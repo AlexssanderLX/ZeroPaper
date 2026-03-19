@@ -28,6 +28,46 @@ public class WorkspaceController : ControllerBase
             : Ok(await _workspaceService.GetOverviewAsync(session, cancellationToken));
     }
 
+    [HttpGet("menu")]
+    [ProducesResponseType(typeof(IReadOnlyList<MenuCategoryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMenuAsync(CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.GetMenuAsync(session, cancellationToken));
+    }
+
+    [HttpPost("menu/categories")]
+    [ProducesResponseType(typeof(MenuCategoryDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateMenuCategoryAsync([FromBody] CreateMenuCategoryRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        var response = await _workspaceService.CreateMenuCategoryAsync(session, request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPost("menu/items")]
+    [ProducesResponseType(typeof(MenuItemDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateMenuItemAsync([FromBody] CreateMenuItemRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        var response = await _workspaceService.CreateMenuItemAsync(session, request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
     [HttpGet("tables")]
     [ProducesResponseType(typeof(IReadOnlyList<DiningTableDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTablesAsync(CancellationToken cancellationToken)
@@ -173,4 +213,3 @@ public class WorkspaceController : ControllerBase
         return await _authSessionService.GetSessionAsync(Request.Headers.Authorization.ToString(), cancellationToken);
     }
 }
-

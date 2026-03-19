@@ -49,10 +49,34 @@ export type DiningTable = {
   accessUrl: string;
 };
 
+export type MenuItem = {
+  id: string;
+  categoryId: string;
+  name: string;
+  description?: string | null;
+  accentLabel?: string | null;
+  price: number;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export type MenuCategory = {
+  id: string;
+  name: string;
+  displayOrder: number;
+  items: MenuItem[];
+};
+
 export type OrderItemInput = {
   name: string;
   quantity: number;
   unitPrice: number;
+  notes?: string;
+};
+
+export type MenuOrderSelectionInput = {
+  menuItemId: string;
+  quantity: number;
   notes?: string;
 };
 
@@ -109,6 +133,7 @@ export type PublicTableView = {
   restaurantName: string;
   tableName: string;
   accessCode: string;
+  menu: MenuCategory[];
 };
 
 export type RestaurantSignupPayload = {
@@ -343,6 +368,35 @@ export function getTables(token: string) {
   return apiRequest<DiningTable[]>("/api/workspace/tables", { token });
 }
 
+export function getMenu(token: string) {
+  return apiRequest<MenuCategory[]>("/api/workspace/menu", { token });
+}
+
+export function createMenuCategory(token: string, payload: { name: string }) {
+  return apiRequest<MenuCategory>("/api/workspace/menu/categories", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function createMenuItem(
+  token: string,
+  payload: {
+    categoryId: string;
+    name: string;
+    description?: string;
+    accentLabel?: string;
+    price: number;
+  },
+) {
+  return apiRequest<MenuItem>("/api/workspace/menu/items", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
 export function createTable(token: string, payload: { name: string; seats: number }) {
   return apiRequest<DiningTable>("/api/workspace/tables", {
     method: "POST",
@@ -361,7 +415,8 @@ export function createOrder(
     tableId?: string;
     customerName?: string;
     notes?: string;
-    items: OrderItemInput[];
+    items?: OrderItemInput[];
+    menuSelections?: MenuOrderSelectionInput[];
   },
 ) {
   return apiRequest<CustomerOrder>("/api/workspace/orders", {
@@ -467,7 +522,8 @@ export function createPublicOrder(
   payload: {
     customerName?: string;
     notes?: string;
-    items: OrderItemInput[];
+    items?: OrderItemInput[];
+    menuSelections?: MenuOrderSelectionInput[];
   },
 ) {
   return apiRequest<CustomerOrder>(`/api/public/tables/${publicCode}/orders`, {

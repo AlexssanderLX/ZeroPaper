@@ -56,6 +56,72 @@ public class WorkspaceService : IWorkspaceService
         };
     }
 
+    public async Task<IReadOnlyList<MenuCategoryDto>> GetMenuAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
+    {
+        return await BuildMenuAsync(session.CompanyId, cancellationToken);
+    }
+
+    public async Task<MenuCategoryDto> CreateMenuCategoryAsync(WorkspaceSessionContext session, CreateMenuCategoryRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Name);
+
+        var nextDisplayOrder = await _context.MenuCategories
+            .Where(item => item.CompanyId == session.CompanyId)
+            .Select(item => (int?)item.DisplayOrder)
+            .MaxAsync(cancellationToken) ?? -1;
+
+        var category = new MenuCategory(
+            session.TenantId,
+            session.CompanyId,
+            request.Name,
+            nextDisplayOrder + 1);
+
+        await _context.MenuCategories.AddAsync(category, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new MenuCategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            DisplayOrder = category.DisplayOrder
+        };
+    }
+
+    public async Task<MenuItemDto> CreateMenuItemAsync(WorkspaceSessionContext session, CreateMenuItemRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Name);
+
+        var category = await _context.MenuCategories
+            .FirstOrDefaultAsync(
+                item => item.Id == request.CategoryId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Categoria nao encontrada.");
+
+        var nextDisplayOrder = await _context.MenuItems
+            .Where(item => item.MenuCategoryId == category.Id)
+            .Select(item => (int?)item.DisplayOrder)
+            .MaxAsync(cancellationToken) ?? -1;
+
+        var menuItem = new MenuItem(
+            session.TenantId,
+            session.CompanyId,
+            category.Id,
+            request.Name,
+            request.Price,
+            request.Description,
+            request.AccentLabel,
+            nextDisplayOrder + 1);
+
+        await _context.MenuItems.AddAsync(menuItem, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapMenuItem(menuItem);
+    }
+
     public async Task<IReadOnlyList<DiningTableDto>> GetTablesAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
     {
         return await _context.DiningTables
@@ -167,6 +233,7 @@ public class WorkspaceService : IWorkspaceService
             request.CustomerName,
             request.Notes,
             request.Items,
+            request.MenuSelections,
             cancellationToken);
     }
 
@@ -369,7 +436,8 @@ public class WorkspaceService : IWorkspaceService
         {
             RestaurantName = table.Company.TradeName,
             TableName = table.Name,
-            AccessCode = table.QrCodeAccess.PublicCode
+            AccessCode = table.QrCodeAccess.PublicCode,
+            Menu = await BuildMenuAsync(table.CompanyId, cancellationToken)
         };
     }
 
@@ -395,6 +463,7 @@ public class WorkspaceService : IWorkspaceService
             request.CustomerName,
             request.Notes,
             request.Items,
+            request.MenuSelections,
             cancellationToken);
     }
 
@@ -405,35 +474,42 @@ public class WorkspaceService : IWorkspaceService
         List<OrderItemInputDto> items,
         CancellationToken cancellationToken)
     {
-        if (items.Count == 0)
+        var orderItems = await BuildOrderItemsAsync(
+            table.CompanyId,
+            table.TenantId,
+            items,
+            [],
+            cancellationToken);
+
+        if (orderItems.Count == 0)
         {
             throw new ArgumentException("At least one item must be informed.", nameof(items));
         }
 
-        var orderItems = items.Select(item =>
-            new OrderItem(
-                table.TenantId,
-                item.Name,
-                item.Quantity,
-                item.UnitPrice,
-                item.Notes)).ToList();
+        return await PersistOrderAsync(table, customerName, notes, orderItems, cancellationToken);
+    }
 
-        var nextNumber = await GetNextOrderNumberAsync(table.CompanyId, cancellationToken);
-        var order = new CustomerOrder(
-            table.TenantId,
+    private async Task<CustomerOrderDto> CreateOrderForTableAsync(
+        DiningTable table,
+        string? customerName,
+        string? notes,
+        List<OrderItemInputDto> items,
+        List<MenuOrderSelectionDto> menuSelections,
+        CancellationToken cancellationToken)
+    {
+        var orderItems = await BuildOrderItemsAsync(
             table.CompanyId,
-            table.Id,
-            nextNumber,
-            customerName,
-            notes,
-            orderItems);
+            table.TenantId,
+            items,
+            menuSelections,
+            cancellationToken);
 
-        table.ChangeStatus(TableStatus.Occupied);
+        if (orderItems.Count == 0)
+        {
+            throw new ArgumentException("At least one item must be informed.", nameof(items));
+        }
 
-        await _context.CustomerOrders.AddAsync(order, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return MapOrder(order, table.Name);
+        return await PersistOrderAsync(table, customerName, notes, orderItems, cancellationToken);
     }
 
     private async Task RecalculateTableStatusAsync(DiningTable table, CancellationToken cancellationToken)
@@ -485,6 +561,100 @@ public class WorkspaceService : IWorkspaceService
             .MaxAsync(cancellationToken);
 
         return (maxNumber ?? 0) + 1;
+    }
+
+    private async Task<List<MenuCategoryDto>> BuildMenuAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var categories = await _context.MenuCategories
+            .AsNoTracking()
+            .Where(item => item.CompanyId == companyId && item.IsActive)
+            .Include(item => item.Items.Where(menuItem => menuItem.IsActive))
+            .OrderBy(item => item.DisplayOrder)
+            .ThenBy(item => item.Name)
+            .ToListAsync(cancellationToken);
+
+        return categories.Select(item => new MenuCategoryDto
+        {
+            Id = item.Id,
+            Name = item.Name,
+            DisplayOrder = item.DisplayOrder,
+            Items = item.Items
+                .OrderBy(menuItem => menuItem.DisplayOrder)
+                .ThenBy(menuItem => menuItem.Name)
+                .Select(MapMenuItem)
+                .ToList()
+        }).ToList();
+    }
+
+    private async Task<List<OrderItem>> BuildOrderItemsAsync(
+        Guid companyId,
+        Guid tenantId,
+        List<OrderItemInputDto> items,
+        List<MenuOrderSelectionDto> menuSelections,
+        CancellationToken cancellationToken)
+    {
+        if (menuSelections.Count != 0)
+        {
+            var menuItemIds = menuSelections
+                .Where(item => item.MenuItemId != Guid.Empty && item.Quantity > 0)
+                .Select(item => item.MenuItemId)
+                .Distinct()
+                .ToList();
+
+            var menuItems = await _context.MenuItems
+                .Where(item => item.CompanyId == companyId && item.IsActive && menuItemIds.Contains(item.Id))
+                .ToDictionaryAsync(item => item.Id, cancellationToken);
+
+            return menuSelections
+                .Where(item => item.Quantity > 0 && menuItems.ContainsKey(item.MenuItemId))
+                .Select(item =>
+                {
+                    var menuItem = menuItems[item.MenuItemId];
+                    return new OrderItem(
+                        tenantId,
+                        menuItem.Name,
+                        item.Quantity,
+                        menuItem.Price,
+                        item.Notes);
+                })
+                .ToList();
+        }
+
+        return items
+            .Where(item => !string.IsNullOrWhiteSpace(item.Name) && item.Quantity > 0)
+            .Select(item =>
+                new OrderItem(
+                    tenantId,
+                    item.Name,
+                    item.Quantity,
+                    item.UnitPrice,
+                    item.Notes))
+            .ToList();
+    }
+
+    private async Task<CustomerOrderDto> PersistOrderAsync(
+        DiningTable table,
+        string? customerName,
+        string? notes,
+        List<OrderItem> orderItems,
+        CancellationToken cancellationToken)
+    {
+        var nextNumber = await GetNextOrderNumberAsync(table.CompanyId, cancellationToken);
+        var order = new CustomerOrder(
+            table.TenantId,
+            table.CompanyId,
+            table.Id,
+            nextNumber,
+            customerName,
+            notes,
+            orderItems);
+
+        table.ChangeStatus(TableStatus.Occupied);
+
+        await _context.CustomerOrders.AddAsync(order, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapOrder(order, table.Name);
     }
 
     private static CustomerOrderDto MapOrder(CustomerOrder order, string? tableName = null)
@@ -556,5 +726,20 @@ public class WorkspaceService : IWorkspaceService
         }
 
         return parsed;
+    }
+
+    private static MenuItemDto MapMenuItem(MenuItem item)
+    {
+        return new MenuItemDto
+        {
+            Id = item.Id,
+            CategoryId = item.MenuCategoryId,
+            Name = item.Name,
+            Description = item.Description,
+            AccentLabel = item.AccentLabel,
+            Price = item.Price,
+            DisplayOrder = item.DisplayOrder,
+            IsActive = item.IsActive
+        };
     }
 }

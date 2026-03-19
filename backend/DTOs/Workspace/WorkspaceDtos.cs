@@ -26,11 +26,52 @@ public class CreateDiningTableRequestDto
     public int Seats { get; set; }
 }
 
+public class MenuCategoryDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public List<MenuItemDto> Items { get; set; } = [];
+}
+
+public class MenuItemDto
+{
+    public Guid Id { get; set; }
+    public Guid CategoryId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? AccentLabel { get; set; }
+    public decimal Price { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class CreateMenuCategoryRequestDto
+{
+    public string Name { get; set; } = string.Empty;
+}
+
+public class CreateMenuItemRequestDto
+{
+    public Guid CategoryId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? AccentLabel { get; set; }
+    public decimal Price { get; set; }
+}
+
 public class OrderItemInputDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class MenuOrderSelectionDto
+{
+    public Guid MenuItemId { get; set; }
+    public decimal Quantity { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -40,6 +81,7 @@ public class CreateCustomerOrderRequestDto
     public string? CustomerName { get; set; }
     public string? Notes { get; set; }
     public List<OrderItemInputDto> Items { get; set; } = [];
+    public List<MenuOrderSelectionDto> MenuSelections { get; set; } = [];
 }
 
 public class OrderItemDto
@@ -131,5 +173,5 @@ public class PublicTableViewDto
     public string RestaurantName { get; set; } = string.Empty;
     public string TableName { get; set; } = string.Empty;
     public string AccessCode { get; set; } = string.Empty;
+    public List<MenuCategoryDto> Menu { get; set; } = [];
 }
-

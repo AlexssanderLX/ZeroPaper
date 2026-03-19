@@ -21,13 +21,24 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     [EnableRateLimiting("public-write")]
     [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> LoginAsync([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
     {
         try
         {
             var response = await _authSessionService.LoginAsync(request, cancellationToken);
             return response is null ? Unauthorized() : Ok(response);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Dados invalidos",
+                Detail = exception.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
         }
         catch (InvalidOperationException exception)
         {
