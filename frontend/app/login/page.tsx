@@ -1,16 +1,9 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { LoginAccessForm } from "@/components/login-access-form";
 
-const accessCards = [
-  {
-    title: "Acesso da unidade",
-    text: "Para dono, gerencia e equipe do restaurante.",
-  },
-  {
-    title: "Acesso da operacao",
-    text: "Para root e liberacoes internas da plataforma ZeroPaper.",
-  },
-];
+const loginMarks = ["Unidade", "Operacao", "Recuperacao segura"];
+const loginEntries = ["Perfil liberado", "Email validado", "Entrada no painel"];
 
 export default function LoginPage() {
   return (
@@ -21,35 +14,58 @@ export default function LoginPage() {
         </Link>
       </section>
 
-      <section className="login-layout">
-        <section className="surface-card login-copy-card ambient-panel subtle">
+      <section className="login-layout login-premium-layout">
+        <section className="surface-card login-copy-card ambient-panel subtle login-intro-card">
           <div className="brand-lockup compact">
-            <div className="brand-mark small" aria-hidden="true">
-              <span>Z</span>
-              <span>P</span>
-            </div>
+            <BrandMark small />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
-              <strong>Secure Access</strong>
+              <strong>Acesso seguro</strong>
             </div>
           </div>
 
-          <h1 className="login-title">Entre na sua operacao</h1>
+          <h1 className="login-title">Sua entrada na operacao comeca aqui.</h1>
           <p className="body-copy">
-            Acesse seu ambiente e siga direto para o controle da unidade.
+            Entre com o acesso da sua unidade ou da operacao ZeroPaper e siga
+            direto para o painel certo.
           </p>
 
-          <div className="access-list">
-            {accessCards.map((item) => (
-              <article key={item.title} className="access-card interactive-card">
-                <h2>{item.title}</h2>
-                <p>{item.text}</p>
-              </article>
+          <div className="login-mark-row">
+            {loginMarks.map((item) => (
+              <span key={item} className="login-mark">
+                {item}
+              </span>
             ))}
+          </div>
+
+          <div className="login-stage" aria-hidden="true">
+            <div className="login-stage-orb" />
+
+            <article className="login-stage-window login-stage-window-main">
+              <span className="eyebrow">Entrada segura</span>
+              <strong>Acesso imediato</strong>
+
+              <div className="login-stage-rail">
+                {loginEntries.map((entry) => (
+                  <span key={entry}>{entry}</span>
+                ))}
+              </div>
+            </article>
+
+            <article className="login-stage-window login-stage-window-accent">
+              <span className="eyebrow">Perfil</span>
+              <strong>Unidade</strong>
+              <p>Painel do dono</p>
+            </article>
+
+            <article className="login-stage-window login-stage-window-chip">
+              <span className="eyebrow">Perfil</span>
+              <strong>Operacao</strong>
+            </article>
           </div>
         </section>
 
-        <section className="surface-card login-form-card">
+        <section className="surface-card login-form-card login-form-shell">
           <span className="eyebrow">Login</span>
           <h2 className="form-title">Identificacao</h2>
           <LoginAccessForm />

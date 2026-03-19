@@ -69,13 +69,33 @@ export function ResetPasswordForm() {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <div className="field-group">
-        <label htmlFor="newPassword">Nova senha</label>
-        <input id="newPassword" name="newPassword" type="password" placeholder="Crie uma nova senha" />
+        <label className="field-label-row" htmlFor="newPassword">
+          <span>Nova senha</span>
+          <span className="field-requirement">Obrigatorio</span>
+        </label>
+        <input
+          id="newPassword"
+          name="newPassword"
+          type="password"
+          placeholder="Crie uma nova senha"
+          required
+          minLength={8}
+        />
       </div>
 
       <div className="field-group">
-        <label htmlFor="confirmPassword">Confirmar senha</label>
-        <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Repita a nova senha" />
+        <label className="field-label-row" htmlFor="confirmPassword">
+          <span>Confirmar senha</span>
+          <span className="field-requirement">Obrigatorio</span>
+        </label>
+        <input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          placeholder="Repita a nova senha"
+          required
+          minLength={8}
+        />
       </div>
 
       {message ? <p className={`module-feedback ${status ?? "success"}`}>{message}</p> : null}

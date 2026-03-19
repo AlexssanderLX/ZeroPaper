@@ -8,7 +8,7 @@ import { PORTAL_SESSION_KEY, type PortalSession } from "@/lib/owner-portal";
 const defaultPlan = {
   planName: "ZeroPaper Base",
   monthlyPrice: 0,
-  maxUsers: 0,
+  maxUsers: 1,
 };
 
 export function RestaurantSignupForm() {
@@ -30,10 +30,21 @@ export function RestaurantSignupForm() {
     const ownerEmail = String(formData.get("ownerEmail") ?? "").trim().toLowerCase();
     const accessCode = String(formData.get("accessCode") ?? "").trim().toUpperCase();
     const ownerPassword = String(formData.get("ownerPassword") ?? "").trim();
+    const confirmPassword = String(formData.get("confirmPassword") ?? "").trim();
     const contactPhone = String(formData.get("contactPhone") ?? "").trim();
 
-    if (!restaurantName || !legalName || !ownerName || !ownerEmail || !ownerPassword || !accessCode) {
+    if (!restaurantName || !legalName || !ownerName || !ownerEmail || !ownerPassword || !confirmPassword || !accessCode) {
       setErrorMessage("Preencha os dados principais para concluir o cadastro.");
+      return;
+    }
+
+    if (ownerPassword.length < 6) {
+      setErrorMessage("Crie uma senha com pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (ownerPassword !== confirmPassword) {
+      setErrorMessage("As senhas precisam ser iguais.");
       return;
     }
 
@@ -81,6 +92,24 @@ export function RestaurantSignupForm() {
         }
       })();
     });
+  }
+
+  function handleRequiredInvalid(event: FormEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    input.setCustomValidity("");
+
+    if (input.validity.valueMissing) {
+      input.setCustomValidity("Campo obrigatorio.");
+      return;
+    }
+
+    if (input.validity.typeMismatch) {
+      input.setCustomValidity("Informe um email valido.");
+    }
+  }
+
+  function clearRequiredMessage(event: FormEvent<HTMLInputElement>) {
+    event.currentTarget.setCustomValidity("");
   }
 
   function handleAccessRequest() {
@@ -136,43 +165,127 @@ export function RestaurantSignupForm() {
   return (
     <>
       <form ref={formRef} className="login-form signup-form" onSubmit={handleSubmit}>
+        <p className="signup-form-note">Campos marcados como obrigatorios precisam ser preenchidos.</p>
+
         <div className="module-inline-grid">
           <div className="field-group">
-            <label htmlFor="restaurantName">Nome do restaurante</label>
-            <input id="restaurantName" name="restaurantName" placeholder="Ex.: Casa do Bairro" />
+            <label className="field-label-row" htmlFor="restaurantName">
+              <span>Nome do restaurante</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="restaurantName"
+              name="restaurantName"
+              placeholder="Ex.: Casa do Bairro"
+              required
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
           </div>
           <div className="field-group">
-            <label htmlFor="legalName">Razao social</label>
-            <input id="legalName" name="legalName" placeholder="Ex.: Casa do Bairro LTDA" />
+            <label className="field-label-row" htmlFor="legalName">
+              <span>Razao social</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="legalName"
+              name="legalName"
+              placeholder="Ex.: Casa do Bairro LTDA"
+              required
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
           </div>
         </div>
 
         <div className="module-inline-grid">
           <div className="field-group">
-            <label htmlFor="ownerName">Responsavel</label>
-            <input id="ownerName" name="ownerName" placeholder="Seu nome" />
+            <label className="field-label-row" htmlFor="ownerName">
+              <span>Responsavel</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="ownerName"
+              name="ownerName"
+              placeholder="Seu nome"
+              required
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
           </div>
           <div className="field-group">
-            <label htmlFor="contactPhone">Telefone</label>
+            <label className="field-label-row" htmlFor="contactPhone">
+              <span>Telefone</span>
+              <span className="field-optional">Opcional</span>
+            </label>
             <input id="contactPhone" name="contactPhone" placeholder="(11) 99999-0000" />
           </div>
         </div>
 
         <div className="module-inline-grid">
           <div className="field-group">
-            <label htmlFor="ownerEmail">Email</label>
-            <input id="ownerEmail" name="ownerEmail" type="email" placeholder="voce@empresa.com" />
+            <label className="field-label-row" htmlFor="ownerEmail">
+              <span>Email</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="ownerEmail"
+              name="ownerEmail"
+              type="email"
+              placeholder="voce@empresa.com"
+              required
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
           </div>
           <div className="field-group">
-            <label htmlFor="accessCode">Codigo de liberacao</label>
-            <input id="accessCode" name="accessCode" placeholder="ZP-0000-0000-0000" />
+            <label className="field-label-row" htmlFor="accessCode">
+              <span>Codigo de liberacao</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="accessCode"
+              name="accessCode"
+              placeholder="ZP-0000-0000-0000"
+              required
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
           </div>
         </div>
 
         <div className="module-inline-grid">
           <div className="field-group">
-            <label htmlFor="ownerPassword">Senha</label>
-            <input id="ownerPassword" name="ownerPassword" type="password" placeholder="Crie uma senha" />
+            <label className="field-label-row" htmlFor="ownerPassword">
+              <span>Senha</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="ownerPassword"
+              name="ownerPassword"
+              type="password"
+              placeholder="Crie uma senha"
+              required
+              minLength={6}
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label-row" htmlFor="confirmPassword">
+              <span>Confirmar senha</span>
+              <span className="field-requirement">Obrigatorio</span>
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              placeholder="Repita a senha"
+              required
+              minLength={6}
+              onInvalid={handleRequiredInvalid}
+              onInput={clearRequiredMessage}
+            />
           </div>
         </div>
 
@@ -186,7 +299,7 @@ export function RestaurantSignupForm() {
       <div className="request-access-card">
         <span className="eyebrow">Sem codigo</span>
         <strong>Solicite sua liberacao</strong>
-        <p>Se voce ainda nao recebeu um codigo, a ZeroPaper usa os dados preenchidos acima para analisar e retornar a liberacao.</p>
+        <p>Sem codigo? Envie a verificacao com os dados que voce ja preencheu.</p>
         {requestMessage ? <p className={`module-feedback ${requestStatus ?? "success"}`}>{requestMessage}</p> : null}
         <button className="ghost-link button-link" type="button" onClick={handleAccessRequest} disabled={isRequestPending}>
           {isRequestPending ? "Enviando..." : "Solicitar verificacao"}

@@ -36,13 +36,13 @@ public class AdminSignupCodeService : IAdminSignupCodeService
         ArgumentNullException.ThrowIfNull(request);
 
         var rawCode = SignupCode.GenerateRawCode();
-        var expiresAtUtc = DateTime.UtcNow.AddDays(Math.Clamp(request.ExpiresInDays, 1, 90));
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(5);
 
         var code = new SignupCode(
             request.Label,
             rawCode,
             expiresAtUtc,
-            Math.Clamp(request.MaxUses, 1, 100),
+            1,
             session.UserId,
             request.BoundEmail,
             request.AllowedPlanName,

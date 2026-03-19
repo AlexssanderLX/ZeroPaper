@@ -5,12 +5,7 @@ import Link from "next/link";
 import { ApiError, getWorkspaceOverview, type WorkspaceOverview } from "@/lib/api";
 import { ownerModules } from "@/lib/owner-portal";
 import { useAppSession } from "@/components/app-session-provider";
-
-const quickActions = [
-  { label: "Abrir mesas", href: "/app/mesas" },
-  { label: "Acompanhar pedidos", href: "/app/pedidos" },
-  { label: "Entrar na cozinha", href: "/app/cozinha" },
-];
+import { WorkspaceShell } from "@/components/workspace-shell";
 
 export function OwnerLobby() {
   const { session, clearSession } = useAppSession();
@@ -56,52 +51,17 @@ export function OwnerLobby() {
   ];
 
   return (
-    <main className="page-shell app-shell">
-      <header className="app-topbar">
-        <Link className="brand-lockup" href="/app">
-          <div className="brand-mark" aria-hidden="true">
-            <span>Z</span>
-            <span>P</span>
-          </div>
-          <div className="brand-copy">
-            <span className="eyebrow">ZeroPaper</span>
-            <strong>{session.restaurantName}</strong>
-          </div>
-        </Link>
-
-        <div className="topbar-actions">
-          <div className="account-pill">
-            <span>{session.ownerName}</span>
-            <small>{session.email}</small>
-          </div>
-          <button className="ghost-link button-link" type="button" onClick={() => void clearSession()}>
-            Sair
-          </button>
-        </div>
-      </header>
-
+    <WorkspaceShell backHref="/login" backLabel="Trocar acesso">
       <section className="workspace-hero hero-panel">
         <div className="hero-stack">
-          <span className="eyebrow">Lobby da unidade</span>
-          <h1>Tudo da operacao em um unico ponto de entrada.</h1>
-          <p className="hero-description">
-            Acesse mesas, pedidos, cozinha, estoque e equipe sem sair do fluxo da
-            sua casa.
-          </p>
-
-          <div className="hero-actions app-actions">
-            {quickActions.map((action) => (
-              <Link key={action.href} className="primary-link" href={action.href}>
-                {action.label}
-              </Link>
-            ))}
-          </div>
+          <span className="eyebrow">Painel da unidade</span>
+          <h1>{session.restaurantName}</h1>
         </div>
 
         <section className="hero-showcase ambient-panel">
           <div className="showcase-header">
-            <span className="eyebrow">Visao geral</span>
-            <strong>Pontos centrais do dia</strong>
+            <span className="eyebrow">Conta ativa</span>
+            <strong>{session.ownerName}</strong>
           </div>
 
           <div className="overview-grid">
@@ -115,56 +75,22 @@ export function OwnerLobby() {
         </section>
       </section>
 
-      <section className="metrics-grid">
-        <article className="surface-card metric-card interactive-card">
-          <span className="eyebrow">Conta</span>
-          <strong>{session.profile === "admin" ? "Operacao interna" : session.role}</strong>
-          <p>Entre no ambiente principal da unidade e siga o turno com mais clareza.</p>
-        </article>
-
-        <article className="surface-card metric-card interactive-card">
-          <span className="eyebrow">Acesso</span>
-          <strong>Entradas centralizadas</strong>
-          <p>{overview?.activeTables ?? 0} mesas e {overview?.openOrders ?? 0} pedidos no mesmo ponto de acesso.</p>
-        </article>
-
-        <article className="surface-card metric-card interactive-card">
-          <span className="eyebrow">Fluxo</span>
-          <strong>Base operacional unica</strong>
-          <p>{overview?.teamMembers ?? 0} acessos ativos e {overview?.lowStockItems ?? 0} alertas de reposicao.</p>
-        </article>
-      </section>
-
       {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
 
       <section className="module-grid">
         {ownerModules.map((module) => (
-          <article key={module.slug} className="surface-card module-card interactive-card">
+          <Link key={module.slug} className="surface-card module-card interactive-card module-entry-link" href={`/app/${module.slug}`}>
             <span className="eyebrow">{module.eyebrow}</span>
             <h2>{module.title}</h2>
-            <p>{module.summary}</p>
-
-            <div className="module-stat-list">
-              {module.stats.map((stat) => (
-                <span key={stat} className="mini-chip">
-                  {stat}
-                </span>
-              ))}
-            </div>
 
             <div className="module-card-footer">
-              <div className="module-highlight-stack">
-                {module.highlights.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
-              <Link className="ghost-link" href={`/app/${module.slug}`}>
+              <span className="ghost-link">
                 {module.actionLabel}
-              </Link>
+              </span>
             </div>
-          </article>
+          </Link>
         ))}
       </section>
-    </main>
+    </WorkspaceShell>
   );
 }

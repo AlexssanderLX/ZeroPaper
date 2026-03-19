@@ -32,7 +32,7 @@ public class AuthSessionService : IAuthSessionService
 
         var candidates = await _context.Users
             .Include(user => user.Company)
-            .Where(user => user.Email == normalizedEmail && user.IsActive && user.Company.IsActive)
+            .Where(user => user.Email == normalizedEmail)
             .ToListAsync(cancellationToken);
 
         if (candidates.Count == 0)
@@ -61,6 +61,11 @@ public class AuthSessionService : IAuthSessionService
         else if (user.Role == UserRole.Root)
         {
             return null;
+        }
+
+        if (!user.IsActive || !user.Company.IsActive)
+        {
+            throw new InvalidOperationException("Acesso negado. Entre em contato com a ZeroPaper.");
         }
 
         var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
@@ -132,6 +137,38 @@ public class AuthSessionService : IAuthSessionService
             Role = session.AppUser.Role.ToString(),
             RestaurantName = session.Company.TradeName
         };
+    }
+
+    public async Task<bool> ConfirmPasswordAsync(string? authorizationHeader, string password, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+
+        var token = ExtractBearerToken(authorizationHeader);
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var tokenHash = ComputeTokenHash(token);
+
+        var session = await _context.Sessions
+            .Include(item => item.AppUser)
+            .Include(item => item.Company)
+            .FirstOrDefaultAsync(
+                item => item.TokenHash == tokenHash &&
+                        item.IsActive &&
+                        item.RevokedAtUtc == null &&
+                        item.ExpiresAtUtc > utcNow,
+                cancellationToken);
+
+        if (session is null || !session.AppUser.IsActive || !session.Company.IsActive || !session.IsAvailable(utcNow))
+        {
+            return false;
+        }
+
+        return _passwordHasher.Verify(password, session.AppUser.PasswordHash);
     }
 
     public async Task LogoutAsync(string? authorizationHeader, CancellationToken cancellationToken = default)

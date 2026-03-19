@@ -33,3 +33,13 @@ public class ResetPasswordDto
     public string Token { get; set; } = string.Empty;
     public string NewPassword { get; set; } = string.Empty;
 }
+
+public class ConfirmPasswordRequestDto
+{
+    public string Password { get; set; } = string.Empty;
+}
+
+public class ConfirmPasswordResponseDto
+{
+    public bool Confirmed { get; set; }
+}

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { createPublicOrder, getPublicTable, type CustomerOrder, type PublicTableView } from "@/lib/api";
 import {
   buildOrderPayload,
@@ -71,10 +72,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     <main className="page-shell public-shell">
       <section className="surface-card public-card ambient-panel">
         <div className="brand-lockup compact">
-          <div className="brand-mark small" aria-hidden="true">
-            <span>Z</span>
-            <span>P</span>
-          </div>
+          <BrandMark small />
           <div className="brand-copy">
             <span className="eyebrow">ZeroPaper</span>
             <strong>{table?.restaurantName || "Carregando..."}</strong>

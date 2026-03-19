@@ -4,8 +4,6 @@ public class CreateSignupCodeRequestDto
 {
     public string Label { get; set; } = "Cadastro manual";
     public string? BoundEmail { get; set; }
-    public int ExpiresInDays { get; set; } = 7;
-    public int MaxUses { get; set; } = 1;
     public string? AllowedPlanName { get; set; }
     public int? AllowedMaxUsers { get; set; }
 }

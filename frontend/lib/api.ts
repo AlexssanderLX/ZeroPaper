@@ -1,7 +1,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PUT" | "PATCH";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string;
 };
@@ -148,14 +148,27 @@ export type SignupCode = {
 export type CreateSignupCodePayload = {
   label: string;
   boundEmail?: string;
-  expiresInDays: number;
-  maxUses: number;
   allowedPlanName?: string;
   allowedMaxUsers?: number;
 };
 
 export type CreateSignupCodeResult = SignupCode & {
   rawCode: string;
+};
+
+export type AdminUser = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  restaurantName: string;
+  isActive: boolean;
+  isCompanyActive: boolean;
+  hasActiveSession: boolean;
+  isOnlineNow: boolean;
+  activeSessionCount: number;
+  lastLoginAtUtc?: string | null;
+  lastSeenAtUtc?: string | null;
 };
 
 export type AccessRequestPayload = {
@@ -180,6 +193,14 @@ export type PasswordResetRequestPayload = {
 export type PasswordResetRequestResult = {
   accepted: boolean;
   message: string;
+};
+
+export type ConfirmPasswordPayload = {
+  password: string;
+};
+
+export type ConfirmPasswordResult = {
+  confirmed: boolean;
 };
 
 export type ResetPasswordPayload = {
@@ -253,6 +274,31 @@ export function createSignupCode(token: string, payload: CreateSignupCodePayload
   });
 }
 
+export function getAdminUsers(token: string) {
+  return apiRequest<AdminUser[]>("/api/admin/users", { token });
+}
+
+export function reactivateAdminUser(token: string, userId: string) {
+  return apiRequest<AdminUser>(`/api/admin/users/${userId}/reactivate`, {
+    method: "PATCH",
+    token,
+  });
+}
+
+export function deactivateAdminUser(token: string, userId: string) {
+  return apiRequest<AdminUser>(`/api/admin/users/${userId}/deactivate`, {
+    method: "PATCH",
+    token,
+  });
+}
+
+export function deleteAdminUser(token: string, userId: string) {
+  return apiRequest<void>(`/api/admin/users/${userId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 export function createAccessRequest(payload: AccessRequestPayload) {
   return apiRequest<AccessRequestResult>("/api/public/access-requests", {
     method: "POST",
@@ -263,6 +309,14 @@ export function createAccessRequest(payload: AccessRequestPayload) {
 export function requestPasswordReset(payload: PasswordResetRequestPayload) {
   return apiRequest<PasswordResetRequestResult>("/api/auth/password/request-reset", {
     method: "POST",
+    body: payload,
+  });
+}
+
+export function confirmCurrentPassword(token: string, payload: ConfirmPasswordPayload) {
+  return apiRequest<ConfirmPasswordResult>("/api/auth/confirm-password", {
+    method: "POST",
+    token,
     body: payload,
   });
 }

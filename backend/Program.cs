@@ -46,7 +46,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(allowedOrigins)
             .WithHeaders("Content-Type", "Authorization")
-            .WithMethods("GET", "POST", "PUT", "PATCH", "OPTIONS");
+            .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
     });
 });
 
@@ -77,6 +77,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAdminSignupCodeService, AdminSignupCodeService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestNotificationService>();
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();

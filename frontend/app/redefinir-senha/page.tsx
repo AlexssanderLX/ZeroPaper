@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { ResetPasswordForm } from "@/components/reset-password-form";
 
 export default function ResetPasswordPage() {
@@ -13,10 +14,7 @@ export default function ResetPasswordPage() {
       <section className="login-layout">
         <section className="surface-card login-copy-card ambient-panel subtle">
           <div className="brand-lockup compact">
-            <div className="brand-mark small" aria-hidden="true">
-              <span>Z</span>
-              <span>P</span>
-            </div>
+            <BrandMark small />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
               <strong>Nova senha</strong>

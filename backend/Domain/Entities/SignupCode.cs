@@ -58,9 +58,9 @@ public class SignupCode : BaseEntity
         return CodeHash == ComputeCodeHash(rawCode);
     }
 
-    public void RegisterUse(DateTime utcNow)
+    public void RegisterUse(DateTime utcNow, string? email = null)
     {
-        if (!IsAvailable(utcNow: utcNow))
+        if (!IsAvailable(email, utcNow))
         {
             throw new InvalidOperationException("Signup code is no longer available.");
         }

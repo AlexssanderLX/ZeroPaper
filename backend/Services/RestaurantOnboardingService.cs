@@ -95,7 +95,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         await _appUserRepository.AddAsync(owner, cancellationToken);
         await _subscriptionRepository.AddAsync(subscription, cancellationToken);
         await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
-        signupCode.RegisterUse(DateTime.UtcNow);
+        signupCode.RegisterUse(DateTime.UtcNow, request.OwnerEmail);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

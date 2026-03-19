@@ -1,138 +1,137 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 
-const highlights = [
+const pillars = [
   {
-    title: "Pedidos por QR",
-    text: "Receba pedidos com mais fluidez direto na operacao da unidade.",
+    eyebrow: "QR nas mesas",
+    title: "Agora voce recebe pedidos direto da mesa.",
+    text: "O cliente acessa o QR, envia o pedido e sua unidade acompanha tudo no mesmo fluxo.",
   },
   {
-    title: "Cozinha alinhada",
-    text: "Organize preparo, prioridade e saida com mais clareza para a equipe.",
+    eyebrow: "Cozinha em ritmo",
+    title: "Agora voce acompanha o que entrou e o que precisa sair.",
+    text: "A fila da cozinha fica mais clara para sua operacao responder com mais ritmo.",
   },
   {
-    title: "Estoque sob controle",
-    text: "Acompanhe itens criticos e reduza falhas no ritmo do dia a dia.",
+    eyebrow: "Estoque essencial",
+    title: "Agora voce enxerga os itens criticos antes da falta.",
+    text: "O basico da reposicao fica visivel no mesmo sistema, sem controle solto por fora.",
   },
 ];
 
-const valuePoints = [
-  "Atendimento mais agil no salao",
-  "Menos tarefa manual para a equipe",
-  "Mais visibilidade para a cozinha",
-  "Mais controle sobre a operacao",
-];
-
-const modules = ["Salao", "Cozinha", "Pedidos", "QR Code", "Estoque"];
+const productMarks = ["QR por mesa", "Pedidos da unidade", "Estoque basico", "Painel do dono"];
 
 export default function Home() {
   return (
     <main className="page-shell">
-      <section className="hero-panel">
-        <div className="hero-stack">
+      <section className="hero-panel sales-hero">
+        <div className="hero-stack sales-copy">
           <div className="brand-lockup">
-            <div className="brand-mark" aria-hidden="true">
-              <span>Z</span>
-              <span>P</span>
-            </div>
+            <BrandMark />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
               <strong>Restaurant Operating System</strong>
             </div>
           </div>
 
-          <h1>Operacao, pedidos e estoque no mesmo fluxo.</h1>
+          <h1>Agora voce acompanha pedidos, cozinha e estoque no mesmo fluxo.</h1>
           <p className="hero-description">
-            Uma plataforma pensada para restaurantes que querem atender melhor,
-            organizar a cozinha e manter a operacao mais leve ao longo do dia.
+            Com a ZeroPaper, voce centraliza o que entra pelas mesas, acompanha
+            o andamento da cozinha e mantem a operacao da unidade mais organizada
+            ao longo do dia.
           </p>
 
           <div className="hero-actions">
-            <Link className="ghost-link" href="/cadastro">
+            <Link className="primary-link" href="/cadastro">
               Cadastrar minha unidade
             </Link>
-            <Link className="primary-link" href="/login">
-              Acessar plataforma
+            <Link className="ghost-link" href="/login">
+              Acessar unidade
             </Link>
           </div>
-        </div>
 
-        <div className="hero-showcase ambient-panel">
-          <div className="showcase-header">
-            <span className="eyebrow">Destaques</span>
-            <strong>Recursos centrais da experiencia</strong>
-          </div>
-
-          <div className="highlight-grid">
-            {highlights.map((item) => (
-              <article key={item.title} className="info-card interactive-card">
-                <h2>{item.title}</h2>
-                <p>{item.text}</p>
-              </article>
+          <div className="sales-chip-row">
+            {productMarks.map((mark) => (
+              <span key={mark} className="sales-chip">
+                {mark}
+              </span>
             ))}
           </div>
-
-          <div className="showcase-footer">
-            <span />
-            <p>Uma plataforma unica para atendimento, cozinha e operacao.</p>
-          </div>
         </div>
-      </section>
 
-      <section className="content-grid">
-        <section className="surface-card emphasis-card ambient-panel subtle interactive-card">
-          <span className="eyebrow">Para a rotina da casa</span>
-          <h2>Mais ritmo no atendimento. Mais previsibilidade na operacao.</h2>
-          <p className="body-copy">
-            ZeroPaper conecta entrada de pedidos, fluxo de cozinha e acompanhamento
-            operacional em uma experiencia mais simples para a equipe.
-          </p>
-        </section>
+        <div className="sales-stage" aria-hidden="true">
+          <div className="sales-glow" />
 
-        <section className="surface-card">
-          <span className="eyebrow">Na pratica</span>
-          <div className="point-list">
-            {valuePoints.map((item, index) => (
-              <div key={item} className="point-item interactive-card">
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <p>{item}</p>
+          <article className="sales-window sales-window-main">
+            <div className="sales-window-bar">
+              <span />
+              <span />
+              <span />
+            </div>
+
+            <div className="sales-window-head">
+              <strong>Fluxo da unidade</strong>
+              <small>ao vivo</small>
+            </div>
+
+            <div className="sales-order-stack">
+              <div className="sales-order-card">
+                <div>
+                  <span className="sales-order-label">Mesa 08</span>
+                  <strong>2 pedidos novos</strong>
+                </div>
+                <em>QR ativo</em>
               </div>
-            ))}
-          </div>
-        </section>
+
+              <div className="sales-order-card soft">
+                <div>
+                  <span className="sales-order-label">Cozinha</span>
+                  <strong>Fila organizada</strong>
+                </div>
+                <em>3 em preparo</em>
+              </div>
+
+              <div className="sales-order-card muted">
+                <div>
+                  <span className="sales-order-label">Estoque</span>
+                  <strong>Reposicao sinalizada</strong>
+                </div>
+                <em>2 alertas</em>
+              </div>
+            </div>
+          </article>
+
+          <article className="sales-window sales-window-float">
+            <span className="eyebrow">QR pronto</span>
+            <strong>Mesa 12</strong>
+            <p>/q/mesa-12</p>
+          </article>
+
+          <article className="sales-window sales-window-side">
+            <span className="eyebrow">Entrada</span>
+            <strong>Pedido recebido</strong>
+            <div className="sales-line-group">
+              <span />
+              <span />
+              <span />
+            </div>
+          </article>
+        </div>
       </section>
 
-      <section className="surface-card modules-card ambient-panel subtle">
-        <div className="modules-header">
-          <span className="eyebrow">ZeroPaper</span>
-          <h2>Uma experiencia unica para cada unidade.</h2>
-        </div>
-
-        <div className="tag-grid">
-          {modules.map((module) => (
-            <span key={module} className="tag-item interactive-card">
-              {module}
-            </span>
-          ))}
-        </div>
+      <section className="sales-grid">
+        {pillars.map((item) => (
+          <article key={item.title} className="surface-card sales-card interactive-card">
+            <span className="eyebrow">{item.eyebrow}</span>
+            <h2>{item.title}</h2>
+            <p>{item.text}</p>
+          </article>
+        ))}
       </section>
 
-      <section className="surface-card signup-banner ambient-panel subtle interactive-card">
-        <div className="signup-banner-copy">
-          <span className="eyebrow">Novo por aqui</span>
-          <h2>Cadastre sua unidade e comece a operar na ZeroPaper.</h2>
-          <p className="body-copy">
-            O cadastro e liberado por codigo de acesso, para que cada nova unidade entre na plataforma com aprovacao previa.
-          </p>
-        </div>
-
-        <div className="signup-banner-actions">
-          <Link className="primary-link" href="/cadastro">
-            Fazer cadastro
-          </Link>
-          <Link className="ghost-link" href="/login">
-            Ja tenho acesso
-          </Link>
-        </div>
+      <section className="surface-card sales-banner ambient-panel subtle">
+        <span className="eyebrow">ZeroPaper</span>
+        <h2>Agora voce conduz a unidade com mais controle no dia a dia.</h2>
       </section>
     </main>
   );
