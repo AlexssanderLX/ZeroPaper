@@ -1,244 +1,199 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  createOrder,
   getOrders,
-  getTables,
   updateOrderStatus,
   type CustomerOrder,
-  type DiningTable,
 } from "@/lib/api";
 import {
-  buildOrderPayload,
-  emptyOrderDraftItem,
   formatCurrency,
   formatDateTime,
   handleApiError,
   type AsyncVoid,
-  type OrderDraftItem,
 } from "@/components/modules/module-utils";
 
-export function OrdersModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
-  const [tables, setTables] = useState<DiningTable[]>([]);
-  const [orders, setOrders] = useState<CustomerOrder[]>([]);
-  const [tableId, setTableId] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<OrderDraftItem[]>([emptyOrderDraftItem()]);
-  const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+type KitchenColumn = {
+  key: string;
+  title: string;
+  items: CustomerOrder[];
+};
 
-  async function loadData() {
+function buildKitchenColumns(orders: CustomerOrder[]): KitchenColumn[] {
+  return [
+    {
+      key: "pending",
+      title: "Aguardando",
+      items: orders.filter((order) => order.status === "Pending"),
+    },
+    {
+      key: "inkitchen",
+      title: "Em preparo",
+      items: orders.filter((order) => order.status === "InKitchen"),
+    },
+    {
+      key: "ready",
+      title: "Prontos",
+      items: orders.filter((order) => order.status === "Ready"),
+    },
+    {
+      key: "closed",
+      title: "Finalizados",
+      items: orders.filter((order) => order.status === "Delivered" || order.status === "Cancelled"),
+    },
+  ];
+}
+
+export function OrdersModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingOrderId, setProcessingOrderId] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function loadOrders() {
     setLoading(true);
 
     try {
-      const [tablesResponse, ordersResponse] = await Promise.all([getTables(token), getOrders(token)]);
-      setTables(tablesResponse);
-      setOrders(ordersResponse);
-      setTableId((current) => current || tablesResponse[0]?.id || "");
+      const response = await getOrders(token);
+      setOrders(response);
       setErrorMessage("");
     } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel carregar os pedidos.");
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel carregar a cozinha.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadData();
+    void loadOrders();
   }, [token]);
-
-  function updateItem(index: number, field: keyof OrderDraftItem, value: string) {
-    setItems((current) =>
-      current.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
-    );
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsSaving(true);
-    setSuccessMessage("");
-
-    try {
-      await createOrder(token, {
-        tableId,
-        customerName: customerName.trim() || undefined,
-        notes: notes.trim() || undefined,
-        items: buildOrderPayload(items),
-      });
-
-      setCustomerName("");
-      setNotes("");
-      setItems([emptyOrderDraftItem()]);
-      setSuccessMessage("Pedido enviado para a operacao.");
-      await loadData();
-    } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel criar o pedido.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   async function handleStatusUpdate(orderId: string, status: string) {
     try {
+      setProcessingOrderId(orderId);
       await updateOrderStatus(token, orderId, status);
-      await loadData();
+      await loadOrders();
     } catch (error) {
       await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel atualizar o pedido.");
+    } finally {
+      setProcessingOrderId("");
     }
   }
 
+  const columns = useMemo(() => buildKitchenColumns(orders), [orders]);
+
   return (
-    <section className="module-body-grid">
-      <section className="surface-card module-form-card">
-        <span className="eyebrow">Novo pedido</span>
-        <h2>Lancar pedido da unidade</h2>
-        <form className="module-form" onSubmit={handleSubmit}>
-          <div className="field-group">
-            <label htmlFor="orderTable">Mesa</label>
-            <select id="orderTable" value={tableId} onChange={(event) => setTableId(event.target.value)} disabled={tables.length === 0}>
-              {tables.length === 0 ? (
-                <option value="">Crie uma mesa primeiro</option>
-              ) : (
-                tables.map((table) => (
-                  <option key={table.id} value={table.id}>
-                    {table.name}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          <div className="module-inline-grid">
-            <div className="field-group">
-              <label htmlFor="orderCustomer">Cliente</label>
-              <input
-                id="orderCustomer"
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-                placeholder="Nome do cliente"
-              />
-            </div>
-
-            <div className="field-group">
-              <label htmlFor="orderNotes">Observacoes</label>
-              <input
-                id="orderNotes"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Sem cebola, mesa ao fundo..."
-              />
-            </div>
-          </div>
-
-          <div className="dynamic-item-stack">
-            {items.map((item, index) => (
-              <div key={`order-item-${index}`} className="dynamic-item-card">
-                <div className="module-inline-grid triple">
-                  <div className="field-group">
-                    <label>Item</label>
-                    <input value={item.name} onChange={(event) => updateItem(index, "name", event.target.value)} />
-                  </div>
-
-                  <div className="field-group">
-                    <label>Qtd.</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={item.quantity}
-                      onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    />
-                  </div>
-
-                  <div className="field-group">
-                    <label>Valor</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unitPrice}
-                      onChange={(event) => updateItem(index, "unitPrice", event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="field-group">
-                  <label>Observacao do item</label>
-                  <input value={item.notes} onChange={(event) => updateItem(index, "notes", event.target.value)} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="toolbar-actions">
-            <button className="ghost-link button-link" type="button" onClick={() => setItems((current) => [...current, emptyOrderDraftItem()])}>
-              Adicionar item
-            </button>
-            <button className="primary-link button-link" type="submit" disabled={isSaving || tables.length === 0}>
-              {isSaving ? "Salvando..." : "Criar pedido"}
-            </button>
-          </div>
-        </form>
-
-        {successMessage ? <p className="module-feedback success">{successMessage}</p> : null}
-        {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
-      </section>
+    <section className="menu-workspace">
+      {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
 
       <section className="surface-card module-list-card">
         <div className="module-section-head">
-          <span className="eyebrow">Pedidos do dia</span>
-          <strong>{orders.length} registrados</strong>
+          <span className="eyebrow">Cozinha</span>
+          <strong>{orders.length} pedidos</strong>
         </div>
 
         {loading ? (
           <p className="loading-state">Carregando pedidos...</p>
         ) : orders.length === 0 ? (
           <div className="module-empty-state">
-            <strong>Nenhum pedido criado.</strong>
-            <p>Os pedidos da unidade e os pedidos enviados por QR vao aparecer aqui.</p>
+            <strong>Nenhum pedido.</strong>
           </div>
         ) : (
-          <div className="module-card-list">
-            {orders.map((order) => (
-              <article key={order.id} className="module-entity-card interactive-card">
-                <div className="entity-head">
-                  <div>
-                    <h3>Pedido #{order.number}</h3>
-                    <p>{order.tableName}</p>
+          <div className="kitchen-board">
+            {columns.map((column) => (
+              <section key={column.key} className="kitchen-column">
+                <div className="module-section-head kitchen-column-head">
+                  <span className="eyebrow">{column.title}</span>
+                  <strong>{column.items.length}</strong>
+                </div>
+
+                {column.items.length === 0 ? (
+                  <div className="module-empty-state compact-empty-state">
+                    <p>Sem pedidos.</p>
                   </div>
-                  <span className={`status-chip ${order.status.toLowerCase()}`}>{order.status}</span>
-                </div>
+                ) : (
+                  <div className="module-card-list">
+                    {column.items.map((order) => (
+                      <article key={order.id} className="module-entity-card interactive-card kitchen-order-card">
+                        <div className="entity-head">
+                          <div>
+                            <h3>Pedido #{order.number}</h3>
+                            <p>{order.tableName}</p>
+                          </div>
+                          <span className={`status-chip ${order.status.toLowerCase()}`}>{order.status}</span>
+                        </div>
 
-                <div className="entity-meta-grid">
-                  <span>{order.customerName || "Sem nome"}</span>
-                  <span>{formatDateTime(order.submittedAtUtc)}</span>
-                  <span>{formatCurrency(order.totalAmount)}</span>
-                </div>
+                        <div className="entity-meta-grid">
+                          {order.customerName ? <span>{order.customerName}</span> : null}
+                          <span>{formatDateTime(order.submittedAtUtc)}</span>
+                          <span>{formatCurrency(order.totalAmount)}</span>
+                        </div>
 
-                <div className="item-line-list">
-                  {order.items.map((item) => {
-                    const itemLabel = `${item.quantity}x ${item.name} - ${formatCurrency(item.totalPrice)}`;
-                    return <p key={item.id}>{itemLabel}</p>;
-                  })}
-                </div>
+                        <div className="item-line-list">
+                          {order.items.map((item) => (
+                            <p key={item.id}>
+                              {item.quantity}x {item.name} - {formatCurrency(item.totalPrice)}
+                            </p>
+                          ))}
+                        </div>
 
-                <div className="toolbar-actions">
-                  {order.status === "Pending" ? (
-                    <button className="ghost-link button-link" type="button" onClick={() => void handleStatusUpdate(order.id, "InKitchen")}>
-                      Enviar para cozinha
-                    </button>
-                  ) : null}
-                  {order.status !== "Delivered" && order.status !== "Cancelled" ? (
-                    <button className="ghost-link button-link" type="button" onClick={() => void handleStatusUpdate(order.id, "Cancelled")}>
-                      Cancelar
-                    </button>
-                  ) : null}
-                </div>
-              </article>
+                        {order.notes ? (
+                          <div className="module-empty-state compact-empty-state">
+                            <strong>Observacao</strong>
+                            <p>{order.notes}</p>
+                          </div>
+                        ) : null}
+
+                        <div className="toolbar-actions compact table-card-actions">
+                          {order.status === "Pending" ? (
+                            <button
+                              className="ghost-link button-link"
+                              type="button"
+                              disabled={processingOrderId === order.id}
+                              onClick={() => void handleStatusUpdate(order.id, "InKitchen")}
+                            >
+                              Iniciar preparo
+                            </button>
+                          ) : null}
+
+                          {order.status === "InKitchen" ? (
+                            <button
+                              className="ghost-link button-link"
+                              type="button"
+                              disabled={processingOrderId === order.id}
+                              onClick={() => void handleStatusUpdate(order.id, "Ready")}
+                            >
+                              Marcar pronto
+                            </button>
+                          ) : null}
+
+                          {order.status === "Ready" ? (
+                            <button
+                              className="ghost-link button-link"
+                              type="button"
+                              disabled={processingOrderId === order.id}
+                              onClick={() => void handleStatusUpdate(order.id, "Delivered")}
+                            >
+                              Concluir
+                            </button>
+                          ) : null}
+
+                          {order.status !== "Delivered" && order.status !== "Cancelled" ? (
+                            <button
+                              className="ghost-link button-link admin-danger-button"
+                              type="button"
+                              disabled={processingOrderId === order.id}
+                              onClick={() => void handleStatusUpdate(order.id, "Cancelled")}
+                            >
+                              Cancelar
+                            </button>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
             ))}
           </div>
         )}

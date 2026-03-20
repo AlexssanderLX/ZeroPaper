@@ -364,6 +364,10 @@ namespace ZeroPaper.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<Guid>("MenuCategoryId")
                         .HasColumnType("char(36)");
 

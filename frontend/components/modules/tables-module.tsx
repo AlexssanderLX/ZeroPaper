@@ -45,8 +45,12 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
     return typeof window === "undefined" ? accessUrl : new URL(accessUrl, window.location.origin).toString();
   }
 
-  function buildQrImageUrl(accessUrl: string) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(buildAbsoluteAccessUrl(accessUrl))}`;
+  function buildQrImageUrl(accessUrl: string, size = 320, margin = 12) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=${margin}&data=${encodeURIComponent(buildAbsoluteAccessUrl(accessUrl))}`;
+  }
+
+  function buildQrDownloadUrl(accessUrl: string) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=1200x1200&margin=24&format=png&data=${encodeURIComponent(buildAbsoluteAccessUrl(accessUrl))}`;
   }
 
   async function handleCopyLink(accessUrl: string, tableId: string, message = "Link copiado.") {
@@ -127,9 +131,14 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
           {selectedTable ? (
             <div className="table-preview-layout">
               <div className="table-qr-frame">
+                <div className="table-qr-sheet">
+                  <span className="table-qr-badge">Scan to order</span>
+                  <strong>{selectedTable.name}</strong>
+                  <small>{selectedTable.publicCode}</small>
+                </div>
                 <img
                   className="table-qr-image"
-                  src={buildQrImageUrl(selectedTable.accessUrl)}
+                  src={buildQrImageUrl(selectedTable.accessUrl, 420, 16)}
                   alt={`QR da ${selectedTable.name}`}
                   loading="lazy"
                   referrerPolicy="no-referrer"
@@ -170,7 +179,7 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                   </button>
                   <a
                     className="ghost-link"
-                    href={buildQrImageUrl(selectedTable.accessUrl)}
+                    href={buildQrDownloadUrl(selectedTable.accessUrl)}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -214,10 +223,22 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                   <span className={`status-chip ${table.status.toLowerCase()}`}>{table.status}</span>
                 </div>
 
-                <div className="entity-meta-grid">
-                  <span>{table.seats} lugares</span>
-                  <span>{table.openOrderCount} pedidos abertos</span>
-                  <span>{table.publicCode}</span>
+                <div className="table-card-body">
+                  <div className="table-card-qr">
+                    <img
+                      className="table-card-qr-image"
+                      src={buildQrImageUrl(table.accessUrl, 128, 8)}
+                      alt={`QR compacto da ${table.name}`}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+
+                  <div className="entity-meta-grid">
+                    <span>{table.seats} lugares</span>
+                    <span>{table.openOrderCount} pedidos abertos</span>
+                    <span>{table.publicCode}</span>
+                  </div>
                 </div>
 
                 <div className="toolbar-actions compact table-card-actions">

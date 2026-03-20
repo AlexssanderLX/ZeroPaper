@@ -20,13 +20,6 @@ export type StockDraft = {
   minimumQuantity: string;
 };
 
-export type TeamDraft = {
-  fullName: string;
-  email: string;
-  password: string;
-  role: string;
-};
-
 export function emptyOrderDraftItem(): OrderDraftItem {
   return {
     name: "",
@@ -43,15 +36,6 @@ export function emptyStockDraft(): StockDraft {
     unit: "",
     currentQuantity: "0",
     minimumQuantity: "0",
-  };
-}
-
-export function emptyTeamDraft(): TeamDraft {
-  return {
-    fullName: "",
-    email: "",
-    password: "",
-    role: "Employee",
   };
 }
 

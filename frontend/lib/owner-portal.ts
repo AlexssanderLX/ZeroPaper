@@ -34,8 +34,8 @@ export const ownerModules: PortalModule[] = [
   },
   {
     slug: "pedidos",
-    title: "Pedidos",
-    eyebrow: "Pedidos",
+    title: "Pedidos para a cozinha",
+    eyebrow: "Cozinha",
     actionLabel: "Abrir",
   },
   {

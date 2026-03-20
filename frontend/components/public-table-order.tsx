@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import {
@@ -12,21 +12,20 @@ import {
 } from "@/lib/api";
 import { formatCurrency, handleApiError } from "@/components/modules/module-utils";
 
-type MenuSelectionState = Record<string, { quantity: number; notes: string }>;
+type MenuSelectionState = Record<string, number>;
 
 function buildSelectionPayload(selectionState: MenuSelectionState) {
   return Object.entries(selectionState)
-    .filter(([, value]) => value.quantity > 0)
+    .filter(([, quantity]) => quantity > 0)
     .map(([menuItemId, value]) => ({
       menuItemId,
-      quantity: value.quantity,
-      notes: value.notes.trim() || undefined,
+      quantity: value,
     }));
 }
 
 export function PublicTableOrder({ publicCode }: { publicCode: string }) {
   const [table, setTable] = useState<PublicTableView | null>(null);
-  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [expandedCategoryId, setExpandedCategoryId] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [selectionState, setSelectionState] = useState<MenuSelectionState>({});
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
@@ -40,7 +39,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     try {
       const response = await getPublicTable(publicCode);
       setTable(response);
-      setActiveCategoryId(response.menu[0]?.id ?? "");
+      setExpandedCategoryId(response.menu[0]?.id ?? "");
       setErrorMessage("");
     } catch (error) {
       await handleApiError(error, async () => undefined, setErrorMessage, "Nao foi possivel abrir a mesa.");
@@ -53,12 +52,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     void loadTable();
   }, [publicCode]);
 
-  const activeCategory = useMemo(
-    () => table?.menu.find((category) => category.id === activeCategoryId) ?? table?.menu[0] ?? null,
-    [activeCategoryId, table],
-  );
-
-  const cartItems = useMemo(() => {
+  const cartItems = (() => {
     const items = new Map<string, { item: MenuCategory["items"][number]; categoryName: string }>();
 
     table?.menu.forEach((category) => {
@@ -68,7 +62,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     });
 
     return Object.entries(selectionState)
-      .filter(([, value]) => value.quantity > 0)
+      .filter(([, value]) => value > 0)
       .map(([menuItemId, value]) => {
         const resolved = items.get(menuItemId);
 
@@ -80,9 +74,8 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
           menuItemId,
           categoryName: resolved.categoryName,
           item: resolved.item,
-          quantity: value.quantity,
-          notes: value.notes,
-          totalPrice: resolved.item.price * value.quantity,
+          quantity: value,
+          totalPrice: resolved.item.price * value,
         };
       })
       .filter(Boolean) as Array<{
@@ -90,10 +83,9 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
       categoryName: string;
       item: MenuCategory["items"][number];
       quantity: number;
-      notes: string;
       totalPrice: number;
     }>;
-  }, [selectionState, table]);
+  })();
 
   const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
@@ -107,22 +99,9 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
 
       return {
         ...currentValue,
-        [menuItemId]: {
-          quantity: nextQuantity,
-          notes: currentValue[menuItemId]?.notes ?? "",
-        },
+        [menuItemId]: nextQuantity,
       };
     });
-  }
-
-  function updateItemNotes(menuItemId: string, nextNotes: string) {
-    setSelectionState((currentValue) => ({
-      ...currentValue,
-      [menuItemId]: {
-        quantity: currentValue[menuItemId]?.quantity ?? 1,
-        notes: nextNotes,
-      },
-    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -183,59 +162,64 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
             {table?.menu.length ? (
               <form className="public-menu-layout" onSubmit={handleSubmit}>
                 <div className="public-menu-main">
-                  <div className="public-category-row">
+                  <div className="public-category-stack">
                     {table.menu.map((category) => (
-                      <button
+                      <details
                         key={category.id}
-                        className={`ghost-link button-link public-category-chip ${activeCategory?.id === category.id ? "is-active" : ""}`}
-                        type="button"
-                        onClick={() => setActiveCategoryId(category.id)}
+                        className="public-category-details"
+                        open={expandedCategoryId === category.id}
                       >
-                        {category.name}
-                      </button>
+                        <summary
+                          className="public-category-summary"
+                          onClick={() =>
+                            setExpandedCategoryId((currentValue) => (currentValue === category.id ? "" : category.id))
+                          }
+                        >
+                          <div>
+                            <strong>{category.name}</strong>
+                            <p>{category.items.length} opcoes</p>
+                          </div>
+                          <span className="public-category-summary-price">
+                            {category.items.length > 0
+                              ? `a partir de ${formatCurrency(Math.min(...category.items.map((item) => item.price)))}`
+                              : "sem itens"}
+                          </span>
+                        </summary>
+
+                        <div className="public-product-grid">
+                          {category.items.map((item) => {
+                            const quantity = selectionState[item.id] ?? 0;
+
+                            return (
+                              <article key={item.id} className={`public-product-card ${quantity > 0 ? "is-selected" : ""}`}>
+                                {item.imageUrl ? (
+                                  <img className="public-product-image" src={item.imageUrl} alt={item.name} loading="lazy" />
+                                ) : null}
+
+                                <div className="public-product-top">
+                                  <div>
+                                    {item.accentLabel ? <span className="eyebrow">{item.accentLabel}</span> : null}
+                                    <h2>{item.name}</h2>
+                                    {item.description ? <p>{item.description}</p> : null}
+                                  </div>
+                                  <strong>{formatCurrency(item.price)}</strong>
+                                </div>
+
+                                <div className="public-product-actions">
+                                  <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, Math.max(0, quantity - 1))}>
+                                    -
+                                  </button>
+                                  <span>{quantity}</span>
+                                  <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, quantity + 1)}>
+                                    +
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </details>
                     ))}
-                  </div>
-
-                  <div className="public-product-grid">
-                    {activeCategory?.items.map((item) => {
-                      const selected = selectionState[item.id];
-                      const quantity = selected?.quantity ?? 0;
-
-                      return (
-                        <article key={item.id} className={`public-product-card ${quantity > 0 ? "is-selected" : ""}`}>
-                          <div className="public-product-top">
-                            <div>
-                              {item.accentLabel ? <span className="eyebrow">{item.accentLabel}</span> : null}
-                              <h2>{item.name}</h2>
-                              {item.description ? <p>{item.description}</p> : null}
-                            </div>
-                            <strong>{formatCurrency(item.price)}</strong>
-                          </div>
-
-                          <div className="public-product-actions">
-                            <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, Math.max(0, quantity - 1))}>
-                              -
-                            </button>
-                            <span>{quantity}</span>
-                            <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, quantity + 1)}>
-                              +
-                            </button>
-                          </div>
-
-                          {quantity > 0 ? (
-                            <div className="field-group">
-                              <label htmlFor={`notes-${item.id}`}>Observacoes</label>
-                              <input
-                                id={`notes-${item.id}`}
-                                value={selected?.notes ?? ""}
-                                onChange={(event) => updateItemNotes(item.id, event.target.value)}
-                                placeholder="Sem cebola, ponto da carne..."
-                              />
-                            </div>
-                          ) : null}
-                        </article>
-                      );
-                    })}
                   </div>
                 </div>
 
@@ -256,7 +240,6 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
                           <div>
                             <strong>{entry.item.name}</strong>
                             <p>{entry.quantity}x {formatCurrency(entry.item.price)}</p>
-                            {entry.notes ? <p>{entry.notes}</p> : null}
                           </div>
                           <strong>{formatCurrency(entry.totalPrice)}</strong>
                         </div>

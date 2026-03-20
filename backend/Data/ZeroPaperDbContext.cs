@@ -320,6 +320,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(260);
             entity.Property(x => x.AccentLabel).HasMaxLength(60);
+            entity.Property(x => x.ImageUrl).HasMaxLength(500);
             entity.Property(x => x.Price).HasPrecision(10, 2).IsRequired();
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();

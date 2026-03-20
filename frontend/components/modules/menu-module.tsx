@@ -16,6 +16,7 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
   const [itemName, setItemName] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [itemAccentLabel, setItemAccentLabel] = useState("");
+  const [itemImageUrl, setItemImageUrl] = useState("");
   const [itemPrice, setItemPrice] = useState("0");
   const [loading, setLoading] = useState(true);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
@@ -91,12 +92,14 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
         name: itemName,
         description: itemDescription || undefined,
         accentLabel: itemAccentLabel || undefined,
+        imageUrl: itemImageUrl || undefined,
         price: Number(itemPrice),
       });
 
       setItemName("");
       setItemDescription("");
       setItemAccentLabel("");
+      setItemImageUrl("");
       setItemPrice("0");
       setSuccessMessage("Item adicionado ao cardapio.");
       await loadMenu();
@@ -188,6 +191,16 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
               </div>
             </div>
 
+            <div className="field-group">
+              <label htmlFor="itemImageUrl">Imagem do item</label>
+              <input
+                id="itemImageUrl"
+                value={itemImageUrl}
+                onChange={(event) => setItemImageUrl(event.target.value)}
+                placeholder="https://images.unsplash.com/..."
+              />
+            </div>
+
             <button className="primary-link button-link" type="submit" disabled={isSavingItem}>
               {isSavingItem ? "Adicionando..." : "Adicionar item"}
             </button>
@@ -213,16 +226,18 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
         ) : (
           <div className="menu-category-stack">
             {categories.map((category) => (
-              <article key={category.id} className={`module-entity-card interactive-card ${selectedCategory?.id === category.id ? "is-selected" : ""}`}>
-                <div className="entity-head">
+              <details
+                key={category.id}
+                className={`module-entity-card interactive-card menu-category-details ${selectedCategory?.id === category.id ? "is-selected" : ""}`}
+                open={selectedCategory?.id === category.id}
+              >
+                <summary className="menu-category-summary" onClick={() => setSelectedCategoryId(category.id)}>
                   <div>
                     <h3>{category.name}</h3>
                     <p>{category.items.length} itens</p>
                   </div>
-                  <button className="ghost-link button-link" type="button" onClick={() => setSelectedCategoryId(category.id)}>
-                    Selecionar
-                  </button>
-                </div>
+                  <span className="ghost-link button-link">Abrir categoria</span>
+                </summary>
 
                 {category.items.length === 0 ? (
                   <div className="module-empty-state compact-empty-state">
@@ -231,20 +246,30 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
                 ) : (
                   <div className="menu-item-stack">
                     {category.items.map((item) => (
-                      <div key={item.id} className="menu-item-row">
-                        <div>
-                          <strong>{item.name}</strong>
-                          <p>{item.description || "Sem descricao"}</p>
-                        </div>
-                        <div className="menu-item-meta">
-                          {item.accentLabel ? <span className="status-chip pending">{item.accentLabel}</span> : null}
-                          <strong>{item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
+                      <div key={item.id} className="menu-item-row menu-item-rich-row">
+                        {item.imageUrl ? (
+                          <img className="menu-item-image" src={item.imageUrl} alt={item.name} loading="lazy" />
+                        ) : (
+                          <div className="menu-item-image menu-item-image-placeholder" aria-hidden="true">
+                            <span>{item.name.slice(0, 1)}</span>
+                          </div>
+                        )}
+
+                        <div className="menu-item-copy">
+                          <div>
+                            <strong>{item.name}</strong>
+                            <p>{item.description || "Sem descricao"}</p>
+                          </div>
+                          <div className="menu-item-meta">
+                            {item.accentLabel ? <span className="status-chip pending">{item.accentLabel}</span> : null}
+                            <strong>{item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </article>
+              </details>
             ))}
           </div>
         )}

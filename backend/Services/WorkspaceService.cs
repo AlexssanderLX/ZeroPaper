@@ -114,6 +114,7 @@ public class WorkspaceService : IWorkspaceService
             request.Price,
             request.Description,
             request.AccentLabel,
+            request.ImageUrl,
             nextDisplayOrder + 1);
 
         await _context.MenuItems.AddAsync(menuItem, cancellationToken);
@@ -472,28 +473,6 @@ public class WorkspaceService : IWorkspaceService
         string? customerName,
         string? notes,
         List<OrderItemInputDto> items,
-        CancellationToken cancellationToken)
-    {
-        var orderItems = await BuildOrderItemsAsync(
-            table.CompanyId,
-            table.TenantId,
-            items,
-            [],
-            cancellationToken);
-
-        if (orderItems.Count == 0)
-        {
-            throw new ArgumentException("At least one item must be informed.", nameof(items));
-        }
-
-        return await PersistOrderAsync(table, customerName, notes, orderItems, cancellationToken);
-    }
-
-    private async Task<CustomerOrderDto> CreateOrderForTableAsync(
-        DiningTable table,
-        string? customerName,
-        string? notes,
-        List<OrderItemInputDto> items,
         List<MenuOrderSelectionDto> menuSelections,
         CancellationToken cancellationToken)
     {
@@ -737,6 +716,7 @@ public class WorkspaceService : IWorkspaceService
             Name = item.Name,
             Description = item.Description,
             AccentLabel = item.AccentLabel,
+            ImageUrl = item.ImageUrl,
             Price = item.Price,
             DisplayOrder = item.DisplayOrder,
             IsActive = item.IsActive

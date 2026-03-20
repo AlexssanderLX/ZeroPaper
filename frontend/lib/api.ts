@@ -55,6 +55,7 @@ export type MenuItem = {
   name: string;
   description?: string | null;
   accentLabel?: string | null;
+  imageUrl?: string | null;
   price: number;
   displayOrder: number;
   isActive: boolean;
@@ -110,15 +111,6 @@ export type StockItem = {
   currentQuantity: number;
   minimumQuantity: number;
   isLowStock: boolean;
-};
-
-export type TeamMember = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  isActive: boolean;
-  lastLoginAtUtc?: string | null;
 };
 
 export type CompanySettings = {
@@ -387,6 +379,7 @@ export function createMenuItem(
     name: string;
     description?: string;
     accentLabel?: string;
+    imageUrl?: string;
     price: number;
   },
 ) {
@@ -407,23 +400,6 @@ export function createTable(token: string, payload: { name: string; seats: numbe
 
 export function getOrders(token: string, kitchenOnly = false) {
   return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}`, { token });
-}
-
-export function createOrder(
-  token: string,
-  payload: {
-    tableId?: string;
-    customerName?: string;
-    notes?: string;
-    items?: OrderItemInput[];
-    menuSelections?: MenuOrderSelectionInput[];
-  },
-) {
-  return apiRequest<CustomerOrder>("/api/workspace/orders", {
-    method: "POST",
-    token,
-    body: payload,
-  });
 }
 
 export function updateOrderStatus(token: string, orderId: string, status: string) {
@@ -468,26 +444,6 @@ export function updateStockItem(
 ) {
   return apiRequest<StockItem>(`/api/workspace/stock/${stockItemId}`, {
     method: "PUT",
-    token,
-    body: payload,
-  });
-}
-
-export function getTeamMembers(token: string) {
-  return apiRequest<TeamMember[]>("/api/workspace/team", { token });
-}
-
-export function createTeamMember(
-  token: string,
-  payload: {
-    fullName: string;
-    email: string;
-    password: string;
-    role: string;
-  },
-) {
-  return apiRequest<TeamMember>("/api/workspace/team", {
-    method: "POST",
     token,
     body: payload,
   });
