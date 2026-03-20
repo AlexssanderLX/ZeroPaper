@@ -34,8 +34,8 @@ export type LoginResult = {
 export type WorkspaceOverview = {
   activeTables: number;
   openOrders: number;
-  lowStockItems: number;
-  teamMembers: number;
+  publishedMenuItems: number;
+  totalMenuItems: number;
 };
 
 export type DiningTable = {
@@ -111,6 +111,10 @@ export type StockItem = {
   currentQuantity: number;
   minimumQuantity: number;
   isLowStock: boolean;
+};
+
+export type UploadMenuItemImageResult = {
+  imageUrl: string;
 };
 
 export type CompanySettings = {
@@ -265,6 +269,62 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
   return (await response.json()) as T;
 }
 
+async function apiFormRequest<T>(path: string, body: FormData, token?: string): Promise<T> {
+  const headers = new Headers({
+    Accept: "application/json",
+  });
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+    body,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    let message = "Nao foi possivel concluir a requisicao.";
+
+    try {
+      const errorBody = (await response.json()) as { detail?: string; title?: string };
+      message = errorBody.detail || errorBody.title || message;
+    } catch {
+      message = response.statusText || message;
+    }
+
+    throw new ApiError(message, response.status);
+  }
+
+  return (await response.json()) as T;
+}
+
+function resolveApiAssetUrl(url?: string | null) {
+  if (!url) {
+    return url ?? undefined;
+  }
+
+  return url.startsWith("http://") || url.startsWith("https://")
+    ? url
+    : `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+}
+
+function normalizeMenuItem(item: MenuItem): MenuItem {
+  return {
+    ...item,
+    imageUrl: resolveApiAssetUrl(item.imageUrl),
+  };
+}
+
+function normalizeMenuCategories(categories: MenuCategory[]) {
+  return categories.map((category) => ({
+    ...category,
+    items: category.items.map(normalizeMenuItem),
+  }));
+}
+
 export function loginPortal(payload: LoginPayload) {
   return apiRequest<LoginResult>("/api/auth/login", {
     method: "POST",
@@ -361,7 +421,7 @@ export function getTables(token: string) {
 }
 
 export function getMenu(token: string) {
-  return apiRequest<MenuCategory[]>("/api/workspace/menu", { token });
+  return apiRequest<MenuCategory[]>("/api/workspace/menu", { token }).then(normalizeMenuCategories);
 }
 
 export function createMenuCategory(token: string, payload: { name: string }) {
@@ -387,6 +447,39 @@ export function createMenuItem(
     method: "POST",
     token,
     body: payload,
+  }).then(normalizeMenuItem);
+}
+
+export function updateMenuItemStatus(token: string, menuItemId: string, isActive: boolean) {
+  return apiRequest<MenuItem>(`/api/workspace/menu/items/${menuItemId}/status`, {
+    method: "PATCH",
+    token,
+    body: { isActive },
+  }).then(normalizeMenuItem);
+}
+
+export function uploadMenuItemImage(token: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFormRequest<UploadMenuItemImageResult>("/api/workspace/menu/images", formData, token)
+    .then((response) => ({
+      ...response,
+      imageUrl: resolveApiAssetUrl(response.imageUrl) ?? "",
+    }));
+}
+
+export function deleteMenuCategory(token: string, categoryId: string) {
+  return apiRequest<void>(`/api/workspace/menu/categories/${categoryId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function deleteMenuItem(token: string, menuItemId: string) {
+  return apiRequest<void>(`/api/workspace/menu/items/${menuItemId}`, {
+    method: "DELETE",
+    token,
   });
 }
 
@@ -470,7 +563,11 @@ export function updateCompanySettings(
 }
 
 export function getPublicTable(publicCode: string) {
-  return apiRequest<PublicTableView>(`/api/public/tables/${publicCode}`);
+  return apiRequest<PublicTableView>(`/api/public/tables/${publicCode}`)
+    .then((response) => ({
+      ...response,
+      menu: normalizeMenuCategories(response.menu),
+    }));
 }
 
 export function createPublicOrder(

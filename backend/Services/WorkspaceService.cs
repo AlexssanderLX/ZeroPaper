@@ -13,11 +13,13 @@ public class WorkspaceService : IWorkspaceService
 {
     private readonly ZeroPaperDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IWebHostEnvironment _environment;
 
-    public WorkspaceService(ZeroPaperDbContext context, IPasswordHasher passwordHasher)
+    public WorkspaceService(ZeroPaperDbContext context, IPasswordHasher passwordHasher, IWebHostEnvironment environment)
     {
         _context = context;
         _passwordHasher = passwordHasher;
+        _environment = environment;
     }
 
     public async Task<WorkspaceOverviewDto> GetOverviewAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
@@ -37,28 +39,24 @@ public class WorkspaceService : IWorkspaceService
                         item.Status != OrderStatus.Cancelled,
                 cancellationToken);
 
-        var lowStockItems = await _context.StockItems
-            .CountAsync(
-                item => item.CompanyId == session.CompanyId &&
-                        item.IsActive &&
-                        item.CurrentQuantity <= item.MinimumQuantity,
-                cancellationToken);
-
-        var teamMembers = await _context.Users
+        var publishedMenuItems = await _context.MenuItems
             .CountAsync(item => item.CompanyId == session.CompanyId && item.IsActive, cancellationToken);
+
+        var totalMenuItems = await _context.MenuItems
+            .CountAsync(item => item.CompanyId == session.CompanyId, cancellationToken);
 
         return new WorkspaceOverviewDto
         {
             ActiveTables = activeTables,
             OpenOrders = openOrders,
-            LowStockItems = lowStockItems,
-            TeamMembers = teamMembers
+            PublishedMenuItems = publishedMenuItems,
+            TotalMenuItems = totalMenuItems
         };
     }
 
     public async Task<IReadOnlyList<MenuCategoryDto>> GetMenuAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
     {
-        return await BuildMenuAsync(session.CompanyId, cancellationToken);
+        return await BuildMenuAsync(session.CompanyId, includeInactiveItems: true, cancellationToken);
     }
 
     public async Task<MenuCategoryDto> CreateMenuCategoryAsync(WorkspaceSessionContext session, CreateMenuCategoryRequestDto request, CancellationToken cancellationToken = default)
@@ -121,6 +119,124 @@ public class WorkspaceService : IWorkspaceService
         await _context.SaveChangesAsync(cancellationToken);
 
         return MapMenuItem(menuItem);
+    }
+
+    public async Task<MenuItemDto> UpdateMenuItemStatusAsync(WorkspaceSessionContext session, Guid menuItemId, UpdateMenuItemStatusRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var menuItem = await _context.MenuItems
+            .FirstOrDefaultAsync(
+                item => item.Id == menuItemId &&
+                        item.CompanyId == session.CompanyId,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Item nao encontrado.");
+
+        if (request.IsActive)
+        {
+            menuItem.Activate();
+        }
+        else
+        {
+            menuItem.Deactivate();
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapMenuItem(menuItem);
+    }
+
+    public async Task<UploadMenuItemImageResponseDto> UploadMenuItemImageAsync(WorkspaceSessionContext session, IFormFile file, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        if (file.Length <= 0)
+        {
+            throw new ArgumentException("Selecione uma imagem valida.", nameof(file));
+        }
+
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            throw new ArgumentException("A imagem precisa ter no maximo 5 MB.", nameof(file));
+        }
+
+        var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        };
+
+        if (!allowedTypes.Contains(file.ContentType))
+        {
+            throw new ArgumentException("Use uma imagem JPG, PNG ou WEBP.", nameof(file));
+        }
+
+        var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+        var safeExtension = extension is ".jpg" or ".jpeg" or ".png" or ".webp"
+            ? extension
+            : file.ContentType switch
+            {
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                _ => ".jpg"
+            };
+
+        var webRootPath = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+            ? Path.Combine(_environment.ContentRootPath, "wwwroot")
+            : _environment.WebRootPath;
+
+        var relativeDirectory = Path.Combine("uploads", "menu", session.CompanyId.ToString("N"));
+        var directoryPath = Path.Combine(webRootPath, relativeDirectory);
+        Directory.CreateDirectory(directoryPath);
+
+        var fileName = $"{Guid.NewGuid():N}{safeExtension}";
+        var filePath = Path.Combine(directoryPath, fileName);
+
+        await using (var stream = File.Create(filePath))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        var relativePath = "/" + Path.Combine(relativeDirectory, fileName).Replace("\\", "/");
+
+        return new UploadMenuItemImageResponseDto
+        {
+            ImageUrl = relativePath
+        };
+    }
+
+    public async Task DeleteMenuCategoryAsync(WorkspaceSessionContext session, Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        var category = await _context.MenuCategories
+            .Include(item => item.Items)
+            .FirstOrDefaultAsync(
+                item => item.Id == categoryId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Categoria nao encontrada.");
+
+        foreach (var item in category.Items.Where(item => item.IsActive))
+        {
+            item.Deactivate();
+        }
+
+        category.Deactivate();
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteMenuItemAsync(WorkspaceSessionContext session, Guid menuItemId, CancellationToken cancellationToken = default)
+    {
+        var menuItem = await _context.MenuItems
+            .FirstOrDefaultAsync(
+                item => item.Id == menuItemId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Item nao encontrado.");
+
+        menuItem.Deactivate();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<DiningTableDto>> GetTablesAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
@@ -438,7 +554,7 @@ public class WorkspaceService : IWorkspaceService
             RestaurantName = table.Company.TradeName,
             TableName = table.Name,
             AccessCode = table.QrCodeAccess.PublicCode,
-            Menu = await BuildMenuAsync(table.CompanyId, cancellationToken)
+            Menu = await BuildMenuAsync(table.CompanyId, includeInactiveItems: false, cancellationToken)
         };
     }
 
@@ -542,12 +658,12 @@ public class WorkspaceService : IWorkspaceService
         return (maxNumber ?? 0) + 1;
     }
 
-    private async Task<List<MenuCategoryDto>> BuildMenuAsync(Guid companyId, CancellationToken cancellationToken)
+    private async Task<List<MenuCategoryDto>> BuildMenuAsync(Guid companyId, bool includeInactiveItems, CancellationToken cancellationToken)
     {
         var categories = await _context.MenuCategories
             .AsNoTracking()
             .Where(item => item.CompanyId == companyId && item.IsActive)
-            .Include(item => item.Items.Where(menuItem => menuItem.IsActive))
+            .Include(item => item.Items)
             .OrderBy(item => item.DisplayOrder)
             .ThenBy(item => item.Name)
             .ToListAsync(cancellationToken);
@@ -558,6 +674,7 @@ public class WorkspaceService : IWorkspaceService
             Name = item.Name,
             DisplayOrder = item.DisplayOrder,
             Items = item.Items
+                .Where(menuItem => includeInactiveItems || menuItem.IsActive)
                 .OrderBy(menuItem => menuItem.DisplayOrder)
                 .ThenBy(menuItem => menuItem.Name)
                 .Select(MapMenuItem)

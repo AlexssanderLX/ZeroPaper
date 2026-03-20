@@ -141,6 +141,7 @@ app.Use(async (context, next) =>
 
 app.UseRateLimiter();
 app.UseCors("frontend");
+app.UseStaticFiles();
 
 if (enableHttpsRedirection && httpsPort.HasValue)
 {

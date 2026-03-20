@@ -4,8 +4,8 @@ public class WorkspaceOverviewDto
 {
     public int ActiveTables { get; set; }
     public int OpenOrders { get; set; }
-    public int LowStockItems { get; set; }
-    public int TeamMembers { get; set; }
+    public int PublishedMenuItems { get; set; }
+    public int TotalMenuItems { get; set; }
 }
 
 public class DiningTableDto
@@ -60,6 +60,16 @@ public class CreateMenuItemRequestDto
     public string? AccentLabel { get; set; }
     public string? ImageUrl { get; set; }
     public decimal Price { get; set; }
+}
+
+public class UpdateMenuItemStatusRequestDto
+{
+    public bool IsActive { get; set; }
+}
+
+public class UploadMenuItemImageResponseDto
+{
+    public string ImageUrl { get; set; } = string.Empty;
 }
 
 public class OrderItemInputDto

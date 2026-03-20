@@ -39,12 +39,6 @@ export const ownerModules: PortalModule[] = [
     actionLabel: "Abrir",
   },
   {
-    slug: "estoque",
-    title: "Estoque",
-    eyebrow: "Estoque",
-    actionLabel: "Abrir",
-  },
-  {
     slug: "ajustes",
     title: "Unidade",
     eyebrow: "Unidade",

@@ -1855,7 +1855,7 @@ select {
   display: grid;
   place-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 24px;
   border-radius: 28px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 233, 223, 0.9));
@@ -1868,9 +1868,9 @@ select {
 .table-qr-sheet {
   width: 100%;
   display: grid;
-  gap: 4px;
+  gap: 6px;
   justify-items: center;
-  padding: 12px 14px 4px;
+  padding: 6px 14px 4px;
   text-align: center;
 }
 
@@ -1879,25 +1879,12 @@ select {
   color: var(--card-title);
 }
 
-.table-qr-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(26, 20, 17, 0.92);
-  color: #fff8f2;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .table-qr-image {
   display: block;
-  width: min(100%, 228px);
+  width: min(100%, 260px);
   height: auto;
-  padding: 10px;
-  border-radius: 24px;
+  padding: 14px;
+  border-radius: 28px;
   background: #ffffff;
   box-shadow:
     0 14px 24px rgba(19, 12, 10, 0.1),
@@ -1939,27 +1926,6 @@ select {
   line-height: 0.95;
 }
 
-.table-preview-code {
-  display: grid;
-  gap: 6px;
-}
-
-.table-preview-code strong {
-  color: var(--card-title);
-  font-family: var(--font-ui), sans-serif;
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-  word-break: break-all;
-}
-
-.table-link-stack p {
-  margin: 0;
-  line-height: 1.5;
-  word-break: break-all;
-  font-size: 0.94rem;
-}
-
 .table-preview-actions,
 .table-card-actions {
   display: flex;
@@ -1997,6 +1963,63 @@ select {
   box-shadow:
     0 16px 32px rgba(19, 12, 10, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.qr-modal-backdrop {
+  z-index: 90;
+}
+
+.qr-modal-sheet {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+
+.qr-modal-printable {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 28px 24px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 238, 230, 0.96));
+  border: 1px solid rgba(109, 83, 67, 0.12);
+  text-align: center;
+}
+
+.qr-modal-printable h2 {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  line-height: 0.92;
+  color: var(--card-title);
+}
+
+.qr-modal-image {
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+  padding: 18px;
+  border-radius: 32px;
+  background: #ffffff;
+  box-shadow:
+    0 18px 40px rgba(19, 12, 10, 0.1),
+    inset 0 0 0 1px rgba(35, 26, 21, 0.06);
+}
+
+.qr-modal-caption {
+  margin: 0;
+  color: var(--card-text);
+  font-size: 1rem;
+}
+
+.qr-modal-actions {
+  justify-content: center;
+}
+
+.no-print {
+  display: flex;
 }
 
 .menu-workspace {
@@ -2088,6 +2111,10 @@ select {
   align-items: center;
 }
 
+.menu-item-rich-row.is-inactive {
+  opacity: 0.78;
+}
+
 .menu-item-image {
   width: 88px;
   height: 88px;
@@ -2132,6 +2159,34 @@ select {
   display: grid;
   justify-items: end;
   gap: 8px;
+}
+
+.menu-item-actions {
+  justify-content: flex-end;
+}
+
+.menu-category-actions {
+  justify-content: flex-end;
+}
+
+.menu-upload-preview {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(109, 83, 67, 0.12);
+  background: rgba(255, 251, 247, 0.86);
+}
+
+.menu-upload-preview img {
+  display: block;
+  width: min(100%, 220px);
+  height: auto;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow:
+    0 14px 28px rgba(19, 12, 10, 0.08),
+    inset 0 0 0 1px rgba(35, 26, 21, 0.06);
 }
 
 .compact-empty-state {
@@ -2829,6 +2884,14 @@ select {
     align-items: stretch;
   }
 
+  .qr-modal-sheet {
+    padding: 18px;
+  }
+
+  .qr-modal-printable {
+    padding: 20px 16px;
+  }
+
   .workspace-owner-chip,
   .public-cart-card {
     min-width: 0;
@@ -2841,5 +2904,48 @@ select {
 
   .brand-lockup {
     width: 100%;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-modal-sheet,
+  .qr-modal-sheet * {
+    visibility: visible;
+  }
+
+  .qr-modal-backdrop {
+    position: static;
+    inset: auto;
+    display: block;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .qr-modal-sheet {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .qr-modal-printable {
+    min-height: 100vh;
+    border: 0;
+    box-shadow: none;
+    background: #ffffff;
+  }
+
+  .no-print {
+    display: none !important;
   }
 }

@@ -4,8 +4,13 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createMenuCategory,
   createMenuItem,
+  deleteMenuCategory,
+  deleteMenuItem,
   getMenu,
+  updateMenuItemStatus,
+  uploadMenuItemImage,
   type MenuCategory,
+  type MenuItem,
 } from "@/lib/api";
 import { handleApiError, type AsyncVoid } from "@/components/modules/module-utils";
 
@@ -16,11 +21,16 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
   const [itemName, setItemName] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [itemAccentLabel, setItemAccentLabel] = useState("");
-  const [itemImageUrl, setItemImageUrl] = useState("");
+  const [itemImageFile, setItemImageFile] = useState<File | null>(null);
+  const [itemImagePreviewUrl, setItemImagePreviewUrl] = useState("");
   const [itemPrice, setItemPrice] = useState("0");
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isSavingItem, setIsSavingItem] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState("");
+  const [updatingItemId, setUpdatingItemId] = useState("");
+  const [deletingItemId, setDeletingItemId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -53,6 +63,23 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
     () => categories.find((category) => category.id === selectedCategoryId) ?? categories[0] ?? null,
     [categories, selectedCategoryId],
   );
+
+  useEffect(() => {
+    return () => {
+      if (itemImagePreviewUrl) {
+        URL.revokeObjectURL(itemImagePreviewUrl);
+      }
+    };
+  }, [itemImagePreviewUrl]);
+
+  function handleImageSelection(file: File | null) {
+    if (itemImagePreviewUrl) {
+      URL.revokeObjectURL(itemImagePreviewUrl);
+    }
+
+    setItemImageFile(file);
+    setItemImagePreviewUrl(file ? URL.createObjectURL(file) : "");
+  }
 
   async function handleCreateCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,19 +114,27 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
     setSuccessMessage("");
 
     try {
+      let imageUrl: string | undefined;
+
+      if (itemImageFile) {
+        const uploadResponse = await uploadMenuItemImage(token, itemImageFile);
+        imageUrl = uploadResponse.imageUrl;
+      }
+
       await createMenuItem(token, {
         categoryId: selectedCategoryId,
         name: itemName,
         description: itemDescription || undefined,
         accentLabel: itemAccentLabel || undefined,
-        imageUrl: itemImageUrl || undefined,
+        imageUrl,
         price: Number(itemPrice),
       });
 
       setItemName("");
       setItemDescription("");
       setItemAccentLabel("");
-      setItemImageUrl("");
+      handleImageSelection(null);
+      setFileInputKey((currentValue) => currentValue + 1);
       setItemPrice("0");
       setSuccessMessage("Item adicionado ao cardapio.");
       await loadMenu();
@@ -107,6 +142,63 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
       await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel adicionar o item.");
     } finally {
       setIsSavingItem(false);
+    }
+  }
+
+  async function handleToggleAvailability(item: MenuItem) {
+    setUpdatingItemId(item.id);
+    setSuccessMessage("");
+
+    try {
+      await updateMenuItemStatus(token, item.id, !item.isActive);
+      setSuccessMessage(item.isActive ? "Item ocultado do cardapio." : "Item liberado no cardapio.");
+      await loadMenu();
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel atualizar o item.");
+    } finally {
+      setUpdatingItemId("");
+    }
+  }
+
+  async function handleDeleteCategory(category: MenuCategory) {
+    const confirmed = window.confirm(`Apagar a categoria "${category.name}" e remover os itens dela do cardapio?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingCategoryId(category.id);
+    setSuccessMessage("");
+
+    try {
+      await deleteMenuCategory(token, category.id);
+      setSuccessMessage("Categoria apagada.");
+      await loadMenu();
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel apagar a categoria.");
+    } finally {
+      setDeletingCategoryId("");
+    }
+  }
+
+  async function handleDeleteItem(item: MenuItem) {
+    const confirmed = window.confirm(`Apagar o item "${item.name}" do cardapio?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingItemId(item.id);
+    setSuccessMessage("");
+
+    try {
+      await deleteMenuItem(token, item.id);
+      setSuccessMessage("Item apagado.");
+      await loadMenu();
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel apagar o item.");
+    } finally {
+      setDeletingItemId("");
     }
   }
 
@@ -192,14 +284,21 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
             </div>
 
             <div className="field-group">
-              <label htmlFor="itemImageUrl">Imagem do item</label>
+              <label htmlFor="itemImageFile">Foto do prato</label>
               <input
-                id="itemImageUrl"
-                value={itemImageUrl}
-                onChange={(event) => setItemImageUrl(event.target.value)}
-                placeholder="https://images.unsplash.com/..."
+                key={fileInputKey}
+                id="itemImageFile"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => handleImageSelection(event.target.files?.[0] ?? null)}
               />
             </div>
+
+            {itemImagePreviewUrl ? (
+              <div className="menu-upload-preview">
+                <img src={itemImagePreviewUrl} alt="Preview do prato" />
+              </div>
+            ) : null}
 
             <button className="primary-link button-link" type="submit" disabled={isSavingItem}>
               {isSavingItem ? "Adicionando..." : "Adicionar item"}
@@ -236,7 +335,21 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
                     <h3>{category.name}</h3>
                     <p>{category.items.length} itens</p>
                   </div>
-                  <span className="ghost-link button-link">Abrir categoria</span>
+                  <div className="toolbar-actions compact menu-category-actions">
+                    <span className="ghost-link button-link">Abrir categoria</span>
+                    <button
+                      className="ghost-link button-link"
+                      type="button"
+                      disabled={deletingCategoryId === category.id}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void handleDeleteCategory(category);
+                      }}
+                    >
+                      {deletingCategoryId === category.id ? "Apagando..." : "Apagar categoria"}
+                    </button>
+                  </div>
                 </summary>
 
                 {category.items.length === 0 ? (
@@ -246,7 +359,10 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
                 ) : (
                   <div className="menu-item-stack">
                     {category.items.map((item) => (
-                      <div key={item.id} className="menu-item-row menu-item-rich-row">
+                      <div
+                        key={item.id}
+                        className={`menu-item-row menu-item-rich-row ${item.isActive ? "" : "is-inactive"}`}
+                      >
                         {item.imageUrl ? (
                           <img className="menu-item-image" src={item.imageUrl} alt={item.name} loading="lazy" />
                         ) : (
@@ -262,8 +378,34 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
                           </div>
                           <div className="menu-item-meta">
                             {item.accentLabel ? <span className="status-chip pending">{item.accentLabel}</span> : null}
+                            <span className={`status-chip ${item.isActive ? "available" : "inactive"}`}>
+                              {item.isActive ? "Disponivel" : "Oculto"}
+                            </span>
                             <strong>{item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
                           </div>
+                        </div>
+
+                        <div className="toolbar-actions compact menu-item-actions">
+                          <button
+                            className="ghost-link button-link"
+                            type="button"
+                            disabled={updatingItemId === item.id}
+                            onClick={() => void handleToggleAvailability(item)}
+                          >
+                            {updatingItemId === item.id
+                              ? "Salvando..."
+                              : item.isActive
+                                ? "Tirar do cardapio"
+                                : "Colocar no cardapio"}
+                          </button>
+                          <button
+                            className="ghost-link button-link"
+                            type="button"
+                            disabled={deletingItemId === item.id}
+                            onClick={() => void handleDeleteItem(item)}
+                          >
+                            {deletingItemId === item.id ? "Apagando..." : "Apagar item"}
+                          </button>
                         </div>
                       </div>
                     ))}

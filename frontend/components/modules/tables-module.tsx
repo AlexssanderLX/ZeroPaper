@@ -8,6 +8,7 @@ import { handleApiError, type AsyncVoid } from "@/components/modules/module-util
 export function TablesModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [selectedTableId, setSelectedTableId] = useState("");
+  const [qrModalTableId, setQrModalTableId] = useState("");
   const [name, setName] = useState("");
   const [seats, setSeats] = useState("4");
   const [copiedTableId, setCopiedTableId] = useState("");
@@ -88,10 +89,12 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
   }
 
   const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0] ?? null;
+  const qrModalTable = tables.find((table) => table.id === qrModalTableId) ?? null;
 
   return (
-    <section className="tables-workspace">
-      <section className="tables-hero-grid">
+    <>
+      <section className="tables-workspace">
+        <section className="tables-hero-grid">
         <section className="surface-card module-form-card table-creation-card">
           <span className="eyebrow">Nova mesa</span>
           <h2>Criar mesa com QR pronto</h2>
@@ -132,9 +135,7 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
             <div className="table-preview-layout">
               <div className="table-qr-frame">
                 <div className="table-qr-sheet">
-                  <span className="table-qr-badge">Scan to order</span>
                   <strong>{selectedTable.name}</strong>
-                  <small>{selectedTable.publicCode}</small>
                 </div>
                 <img
                   className="table-qr-image"
@@ -157,16 +158,14 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                   </article>
                 </div>
 
-                <div className="table-preview-code">
-                  <span className="eyebrow">Codigo publico</span>
-                  <strong>{selectedTable.publicCode}</strong>
-                </div>
-
-                <div className="entity-link-stack table-link-stack">
-                  <p>{buildAbsoluteAccessUrl(selectedTable.accessUrl)}</p>
-                </div>
-
                 <div className="toolbar-actions compact table-preview-actions">
+                  <button
+                    className="ghost-link button-link"
+                    type="button"
+                    onClick={() => setQrModalTableId(selectedTable.id)}
+                  >
+                    Ver QR
+                  </button>
                   <Link className="ghost-link" href={selectedTable.accessUrl}>
                     Abrir pagina
                   </Link>
@@ -177,14 +176,16 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                   >
                     {copiedTableId === selectedTable.id ? "Copiado" : "Copiar link"}
                   </button>
-                  <a
-                    className="ghost-link"
-                    href={buildQrDownloadUrl(selectedTable.accessUrl)}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    className="ghost-link button-link"
+                    type="button"
+                    onClick={() => {
+                      setQrModalTableId(selectedTable.id);
+                      window.setTimeout(() => window.print(), 120);
+                    }}
                   >
-                    Abrir QR
-                  </a>
+                    Imprimir QR
+                  </button>
                 </div>
               </div>
             </div>
@@ -242,7 +243,14 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                 </div>
 
                 <div className="toolbar-actions compact table-card-actions">
-                  <button className="ghost-link button-link" type="button" onClick={() => setSelectedTableId(table.id)}>
+                  <button
+                    className="ghost-link button-link"
+                    type="button"
+                    onClick={() => {
+                      setSelectedTableId(table.id);
+                      setQrModalTableId(table.id);
+                    }}
+                  >
                     Ver QR
                   </button>
                   <Link className="ghost-link" href={table.accessUrl}>
@@ -257,6 +265,41 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
           </div>
         )}
       </section>
-    </section>
+      </section>
+
+      {qrModalTable ? (
+        <div className="admin-modal-backdrop qr-modal-backdrop" onClick={() => setQrModalTableId("")}>
+          <section
+            className="surface-card qr-modal-sheet"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="qr-modal-printable">
+              <span className="eyebrow">Mesa</span>
+              <h2>{qrModalTable.name}</h2>
+              <img
+                className="qr-modal-image"
+                src={buildQrDownloadUrl(qrModalTable.accessUrl)}
+                alt={`QR ampliado da ${qrModalTable.name}`}
+                loading="eager"
+                referrerPolicy="no-referrer"
+              />
+              <p className="qr-modal-caption">Aponte a camera para acessar o pedido.</p>
+            </div>
+
+            <div className="toolbar-actions compact qr-modal-actions no-print">
+              <button className="ghost-link button-link" type="button" onClick={() => window.print()}>
+                Imprimir
+              </button>
+              <Link className="ghost-link" href={qrModalTable.accessUrl}>
+                Abrir pagina
+              </Link>
+              <button className="ghost-link button-link" type="button" onClick={() => setQrModalTableId("")}>
+                Fechar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </>
   );
 }

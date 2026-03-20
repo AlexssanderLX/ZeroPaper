@@ -47,7 +47,8 @@ export function OwnerLobby() {
   const quickOverview = [
     { label: "Mesas ativas", value: String(overview?.activeTables ?? 0) },
     { label: "Pedidos abertos", value: String(overview?.openOrders ?? 0) },
-    { label: "Alertas de estoque", value: String(overview?.lowStockItems ?? 0) },
+    { label: "Pratos disponiveis", value: String(overview?.publishedMenuItems ?? 0) },
+    { label: "Itens no cardapio", value: String(overview?.totalMenuItems ?? 0) },
   ];
 
   return (
