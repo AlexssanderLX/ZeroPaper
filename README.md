@@ -1,31 +1,103 @@
 # ZeroPaper
 
-ZeroPaper e um micro SaaS multi-tenant para restaurantes locais. O produto foi pensado para vender acesso a uma plataforma unica, dentro do dominio da ZeroPaper, com operacao da unidade, pedidos por QR Code, cozinha, equipe e estoque no mesmo fluxo.
+ZeroPaper e um micro SaaS multi-tenant para restaurantes locais. A proposta do produto e vender acesso a uma plataforma unica, dentro da propria ZeroPaper, com operacao da unidade, cardapio, mesas, pedidos por QR Code e fluxo de cozinha no mesmo sistema.
 
-## O que o produto resolve
+## O que existe hoje
 
-- centraliza a rotina da unidade em um unico sistema web
-- separa cada empresa por `tenantId`
-- permite login do dono, gerencia e equipe
-- cria mesas com acesso publico por QR Code
-- envia pedidos da mesa direto para a operacao e para a cozinha
-- ajuda no controle basico de estoque e acessos internos
-
-## Estado atual do MVP
-
-Hoje o projeto ja possui:
-
-- onboarding de restaurante
+- area root da plataforma em `/admin`
+- cadastro protegido por codigo de liberacao
+- solicitacao de acesso por email
+- recuperacao de senha por email
 - login real com sessao por token
-- portal interno da unidade em `/app`
-- modulo de `mesas`
-- modulo de `pedidos`
-- modulo de `cozinha`
-- modulo de `estoque`
-- modulo de `equipe`
-- modulo de `ajustes`
-- rota publica de mesa em `/q/{publicCode}`
-- fluxo testado com MySQL real
+- portal da unidade em `/app`
+- cardapio com categorias, itens, foto local e disponibilidade
+- mesas com QR Code, download e impressao
+- pedidos publicos por mesa em `/q/{publicCode}`
+- quadro de pedidos para a cozinha
+- ajustes da unidade
+
+## Fluxo atual do produto
+
+### Root ZeroPaper
+
+Voce administra a plataforma em `/admin`.
+
+Hoje a area root permite:
+
+- gerar codigos de liberacao
+- ver contas cadastradas
+- desativar, reativar e excluir contas
+- exigir confirmacao de senha para acoes sensiveis
+
+Os codigos de liberacao:
+
+- expiram em 5 minutos
+- sao usados para liberar novo cadastro
+- ficam protegidos no fluxo administrativo
+
+### Cadastro da unidade
+
+1. o restaurante recebe um codigo de liberacao
+2. acessa `/cadastro`
+3. cria a conta inicial da unidade
+4. o sistema faz login automatico
+5. a pessoa entra direto no portal da unidade
+
+Se a unidade nao tiver codigo, pode solicitar liberacao pelo fluxo publico.
+
+### Portal da unidade
+
+A area logada principal fica em `/app`.
+
+Os modulos principais hoje sao:
+
+- `Cardapio`
+- `Mesas`
+- `Pedidos para a cozinha`
+- `Unidade`
+
+### Mesa e pedido publico
+
+1. a unidade cria a mesa
+2. o sistema gera um QR Code e um link publico
+3. o QR pode ser baixado ou impresso
+4. o cliente abre a mesa em `/q/{publicCode}`
+5. escolhe itens do cardapio
+6. envia o pedido
+7. o pedido entra no quadro da cozinha
+
+## Modulos atuais
+
+### Cardapio
+
+- cria categorias
+- cria itens
+- envia foto do computador para o prato
+- controla se o item esta `Disponivel` ou `Oculto`
+- apaga item
+- apaga categoria
+
+O controle de disponibilidade ficou centralizado no cardapio. A rota antiga de estoque no front redireciona para o cardapio.
+
+### Mesas
+
+- cria mesa com nome e lugares
+- gera QR automaticamente
+- mostra o QR por mesa
+- permite abrir, copiar, baixar e imprimir o QR
+
+### Pedidos para a cozinha
+
+- lista pedidos por etapa
+- move pedido entre status
+- conclui pedido
+- cancela pedido
+- remove pedido cancelado
+
+### Unidade
+
+- ajusta dados da unidade
+- mantem o contexto administrativo do restaurante
 
 ## Estrutura do repositorio
 
@@ -37,7 +109,7 @@ ZeroPaper/
 |-- README.md
 ```
 
-## Stack e ferramentas
+## Stack
 
 ### Backend
 
@@ -53,11 +125,10 @@ ZeroPaper/
 - `Next.js 15`
 - `React 19`
 - `TypeScript`
-- `next/font`
 
 ### Ferramentas de desenvolvimento
 
-- `dotnet` CLI
+- `dotnet`
 - `dotnet ef`
 - `dotnet user-secrets`
 - `npm`
@@ -66,47 +137,24 @@ ZeroPaper/
 
 ## Modelagem principal
 
-### Base comercial e tenant
+### Plataforma
 
-- `Tenant`: isolamento logico de cada cliente
-- `Company`: dados da empresa/unidade
-- `Subscription`: plano comercial da conta
-- `AppUser`: usuarios da unidade
-- `AppSession`: sessao autenticada por token
+- `Tenant`
+- `Company`
+- `Subscription`
+- `AppUser`
+- `AppSession`
+- `SignupCode`
+- `PasswordResetRequest`
 
-### Operacao da unidade
+### Operacao
 
-- `DiningTable`: mesa criada pela unidade
-- `QrCodeAccess`: acesso publico associado a mesa ou recurso
-- `CustomerOrder`: pedido aberto na operacao
-- `OrderItem`: itens do pedido
-- `StockItem`: insumos e controle basico de estoque
-
-## Fluxos atuais
-
-### Onboarding
-
-1. cria `Tenant`
-2. cria `Company`
-3. cria usuario dono
-4. cria assinatura
-5. cria acesso inicial da unidade
-
-### Portal interno
-
-1. usuario faz login em `/login`
-2. backend gera sessao autenticada
-3. front abre o lobby em `/app`
-4. unidade acessa mesas, pedidos, cozinha, estoque, equipe e ajustes
-
-### Fluxo de mesa e QR Code
-
-1. unidade cria uma mesa
-2. sistema gera `publicCode`
-3. a mesa fica disponivel em `/q/{publicCode}`
-4. o link pode ser usado para QR Code no ZeroPaper ou em outra ferramenta
-5. o cliente abre a mesa e envia o pedido
-6. o pedido entra no fluxo interno e pode seguir para a cozinha
+- `DiningTable`
+- `QrCodeAccess`
+- `MenuCategory`
+- `MenuItem`
+- `CustomerOrder`
+- `OrderItem`
 
 ## Rotas principais
 
@@ -114,60 +162,77 @@ ZeroPaper/
 
 - `/`
 - `/login`
+- `/cadastro`
+- `/admin`
 - `/app`
+- `/app/cardapio`
 - `/app/mesas`
 - `/app/pedidos`
-- `/app/cozinha`
-- `/app/estoque`
-- `/app/equipe`
 - `/app/ajustes`
+- `/app/estoque` redireciona para `/app/cardapio`
 - `/q/{publicCode}`
+- `/redefinir-solicitacao`
+- `/redefinir-senha`
 
 ### Backend
 
 - `POST /api/onboarding/restaurants`
+- `POST /api/public/access-requests`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
+- `POST /api/auth/password/request-reset`
+- `POST /api/auth/password/reset`
+- `POST /api/auth/confirm-password`
+- `GET /api/admin/signup-codes`
+- `POST /api/admin/signup-codes`
+- `GET /api/admin/users`
+- `PATCH /api/admin/users/{userId}/deactivate`
+- `PATCH /api/admin/users/{userId}/reactivate`
+- `DELETE /api/admin/users/{userId}`
 - `GET /api/workspace/overview`
+- `GET /api/workspace/menu`
+- `POST /api/workspace/menu/categories`
+- `POST /api/workspace/menu/items`
+- `PATCH /api/workspace/menu/items/{menuItemId}/status`
+- `POST /api/workspace/menu/images`
+- `DELETE /api/workspace/menu/categories/{categoryId}`
+- `DELETE /api/workspace/menu/items/{menuItemId}`
 - `GET /api/workspace/tables`
 - `POST /api/workspace/tables`
 - `GET /api/workspace/orders`
 - `POST /api/workspace/orders`
 - `PATCH /api/workspace/orders/{orderId}/status`
-- `GET /api/workspace/stock`
-- `POST /api/workspace/stock`
-- `PUT /api/workspace/stock/{stockItemId}`
-- `GET /api/workspace/team`
-- `POST /api/workspace/team`
+- `DELETE /api/workspace/orders/{orderId}`
 - `GET /api/workspace/settings`
 - `PUT /api/workspace/settings`
 - `GET /api/public/tables/{publicCode}`
 - `POST /api/public/tables/{publicCode}/orders`
 
-## Seguranca aplicada ate agora
+## Seguranca atual
 
 - hash de senha com `PBKDF2`
 - sessao autenticada por bearer token
 - token salvo em hash no banco
-- `CORS` restrito para o frontend
+- cadastro fechado por codigo de liberacao
+- confirmacao de senha para acoes administrativas sensiveis
+- recuperacao de senha por email
+- `CORS` restrito
 - `rate limiting` em rotas publicas de escrita
-- headers basicos de seguranca
 - tratamento global de erro com `ProblemDetails`
-- sem exposicao de senha ou dados internos em resposta publica
 
 ## Como rodar localmente
 
-### 1. Configurar banco
+### 1. Banco
 
-Defina `ConnectionStrings:DefaultConnection` via `user-secrets`, variavel de ambiente ou `appsettings`.
+Configure `ConnectionStrings:DefaultConnection`.
 
-Exemplo de estrutura:
+Exemplo:
 
 ```text
 server=localhost;port=3306;database=zeropaper_dev;user=SEU_USUARIO;password=SUA_SENHA;SslMode=None
 ```
 
-### 2. Aplicar banco
+### 2. Aplicar migrations
 
 ```bash
 dotnet ef database update --project backend/ZeroPaper.csproj --startup-project backend/ZeroPaper.csproj
@@ -176,13 +241,12 @@ dotnet ef database update --project backend/ZeroPaper.csproj --startup-project b
 ### 3. Rodar backend
 
 ```bash
-dotnet build backend/ZeroPaper.csproj
-dotnet run --project backend/ZeroPaper.csproj
+dotnet run --project backend/ZeroPaper.csproj --urls http://localhost:5097
 ```
 
 ### 4. Rodar frontend
 
-Crie `frontend/.env.local` com:
+Crie `frontend/.env.local`:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5097
@@ -196,27 +260,38 @@ npm install
 npm run dev
 ```
 
-## Validacao ja feita
+## Validacao feita
 
-Foi validado manualmente no backend:
+Ja foram validados no projeto:
 
-- migration aplicada no MySQL
-- onboarding de restaurante
-- login real
+- login root
+- geracao de codigo de liberacao
+- cadastro de nova unidade com codigo
+- login automatico apos cadastro
+- recuperacao de senha por email
+- criacao de categoria e item de cardapio
+- upload de foto no cardapio
+- controle de disponibilidade do item
 - criacao de mesa
-- geracao de acesso publico
-- criacao de pedido interno
-- envio para cozinha
-- criacao de item de estoque
-- criacao de membro da equipe
-- atualizacao de ajustes da unidade
-- criacao de pedido pela rota publica da mesa
+- geracao de QR publico
+- download e impressao do QR
+- pedido publico pela mesa
+- fluxo do pedido para a cozinha
+- cancelamento e remocao de pedido cancelado
 
-## Proximos passos naturais
+## Direcao atual do MVP
 
-- cardapio real com itens cadastrados
-- vinculacao de pedido a produtos do cardapio
-- geracao visual de QR Code
-- roles mais refinadas por modulo
-- dashboard administrativo da ZeroPaper
+O foco atual do produto esta em:
+
+- cadastro controlado
+- operacao da unidade
+- cardapio como centro da disponibilidade
+- mesas e QR Code
+- fluxo simples e direto para cozinha
+
+Os proximos passos naturais sao:
+
+- refinamento dos ajustes da unidade
+- mais controle visual e operacional no cardapio
+- mais automacao no fluxo da cozinha
 - deploy em VPS com DNS e dominio
