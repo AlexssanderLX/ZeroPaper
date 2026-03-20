@@ -14,7 +14,6 @@ export type PortalModule = {
   slug: string;
   title: string;
   eyebrow: string;
-  actionLabel: string;
 };
 
 export const PORTAL_SESSION_KEY = "zp.portal.session";
@@ -24,25 +23,21 @@ export const ownerModules: PortalModule[] = [
     slug: "cardapio",
     title: "Cardapio",
     eyebrow: "Cardapio",
-    actionLabel: "Abrir",
   },
   {
     slug: "mesas",
     title: "Mesas",
     eyebrow: "Mesas",
-    actionLabel: "Abrir",
   },
   {
     slug: "pedidos",
     title: "Pedidos para a cozinha",
     eyebrow: "Cozinha",
-    actionLabel: "Abrir",
   },
   {
     slug: "ajustes",
     title: "Unidade",
     eyebrow: "Unidade",
-    actionLabel: "Abrir",
   },
 ];
 

@@ -7,13 +7,23 @@ import { BrandMark } from "@/components/brand-mark";
 export function WorkspaceShell({
   children,
   backHref = "/app",
-  backLabel = "Voltar ao painel",
+  backLabel,
 }: {
   children: React.ReactNode;
   backHref?: string;
   backLabel?: string;
 }) {
   const { session, clearSession } = useAppSession();
+
+  async function handleSignOut() {
+    const confirmed = window.confirm("Tem certeza que deseja sair?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    await clearSession();
+  }
 
   return (
     <main className="page-shell app-shell">
@@ -27,10 +37,16 @@ export function WorkspaceShell({
         </Link>
 
         <div className="topbar-actions">
-          <Link className="ghost-link" href={backHref}>
-            {backLabel}
-          </Link>
-          <button className="ghost-link button-link" type="button" onClick={() => void clearSession()}>
+          <div className="account-pill topbar-account-pill">
+            <span>{session.ownerName}</span>
+            <small>{session.email}</small>
+          </div>
+          {backLabel ? (
+            <Link className="ghost-link" href={backHref}>
+              {backLabel}
+            </Link>
+          ) : null}
+          <button className="ghost-link button-link" type="button" onClick={() => void handleSignOut()}>
             Sair
           </button>
         </div>

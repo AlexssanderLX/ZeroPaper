@@ -13,13 +13,13 @@ const pillars = [
     text: "Os pedidos chegam em um fluxo direto para a unidade.",
   },
   {
-    eyebrow: "Estoque",
-    title: "Controle essencial",
-    text: "O basico do dia a dia fica no mesmo painel.",
+    eyebrow: "Cardapio",
+    title: "Disponibilidade rapida",
+    text: "O que entra ou sai do cardapio fica na mao do dono.",
   },
 ];
 
-const productMarks = ["QR por mesa", "Pedidos da unidade", "Estoque basico", "Painel do dono"];
+const productMarks = ["QR por mesa", "Pedidos da unidade", "Cardapio vivo", "Painel do dono"];
 
 export default function Home() {
   return (
@@ -89,10 +89,10 @@ export default function Home() {
 
               <div className="sales-order-card muted">
                 <div>
-                  <span className="sales-order-label">Estoque</span>
-                  <strong>Reposicao sinalizada</strong>
+                  <span className="sales-order-label">Cardapio</span>
+                  <strong>Disponibilidade ajustada</strong>
                 </div>
-                <em>2 alertas</em>
+                <em>2 itens ocultos</em>
               </div>
             </div>
           </article>

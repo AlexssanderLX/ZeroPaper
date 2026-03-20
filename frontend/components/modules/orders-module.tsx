@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  deleteOrder,
   getOrders,
   updateOrderStatus,
   type CustomerOrder,
@@ -75,6 +76,25 @@ export function OrdersModule({ token, onUnauthorized }: { token: string; onUnaut
       await loadOrders();
     } catch (error) {
       await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel atualizar o pedido.");
+    } finally {
+      setProcessingOrderId("");
+    }
+  }
+
+  async function handleDeleteCancelledOrder(orderId: string) {
+    const confirmed = window.confirm("Remover este pedido cancelado?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setProcessingOrderId(orderId);
+      await deleteOrder(token, orderId);
+      setOrders((currentValue) => currentValue.filter((order) => order.id !== orderId));
+      setErrorMessage("");
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel remover o pedido cancelado.");
     } finally {
       setProcessingOrderId("");
     }
@@ -186,6 +206,17 @@ export function OrdersModule({ token, onUnauthorized }: { token: string; onUnaut
                               onClick={() => void handleStatusUpdate(order.id, "Cancelled")}
                             >
                               Cancelar
+                            </button>
+                          ) : null}
+
+                          {order.status === "Cancelled" ? (
+                            <button
+                              className="ghost-link button-link destructive-link"
+                              type="button"
+                              disabled={processingOrderId === order.id}
+                              onClick={() => void handleDeleteCancelledOrder(order.id)}
+                            >
+                              {processingOrderId === order.id ? "Removendo..." : "Remover cancelado"}
                             </button>
                           ) : null}
                         </div>

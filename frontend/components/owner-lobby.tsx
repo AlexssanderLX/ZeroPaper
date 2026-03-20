@@ -8,7 +8,7 @@ import { useAppSession } from "@/components/app-session-provider";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
 export function OwnerLobby() {
-  const { session, clearSession } = useAppSession();
+  const { session } = useAppSession();
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -31,7 +31,6 @@ export function OwnerLobby() {
         }
 
         if (error instanceof ApiError && error.status === 401) {
-          await clearSession();
           return;
         }
 
@@ -45,47 +44,62 @@ export function OwnerLobby() {
   }, [session.token]);
 
   const quickOverview = [
-    { label: "Mesas ativas", value: String(overview?.activeTables ?? 0) },
-    { label: "Pedidos abertos", value: String(overview?.openOrders ?? 0) },
-    { label: "Pratos disponiveis", value: String(overview?.publishedMenuItems ?? 0) },
-    { label: "Itens no cardapio", value: String(overview?.totalMenuItems ?? 0) },
+    {
+      slug: "cardapio",
+      value: String(overview?.publishedMenuItems ?? 0),
+      label: "Disponiveis",
+    },
+    {
+      slug: "mesas",
+      value: String(overview?.activeTables ?? 0),
+      label: "Ativas",
+    },
+    {
+      slug: "pedidos",
+      value: String(overview?.openOrders ?? 0),
+      label: "Abertos",
+    },
+    {
+      slug: "ajustes",
+      value: session.ownerName,
+      label: "Responsavel",
+    },
   ];
 
   return (
-    <WorkspaceShell backHref="/login" backLabel="Trocar acesso">
-      <section className="surface-card workspace-summary-card">
-        <div className="workspace-summary-head">
-          <div className="hero-stack">
-            <span className="eyebrow">Unidade</span>
-            <h1>{session.restaurantName}</h1>
+    <WorkspaceShell>
+      <section className="surface-card workspace-summary-card owner-hero-card">
+        <div className="workspace-summary-head owner-summary-head">
+          <div className="owner-summary-stage" aria-hidden="true">
+            <div className="owner-summary-glow owner-summary-glow-one" />
+            <div className="owner-summary-glow owner-summary-glow-two" />
+            <div className="owner-summary-orbit" />
+            <div className="owner-summary-name-motion">
+              <strong>{session.restaurantName}</strong>
+            </div>
           </div>
-
-          <div className="workspace-owner-chip">
-            <span className="eyebrow">Dono</span>
-            <strong>{session.ownerName}</strong>
-          </div>
-        </div>
-
-        <div className="overview-grid workspace-overview-grid">
-          {quickOverview.map((item) => (
-            <article key={item.label} className="info-card interactive-card compact-info-card">
-              <p className="overview-label">{item.label}</p>
-              <h2>{item.value}</h2>
-            </article>
-          ))}
         </div>
       </section>
 
       {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
 
       <section className="module-grid">
-        {ownerModules.map((module) => (
+        {ownerModules.map((module) => {
+          const moduleMetric = quickOverview.find((item) => item.slug === module.slug);
+
+          return (
           <Link key={module.slug} className="surface-card module-card interactive-card module-entry-link" href={`/app/${module.slug}`}>
             <span className="eyebrow">{module.eyebrow}</span>
             <h2>{module.title}</h2>
-            <span className="ghost-link">{module.actionLabel}</span>
+            {moduleMetric ? (
+              <div className="module-card-metric">
+                <strong>{moduleMetric.value}</strong>
+                <span>{moduleMetric.label}</span>
+              </div>
+            ) : null}
           </Link>
-        ))}
+          );
+        })}
       </section>
     </WorkspaceShell>
   );

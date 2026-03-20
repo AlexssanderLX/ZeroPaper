@@ -503,6 +503,13 @@ export function updateOrderStatus(token: string, orderId: string, status: string
   });
 }
 
+export function deleteOrder(token: string, orderId: string) {
+  return apiRequest<void>(`/api/workspace/orders/${orderId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 export function getStockItems(token: string) {
   return apiRequest<StockItem[]>("/api/workspace/stock", { token });
 }

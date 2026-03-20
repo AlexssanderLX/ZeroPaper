@@ -34,6 +34,34 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  function removeItemFromState(menuItemId: string) {
+    setCategories((currentValue) =>
+      currentValue
+        .map((category) => ({
+          ...category,
+          items: category.items.filter((item) => item.id !== menuItemId),
+        }))
+    );
+  }
+
+  function removeCategoryFromState(categoryId: string) {
+    setCategories((currentValue) => currentValue.filter((category) => category.id !== categoryId));
+    setSelectedCategoryId((currentValue) => (currentValue === categoryId ? "" : currentValue));
+  }
+
+  function replaceItemInState(nextItem: MenuItem) {
+    setCategories((currentValue) =>
+      currentValue.map((category) =>
+        category.id !== nextItem.categoryId
+          ? category
+          : {
+              ...category,
+              items: category.items.map((item) => (item.id === nextItem.id ? nextItem : item)),
+            },
+      ),
+    );
+  }
+
   async function loadMenu() {
     setLoading(true);
 
@@ -150,9 +178,9 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
     setSuccessMessage("");
 
     try {
-      await updateMenuItemStatus(token, item.id, !item.isActive);
+      const updatedItem = await updateMenuItemStatus(token, item.id, !item.isActive);
+      replaceItemInState(updatedItem);
       setSuccessMessage(item.isActive ? "Item ocultado do cardapio." : "Item liberado no cardapio.");
-      await loadMenu();
     } catch (error) {
       await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel atualizar o item.");
     } finally {
@@ -172,8 +200,8 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
 
     try {
       await deleteMenuCategory(token, category.id);
+      removeCategoryFromState(category.id);
       setSuccessMessage("Categoria apagada.");
-      await loadMenu();
     } catch (error) {
       await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel apagar a categoria.");
     } finally {
@@ -193,8 +221,8 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
 
     try {
       await deleteMenuItem(token, item.id);
+      removeItemFromState(item.id);
       setSuccessMessage("Item apagado.");
-      await loadMenu();
     } catch (error) {
       await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel apagar o item.");
     } finally {
@@ -331,26 +359,23 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
                 open={selectedCategory?.id === category.id}
               >
                 <summary className="menu-category-summary" onClick={() => setSelectedCategoryId(category.id)}>
-                  <div>
+                  <div className="menu-category-copy">
                     <h3>{category.name}</h3>
                     <p>{category.items.length} itens</p>
                   </div>
-                  <div className="toolbar-actions compact menu-category-actions">
-                    <span className="ghost-link button-link">Abrir categoria</span>
-                    <button
-                      className="ghost-link button-link"
-                      type="button"
-                      disabled={deletingCategoryId === category.id}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        void handleDeleteCategory(category);
-                      }}
-                    >
-                      {deletingCategoryId === category.id ? "Apagando..." : "Apagar categoria"}
-                    </button>
-                  </div>
+                  <span className="menu-category-toggle">{selectedCategory?.id === category.id ? "Fechar" : "Abrir"}</span>
                 </summary>
+
+                <div className="toolbar-actions compact menu-category-actions">
+                  <button
+                    className="ghost-link button-link destructive-link"
+                    type="button"
+                    disabled={deletingCategoryId === category.id}
+                    onClick={() => void handleDeleteCategory(category)}
+                  >
+                    {deletingCategoryId === category.id ? "Apagando..." : "Apagar categoria"}
+                  </button>
+                </div>
 
                 {category.items.length === 0 ? (
                   <div className="module-empty-state compact-empty-state">
@@ -386,6 +411,9 @@ export function MenuModule({ token, onUnauthorized }: { token: string; onUnautho
                         </div>
 
                         <div className="toolbar-actions compact menu-item-actions">
+                          <span className="menu-item-activity">
+                            {deletingItemId === item.id ? "Removendo..." : updatingItemId === item.id ? "Atualizando..." : ""}
+                          </span>
                           <button
                             className="ghost-link button-link"
                             type="button"

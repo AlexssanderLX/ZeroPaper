@@ -211,17 +211,16 @@ public class WorkspaceService : IWorkspaceService
             .Include(item => item.Items)
             .FirstOrDefaultAsync(
                 item => item.Id == categoryId &&
-                        item.CompanyId == session.CompanyId &&
-                        item.IsActive,
+                        item.CompanyId == session.CompanyId,
                 cancellationToken)
             ?? throw new KeyNotFoundException("Categoria nao encontrada.");
 
-        foreach (var item in category.Items.Where(item => item.IsActive))
+        foreach (var item in category.Items.ToList())
         {
-            item.Deactivate();
+            _context.MenuItems.Remove(item);
         }
 
-        category.Deactivate();
+        _context.MenuCategories.Remove(category);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -230,12 +229,11 @@ public class WorkspaceService : IWorkspaceService
         var menuItem = await _context.MenuItems
             .FirstOrDefaultAsync(
                 item => item.Id == menuItemId &&
-                        item.CompanyId == session.CompanyId &&
-                        item.IsActive,
+                        item.CompanyId == session.CompanyId,
                 cancellationToken)
             ?? throw new KeyNotFoundException("Item nao encontrado.");
 
-        menuItem.Deactivate();
+        _context.MenuItems.Remove(menuItem);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -396,6 +394,29 @@ public class WorkspaceService : IWorkspaceService
 
         await _context.SaveChangesAsync(cancellationToken);
         return MapOrder(order);
+    }
+
+    public async Task DeleteOrderAsync(WorkspaceSessionContext session, Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var order = await _context.CustomerOrders
+            .Include(item => item.Items)
+            .Include(item => item.DiningTable)
+            .FirstOrDefaultAsync(
+                item => item.Id == orderId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Pedido nao encontrado.");
+
+        if (order.Status != OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException("So pedidos cancelados podem ser removidos.");
+        }
+
+        _context.OrderItems.RemoveRange(order.Items);
+        _context.CustomerOrders.Remove(order);
+        await RecalculateTableStatusAsync(order.DiningTable, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<StockItemDto>> GetStockItemsAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)

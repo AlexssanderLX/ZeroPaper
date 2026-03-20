@@ -183,6 +183,21 @@ public class WorkspaceController : ControllerBase
             : Ok(await _workspaceService.UpdateOrderStatusAsync(session, orderId, request, cancellationToken));
     }
 
+    [HttpDelete("orders/{orderId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        await _workspaceService.DeleteOrderAsync(session, orderId, cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("stock")]
     [ProducesResponseType(typeof(IReadOnlyList<StockItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStockAsync(CancellationToken cancellationToken)
