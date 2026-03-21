@@ -53,6 +53,16 @@ public class WorkspaceController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
+    [HttpPut("menu/categories/{categoryId:guid}")]
+    [ProducesResponseType(typeof(MenuCategoryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateMenuCategoryAsync(Guid categoryId, [FromBody] UpdateMenuCategoryRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.UpdateMenuCategoryAsync(session, categoryId, request, cancellationToken));
+    }
+
     [HttpPost("menu/items")]
     [ProducesResponseType(typeof(MenuItemDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateMenuItemAsync([FromBody] CreateMenuItemRequestDto request, CancellationToken cancellationToken)
@@ -66,6 +76,16 @@ public class WorkspaceController : ControllerBase
 
         var response = await _workspaceService.CreateMenuItemAsync(session, request, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPut("menu/items/{menuItemId:guid}")]
+    [ProducesResponseType(typeof(MenuItemDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateMenuItemAsync(Guid menuItemId, [FromBody] UpdateMenuItemRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.UpdateMenuItemAsync(session, menuItemId, request, cancellationToken));
     }
 
     [HttpPatch("menu/items/{menuItemId:guid}/status")]
@@ -148,6 +168,16 @@ public class WorkspaceController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
+    [HttpPut("tables/{tableId:guid}")]
+    [ProducesResponseType(typeof(DiningTableDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateTableAsync(Guid tableId, [FromBody] UpdateDiningTableRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.UpdateTableAsync(session, tableId, request, cancellationToken));
+    }
+
     [HttpGet("orders")]
     [ProducesResponseType(typeof(IReadOnlyList<CustomerOrderDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrdersAsync([FromQuery] bool kitchenOnly, CancellationToken cancellationToken)
@@ -183,6 +213,16 @@ public class WorkspaceController : ControllerBase
             : Ok(await _workspaceService.UpdateOrderStatusAsync(session, orderId, request, cancellationToken));
     }
 
+    [HttpPatch("orders/{orderId:guid}/payment")]
+    [ProducesResponseType(typeof(CustomerOrderDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateOrderPaymentAsync(Guid orderId, [FromBody] UpdateOrderPaymentRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.UpdateOrderPaymentAsync(session, orderId, request, cancellationToken));
+    }
+
     [HttpDelete("orders/{orderId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken)
@@ -195,6 +235,21 @@ public class WorkspaceController : ControllerBase
         }
 
         await _workspaceService.DeleteOrderAsync(session, orderId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("orders/{orderId:guid}/delete-paid")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeletePaidOrderAsync(Guid orderId, [FromBody] DeletePaidOrderRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        await _workspaceService.DeletePaidOrderAsync(session, orderId, request, cancellationToken);
         return NoContent();
     }
 

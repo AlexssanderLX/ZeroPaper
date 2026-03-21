@@ -29,7 +29,7 @@ export function WorkspaceShell({
     <main className="page-shell app-shell">
       <header className="app-topbar">
         <Link className="brand-lockup" href="/app">
-          <BrandMark />
+          <BrandMark small variant="full" />
           <div className="brand-copy">
             <span className="eyebrow">ZeroPaper</span>
             <strong>{session.restaurantName}</strong>

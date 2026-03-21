@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
+export const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL ?? "";
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -19,7 +20,7 @@ export class ApiError extends Error {
 export type LoginPayload = {
   email: string;
   password: string;
-  profile: "restaurant" | "admin";
+  profile?: "restaurant" | "admin";
 };
 
 export type LoginResult = {
@@ -36,6 +37,7 @@ export type WorkspaceOverview = {
   openOrders: number;
   publishedMenuItems: number;
   totalMenuItems: number;
+  pendingPayments: number;
 };
 
 export type DiningTable = {
@@ -96,10 +98,13 @@ export type CustomerOrder = {
   tableId: string;
   tableName: string;
   status: string;
+  paymentMethod: string;
+  paymentStatus: string;
   customerName?: string | null;
   notes?: string | null;
   totalAmount: number;
   submittedAtUtc: string;
+  paidAtUtc?: string | null;
   items: OrderItem[];
 };
 
@@ -432,6 +437,14 @@ export function createMenuCategory(token: string, payload: { name: string }) {
   });
 }
 
+export function updateMenuCategory(token: string, categoryId: string, payload: { name: string }) {
+  return apiRequest<MenuCategory>(`/api/workspace/menu/categories/${categoryId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
 export function createMenuItem(
   token: string,
   payload: {
@@ -445,6 +458,25 @@ export function createMenuItem(
 ) {
   return apiRequest<MenuItem>("/api/workspace/menu/items", {
     method: "POST",
+    token,
+    body: payload,
+  }).then(normalizeMenuItem);
+}
+
+export function updateMenuItem(
+  token: string,
+  menuItemId: string,
+  payload: {
+    categoryId: string;
+    name: string;
+    description?: string;
+    accentLabel?: string;
+    imageUrl?: string;
+    price: number;
+  },
+) {
+  return apiRequest<MenuItem>(`/api/workspace/menu/items/${menuItemId}`, {
+    method: "PUT",
     token,
     body: payload,
   }).then(normalizeMenuItem);
@@ -491,6 +523,14 @@ export function createTable(token: string, payload: { name: string; seats: numbe
   });
 }
 
+export function updateTable(token: string, tableId: string, payload: { name: string; seats: number }) {
+  return apiRequest<DiningTable>(`/api/workspace/tables/${tableId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
 export function getOrders(token: string, kitchenOnly = false) {
   return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}`, { token });
 }
@@ -503,10 +543,26 @@ export function updateOrderStatus(token: string, orderId: string, status: string
   });
 }
 
+export function updateOrderPayment(token: string, orderId: string, paymentStatus: string, paymentMethod?: string) {
+  return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}/payment`, {
+    method: "PATCH",
+    token,
+    body: { paymentStatus, paymentMethod },
+  });
+}
+
 export function deleteOrder(token: string, orderId: string) {
   return apiRequest<void>(`/api/workspace/orders/${orderId}`, {
     method: "DELETE",
     token,
+  });
+}
+
+export function deletePaidOrder(token: string, orderId: string, password: string) {
+  return apiRequest<void>(`/api/workspace/orders/${orderId}/delete-paid`, {
+    method: "POST",
+    token,
+    body: { password },
   });
 }
 
@@ -582,6 +638,7 @@ export function createPublicOrder(
   payload: {
     customerName?: string;
     notes?: string;
+    paymentMethod?: string;
     items?: OrderItemInput[];
     menuSelections?: MenuOrderSelectionInput[];
   },

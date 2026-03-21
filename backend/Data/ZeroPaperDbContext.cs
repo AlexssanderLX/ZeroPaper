@@ -56,6 +56,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.DocumentNumber).HasMaxLength(30);
             entity.Property(x => x.ContactEmail).HasMaxLength(180);
             entity.Property(x => x.ContactPhone).HasMaxLength(30);
+            entity.Property(x => x.LastOrderNumber).IsRequired();
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
@@ -214,6 +215,12 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.CustomerName).HasMaxLength(120);
             entity.Property(x => x.Notes).HasMaxLength(600);
             entity.Property(x => x.Status)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.PaymentMethod)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.PaymentStatus)
                 .HasConversion<int>()
                 .IsRequired();
             entity.Property(x => x.TotalAmount).HasPrecision(10, 2).IsRequired();

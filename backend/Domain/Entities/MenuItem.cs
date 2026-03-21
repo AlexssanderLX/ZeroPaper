@@ -50,6 +50,17 @@ public class MenuItem : TenantOwnedEntity
         Touch();
     }
 
+    public void ChangeCategory(Guid menuCategoryId)
+    {
+        if (menuCategoryId == Guid.Empty)
+        {
+            throw new ArgumentException("Category must be informed.", nameof(menuCategoryId));
+        }
+
+        MenuCategoryId = menuCategoryId;
+        Touch();
+    }
+
     public void UpdatePrice(decimal price)
     {
         if (price < 0)

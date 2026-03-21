@@ -38,6 +38,7 @@ public class Company : TenantOwnedEntity
     public string? DocumentNumber { get; private set; }
     public string? ContactEmail { get; private set; }
     public string? ContactPhone { get; private set; }
+    public int LastOrderNumber { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public IReadOnlyCollection<AppUser> Users => _users.AsReadOnly();
@@ -71,5 +72,12 @@ public class Company : TenantOwnedEntity
         ContactEmail = string.IsNullOrWhiteSpace(contactEmail) ? null : contactEmail.Trim().ToLowerInvariant();
         ContactPhone = string.IsNullOrWhiteSpace(contactPhone) ? null : contactPhone.Trim();
         Touch();
+    }
+
+    public int ReserveNextOrderNumber()
+    {
+        LastOrderNumber += 1;
+        Touch();
+        return LastOrderNumber;
     }
 }

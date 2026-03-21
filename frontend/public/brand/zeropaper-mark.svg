@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 144" fill="none">
+  <defs>
+    <linearGradient id="badgeFill" x1="26" y1="28" x2="152" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5D341F"/>
+      <stop offset="0.52" stop-color="#3E2317"/>
+      <stop offset="1" stop-color="#6F4024"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="32" y1="30" x2="146" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6D9A8"/>
+      <stop offset="0.4" stop-color="#D79A4E"/>
+      <stop offset="0.72" stop-color="#A5622E"/>
+      <stop offset="1" stop-color="#F1CF96"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="54" y1="48" x2="124" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF1C8"/>
+      <stop offset="0.28" stop-color="#F4CC79"/>
+      <stop offset="0.65" stop-color="#D99440"/>
+      <stop offset="1" stop-color="#F9DEAA"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(92 66) rotate(90) scale(70 92)">
+      <stop stop-color="#B06C38" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#B06C38" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="drop" x="4" y="8" width="172" height="128" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#120A08" flood-opacity="0.28"/>
+    </filter>
+    <filter id="textShadow" x="30" y="28" width="120" height="92" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#2A140C" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="90" cy="72" rx="66" ry="48" fill="url(#glow)"/>
+
+  <g filter="url(#drop)">
+    <path
+      d="M41 28H123C138 28 150 40 150 55V89C150 104 138 116 123 116H47C30 116 18 104 18 87V53C18 39 28 28 41 28Z"
+      fill="url(#badgeFill)"
+      stroke="url(#rim)"
+      stroke-width="4"
+    />
+    <path
+      d="M39 38H121C132 38 141 47 141 58V86C141 97 132 106 121 106H46C34 106 26 98 26 86V56C26 45 31 38 39 38Z"
+      stroke="rgba(255,235,205,0.26)"
+      stroke-width="1.8"
+    />
+    <path
+      d="M108.5 19C121 19 135 23 142 30C136 35 129 36 122 36C131 39 139 43 144 49C139 52 133 53 129 53C132 56 134 59 134 63C126 61 119 59 113 54C110 51 108 47 107 43L103 37C102 36 103 34 105 34C107 34 108.5 35.5 109.5 37L114 42C118 45 121 46 124 46C120 43 115 41 111 38C107 35 104 32 103 28C105 22 106.5 19 108.5 19Z"
+      fill="url(#gold)"
+    />
+    <g fill="url(#gold)" stroke="#9A622D" stroke-width="1.5">
+      <path d="M78 40C78 35.6 81.6 32 86 32C90.4 32 94 35.6 94 40V42H78V40Z"/>
+      <path d="M65 54C66.5 44 75 38 86 38C97 38 105.5 44 107 54H65Z"/>
+      <circle cx="86" cy="29" r="4.8"/>
+    </g>
+  </g>
+
+  <g filter="url(#textShadow)">
+    <text
+      x="46"
+      y="98"
+      fill="url(#gold)"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="70"
+      font-weight="700"
+      letter-spacing="-7"
+      stroke="#7E4821"
+      stroke-width="3.4"
+      paint-order="stroke"
+    >ZP</text>
+  </g>
+</svg>

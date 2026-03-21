@@ -35,6 +35,11 @@ export const ownerModules: PortalModule[] = [
     eyebrow: "Cozinha",
   },
   {
+    slug: "caixa",
+    title: "Caixa",
+    eyebrow: "Caixa",
+  },
+  {
     slug: "ajustes",
     title: "Unidade",
     eyebrow: "Unidade",

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZeroPaper.Data;
 
@@ -11,9 +12,11 @@ using ZeroPaper.Data;
 namespace ZeroPaper.Migrations
 {
     [DbContext(typeof(ZeroPaperDbContext))]
-    partial class ZeroPaperDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260320220800_OrderCheckoutFlow")]
+    partial class OrderCheckoutFlow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,9 +158,6 @@ namespace ZeroPaper.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("LastOrderNumber")
-                        .HasColumnType("int");
 
                     b.Property<string>("LegalName")
                         .IsRequired()

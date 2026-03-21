@@ -14,7 +14,7 @@ export default function ResetPasswordPage() {
       <section className="login-layout">
         <section className="surface-card login-copy-card ambient-panel subtle">
           <div className="brand-lockup compact">
-            <BrandMark small />
+            <BrandMark small variant="full" />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
               <strong>Nova senha</strong>

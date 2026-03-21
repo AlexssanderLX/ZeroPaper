@@ -10,6 +10,8 @@ import {
 import {
   formatCurrency,
   formatDateTime,
+  formatPaymentMethod,
+  formatPaymentStatus,
   handleApiError,
   type AsyncVoid,
 } from "@/components/modules/module-utils";
@@ -20,27 +22,39 @@ type KitchenColumn = {
   items: CustomerOrder[];
 };
 
+const statusLabels: Record<string, string> = {
+  Pending: "Aguardando",
+  InKitchen: "Em preparo",
+  Ready: "Pronto",
+  Delivered: "Concluido",
+  Cancelled: "Cancelado",
+};
+
 function buildKitchenColumns(orders: CustomerOrder[]): KitchenColumn[] {
+  const sortedOrders = [...orders].sort(
+    (leftOrder, rightOrder) => new Date(leftOrder.submittedAtUtc).getTime() - new Date(rightOrder.submittedAtUtc).getTime(),
+  );
+
   return [
     {
       key: "pending",
-      title: "Aguardando",
-      items: orders.filter((order) => order.status === "Pending"),
+      title: "Novos",
+      items: sortedOrders.filter((order) => order.status === "Pending"),
     },
     {
       key: "inkitchen",
       title: "Em preparo",
-      items: orders.filter((order) => order.status === "InKitchen"),
+      items: sortedOrders.filter((order) => order.status === "InKitchen"),
     },
     {
       key: "ready",
       title: "Prontos",
-      items: orders.filter((order) => order.status === "Ready"),
+      items: sortedOrders.filter((order) => order.status === "Ready"),
     },
     {
       key: "closed",
-      title: "Finalizados",
-      items: orders.filter((order) => order.status === "Delivered" || order.status === "Cancelled"),
+      title: "Encerrados",
+      items: sortedOrders.filter((order) => order.status === "Delivered" || order.status === "Cancelled"),
     },
   ];
 }
@@ -108,7 +122,7 @@ export function OrdersModule({ token, onUnauthorized }: { token: string; onUnaut
 
       <section className="surface-card module-list-card">
         <div className="module-section-head">
-          <span className="eyebrow">Cozinha</span>
+          <h2>Pedidos para a cozinha</h2>
           <strong>{orders.length} pedidos</strong>
         </div>
 
@@ -140,13 +154,15 @@ export function OrdersModule({ token, onUnauthorized }: { token: string; onUnaut
                             <h3>Pedido #{order.number}</h3>
                             <p>{order.tableName}</p>
                           </div>
-                          <span className={`status-chip ${order.status.toLowerCase()}`}>{order.status}</span>
+                          <span className={`status-chip ${order.status.toLowerCase()}`}>{statusLabels[order.status] ?? order.status}</span>
                         </div>
 
                         <div className="entity-meta-grid">
                           {order.customerName ? <span>{order.customerName}</span> : null}
                           <span>{formatDateTime(order.submittedAtUtc)}</span>
                           <span>{formatCurrency(order.totalAmount)}</span>
+                          <span>{formatPaymentMethod(order.paymentMethod)}</span>
+                          <span>{formatPaymentStatus(order.paymentStatus)}</span>
                         </div>
 
                         <div className="item-line-list">

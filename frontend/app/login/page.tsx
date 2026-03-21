@@ -17,7 +17,7 @@ export default function LoginPage() {
       <section className="login-layout login-premium-layout">
         <section className="surface-card login-copy-card ambient-panel subtle login-intro-card">
           <div className="brand-lockup compact">
-            <BrandMark small />
+            <BrandMark small variant="full" />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
               <strong>Acesso</strong>
@@ -25,7 +25,7 @@ export default function LoginPage() {
           </div>
 
           <h1 className="login-title">Entrar na ZeroPaper.</h1>
-          <p className="body-copy">Escolha o perfil e siga para o painel.</p>
+          <p className="body-copy">Entre com email e senha para abrir seu painel.</p>
 
           <div className="login-mark-row">
             {loginMarks.map((item) => (

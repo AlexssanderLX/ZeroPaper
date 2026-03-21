@@ -28,12 +28,11 @@ public class AuthSessionService : IAuthSessionService
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Email);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Password);
 
-        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var identifier = request.Email.Trim();
+        var normalizedIdentifier = identifier.ToLowerInvariant();
+        var requestedProfile = request.Profile?.Trim();
 
-        var candidates = await _context.Users
-            .Include(user => user.Company)
-            .Where(user => user.Email == normalizedEmail)
-            .ToListAsync(cancellationToken);
+        var candidates = await GetLoginCandidatesAsync(identifier, normalizedIdentifier, cancellationToken);
 
         if (candidates.Count == 0)
         {
@@ -51,14 +50,15 @@ public class AuthSessionService : IAuthSessionService
 
         var user = matches[0];
 
-        if (request.Profile.Equals("admin", StringComparison.OrdinalIgnoreCase))
+        if (requestedProfile?.Equals("admin", StringComparison.OrdinalIgnoreCase) == true)
         {
             if (user.Role != UserRole.Root)
             {
                 return null;
             }
         }
-        else if (user.Role == UserRole.Root)
+        else if (requestedProfile?.Equals("restaurant", StringComparison.OrdinalIgnoreCase) == true &&
+                 user.Role == UserRole.Root)
         {
             return null;
         }
@@ -92,6 +92,37 @@ public class AuthSessionService : IAuthSessionService
             Role = user.Role.ToString(),
             RestaurantName = user.Company.TradeName
         };
+    }
+
+    private async Task<List<AppUser>> GetLoginCandidatesAsync(
+        string identifier,
+        string normalizedIdentifier,
+        CancellationToken cancellationToken)
+    {
+        var emailMatches = await _context.Users
+            .Include(user => user.Company)
+            .Where(user => user.Email == normalizedIdentifier)
+            .ToListAsync(cancellationToken);
+
+        if (emailMatches.Count > 0)
+        {
+            return emailMatches;
+        }
+
+        var directNameMatches = await _context.Users
+            .Include(user => user.Company)
+            .Where(user => user.FullName == identifier)
+            .ToListAsync(cancellationToken);
+
+        if (directNameMatches.Count > 0)
+        {
+            return directNameMatches;
+        }
+
+        return await _context.Users
+            .Include(user => user.Company)
+            .Where(user => user.FullName.ToLower() == normalizedIdentifier)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<WorkspaceSessionContext?> GetSessionAsync(string? authorizationHeader, CancellationToken cancellationToken = default)

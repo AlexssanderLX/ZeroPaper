@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Mime;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
@@ -44,7 +45,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(origin => IsAllowedFrontendOrigin(origin, allowedOrigins, builder.Environment.IsDevelopment()))
             .WithHeaders("Content-Type", "Authorization")
             .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
     });
@@ -152,3 +153,47 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static bool IsAllowedFrontendOrigin(string? origin, string[] allowedOrigins, bool isDevelopment)
+{
+    if (string.IsNullOrWhiteSpace(origin))
+    {
+        return false;
+    }
+
+    if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    if (!isDevelopment || !Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+    {
+        return false;
+    }
+
+    if (uri.Scheme is not ("http" or "https"))
+    {
+        return false;
+    }
+
+    if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("127.0.0.1"))
+    {
+        return true;
+    }
+
+    if (!IPAddress.TryParse(uri.Host, out var ipAddress))
+    {
+        return false;
+    }
+
+    if (ipAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+    {
+        return false;
+    }
+
+    var bytes = ipAddress.GetAddressBytes();
+
+    return bytes[0] == 10
+        || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+        || (bytes[0] == 192 && bytes[1] == 168);
+}

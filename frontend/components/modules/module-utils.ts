@@ -72,6 +72,32 @@ export function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+export function formatPaymentMethod(value: string) {
+  switch (value) {
+    case "Undefined":
+      return "A definir";
+    case "Pix":
+      return "Pix";
+    case "Credit":
+      return "Credito";
+    case "Debit":
+      return "Debito";
+    default:
+      return value;
+  }
+}
+
+export function formatPaymentStatus(value: string) {
+  switch (value) {
+    case "Paid":
+      return "Pago";
+    case "Pending":
+      return "A cobrar";
+    default:
+      return value;
+  }
+}
+
 export function buildOrderPayload(items: OrderDraftItem[]): OrderItemInput[] {
   return items
     .filter((item) => item.name.trim() !== "")

@@ -60,9 +60,14 @@ export function OwnerLobby() {
       label: "Abertos",
     },
     {
+      slug: "caixa",
+      value: String(overview?.pendingPayments ?? 0),
+      label: "A cobrar",
+    },
+    {
       slug: "ajustes",
       value: session.ownerName,
-      label: "Responsavel",
+      label: "Conta",
     },
   ];
 
@@ -88,16 +93,20 @@ export function OwnerLobby() {
           const moduleMetric = quickOverview.find((item) => item.slug === module.slug);
 
           return (
-          <Link key={module.slug} className="surface-card module-card interactive-card module-entry-link" href={`/app/${module.slug}`}>
-            <span className="eyebrow">{module.eyebrow}</span>
-            <h2>{module.title}</h2>
-            {moduleMetric ? (
-              <div className="module-card-metric">
-                <strong>{moduleMetric.value}</strong>
-                <span>{moduleMetric.label}</span>
+            <Link key={module.slug} className="surface-card module-card interactive-card module-entry-link" href={`/app/${module.slug}`}>
+              <div className="module-card-head">
+                <h2>{module.title}</h2>
+                <span className="module-card-arrow" aria-hidden="true">
+                  ↗
+                </span>
               </div>
-            ) : null}
-          </Link>
+              {moduleMetric ? (
+                <div className="module-card-metric">
+                  <strong>{moduleMetric.value}</strong>
+                  <span>{moduleMetric.label}</span>
+                </div>
+              ) : null}
+            </Link>
           );
         })}
       </section>

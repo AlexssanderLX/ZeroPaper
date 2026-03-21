@@ -17,7 +17,7 @@ export default function SignupPage() {
       <section className="login-layout signup-layout">
         <section className="surface-card login-copy-card ambient-panel subtle signup-intro-card">
           <div className="brand-lockup compact">
-            <BrandMark small />
+            <BrandMark small variant="full" />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
               <strong>Cadastro</strong>

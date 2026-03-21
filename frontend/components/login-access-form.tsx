@@ -16,11 +16,10 @@ export function LoginAccessForm() {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const identifier = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "").trim();
-    const profile = String(formData.get("accessType") ?? "restaurant") as AccessProfile;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       setIsAccessDenied(false);
       setErrorMessage("Preencha email e senha para continuar.");
       return;
@@ -33,10 +32,11 @@ export function LoginAccessForm() {
       void (async () => {
         try {
           const response = await loginPortal({
-            email,
+            email: identifier,
             password,
-            profile,
           });
+
+          const profile: AccessProfile = response.role === "Root" ? "admin" : "restaurant";
 
           const session: PortalSession = {
             token: response.token,
@@ -58,7 +58,7 @@ export function LoginAccessForm() {
           }
 
           if (error instanceof ApiError && error.status === 401) {
-            setErrorMessage("Email ou senha invalidos.");
+            setErrorMessage("Nome, email ou senha invalidos.");
             return;
           }
 
@@ -89,35 +89,17 @@ export function LoginAccessForm() {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <div className="field-group">
-        <label className="field-label-row" htmlFor="accessType">
-          <span>Perfil</span>
-          <span className="field-requirement">Obrigatorio</span>
-        </label>
-        <select
-          id="accessType"
-          name="accessType"
-          defaultValue="restaurant"
-          required
-          onInvalid={handleRequiredInvalid}
-          onInput={clearRequiredMessage}
-        >
-          <option value="restaurant">Unidade</option>
-          <option value="admin">Operacao</option>
-        </select>
-      </div>
-
-      <div className="field-group">
         <label className="field-label-row" htmlFor="email">
-          <span>Email</span>
+          <span>Email ou nome</span>
           <span className="field-requirement">Obrigatorio</span>
         </label>
         <input
           id="email"
           name="email"
-          type="email"
-          placeholder="voce@empresa.com"
+          type="text"
+          placeholder="Seu email ou nome"
           required
-          autoComplete="email"
+          autoComplete="username"
           onInvalid={handleRequiredInvalid}
           onInput={clearRequiredMessage}
         />

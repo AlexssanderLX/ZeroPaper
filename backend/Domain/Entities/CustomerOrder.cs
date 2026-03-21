@@ -18,7 +18,8 @@ public class CustomerOrder : TenantOwnedEntity
         int number,
         string? customerName,
         string? notes,
-        IEnumerable<OrderItem> items) : base(tenantId)
+        IEnumerable<OrderItem> items,
+        PaymentMethod paymentMethod) : base(tenantId)
     {
         CompanyId = companyId;
         DiningTableId = diningTableId;
@@ -27,6 +28,8 @@ public class CustomerOrder : TenantOwnedEntity
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
         SubmittedAtUtc = DateTime.UtcNow;
         Status = OrderStatus.Pending;
+        PaymentMethod = paymentMethod;
+        PaymentStatus = PaymentStatus.Pending;
 
         foreach (var item in items)
         {
@@ -42,11 +45,14 @@ public class CustomerOrder : TenantOwnedEntity
     public string? CustomerName { get; private set; }
     public string? Notes { get; private set; }
     public OrderStatus Status { get; private set; }
+    public PaymentMethod PaymentMethod { get; private set; }
+    public PaymentStatus PaymentStatus { get; private set; }
     public decimal TotalAmount { get; private set; }
     public DateTime SubmittedAtUtc { get; private set; }
     public DateTime? SentToKitchenAtUtc { get; private set; }
     public DateTime? ReadyAtUtc { get; private set; }
     public DateTime? ClosedAtUtc { get; private set; }
+    public DateTime? PaidAtUtc { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
@@ -101,10 +107,44 @@ public class CustomerOrder : TenantOwnedEntity
         Touch();
     }
 
+    public void MarkPaid()
+    {
+        if (Status == OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Cancelled orders cannot be marked as paid.");
+        }
+
+        PaymentStatus = PaymentStatus.Paid;
+        PaidAtUtc = DateTime.UtcNow;
+        Touch();
+    }
+
+    public void MarkPaymentPending()
+    {
+        if (Status == OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Cancelled orders cannot change payment.");
+        }
+
+        PaymentStatus = PaymentStatus.Pending;
+        PaidAtUtc = null;
+        Touch();
+    }
+
+    public void UpdatePaymentMethod(PaymentMethod paymentMethod)
+    {
+        if (Status == OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Cancelled orders cannot change payment.");
+        }
+
+        PaymentMethod = paymentMethod;
+        Touch();
+    }
+
     private void RecalculateTotal()
     {
         TotalAmount = _items.Sum(item => item.TotalPrice);
         Touch();
     }
 }
-

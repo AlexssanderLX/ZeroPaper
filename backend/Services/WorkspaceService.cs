@@ -45,12 +45,21 @@ public class WorkspaceService : IWorkspaceService
         var totalMenuItems = await _context.MenuItems
             .CountAsync(item => item.CompanyId == session.CompanyId, cancellationToken);
 
+        var pendingPayments = await _context.CustomerOrders
+            .CountAsync(
+                item => item.CompanyId == session.CompanyId &&
+                        item.IsActive &&
+                        item.Status != OrderStatus.Cancelled &&
+                        item.PaymentStatus != PaymentStatus.Paid,
+                cancellationToken);
+
         return new WorkspaceOverviewDto
         {
             ActiveTables = activeTables,
             OpenOrders = openOrders,
             PublishedMenuItems = publishedMenuItems,
-            TotalMenuItems = totalMenuItems
+            TotalMenuItems = totalMenuItems,
+            PendingPayments = pendingPayments
         };
     }
 
@@ -76,6 +85,30 @@ public class WorkspaceService : IWorkspaceService
             nextDisplayOrder + 1);
 
         await _context.MenuCategories.AddAsync(category, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new MenuCategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            DisplayOrder = category.DisplayOrder
+        };
+    }
+
+    public async Task<MenuCategoryDto> UpdateMenuCategoryAsync(WorkspaceSessionContext session, Guid categoryId, UpdateMenuCategoryRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Name);
+
+        var category = await _context.MenuCategories
+            .FirstOrDefaultAsync(
+                item => item.Id == categoryId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Categoria nao encontrada.");
+
+        category.Rename(request.Name);
         await _context.SaveChangesAsync(cancellationToken);
 
         return new MenuCategoryDto
@@ -118,6 +151,44 @@ public class WorkspaceService : IWorkspaceService
         await _context.MenuItems.AddAsync(menuItem, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        return MapMenuItem(menuItem);
+    }
+
+    public async Task<MenuItemDto> UpdateMenuItemAsync(WorkspaceSessionContext session, Guid menuItemId, UpdateMenuItemRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Name);
+
+        var category = await _context.MenuCategories
+            .FirstOrDefaultAsync(
+                item => item.Id == request.CategoryId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Categoria nao encontrada.");
+
+        var menuItem = await _context.MenuItems
+            .FirstOrDefaultAsync(
+                item => item.Id == menuItemId &&
+                        item.CompanyId == session.CompanyId,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Item nao encontrado.");
+
+        if (menuItem.MenuCategoryId != category.Id)
+        {
+            var nextDisplayOrder = await _context.MenuItems
+                .Where(item => item.MenuCategoryId == category.Id && item.Id != menuItem.Id)
+                .Select(item => (int?)item.DisplayOrder)
+                .MaxAsync(cancellationToken) ?? -1;
+
+            menuItem.ChangeCategory(category.Id);
+            menuItem.SetDisplayOrder(nextDisplayOrder + 1);
+        }
+
+        menuItem.UpdateCatalog(request.Name, request.Description, request.AccentLabel, request.ImageUrl);
+        menuItem.UpdatePrice(request.Price);
+
+        await _context.SaveChangesAsync(cancellationToken);
         return MapMenuItem(menuItem);
     }
 
@@ -301,6 +372,43 @@ public class WorkspaceService : IWorkspaceService
         };
     }
 
+    public async Task<DiningTableDto> UpdateTableAsync(WorkspaceSessionContext session, Guid tableId, UpdateDiningTableRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Name);
+
+        var table = await _context.DiningTables
+            .Include(item => item.QrCodeAccess)
+            .FirstOrDefaultAsync(
+                item => item.Id == tableId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Mesa nao encontrada.");
+
+        table.Rename(request.Name);
+        table.UpdateSeats(request.Seats);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new DiningTableDto
+        {
+            Id = table.Id,
+            Name = table.Name,
+            InternalCode = table.InternalCode,
+            Seats = table.Seats,
+            Status = table.Status.ToString(),
+            OpenOrderCount = await _context.CustomerOrders.CountAsync(
+                order => order.DiningTableId == table.Id &&
+                         order.IsActive &&
+                         order.Status != OrderStatus.Delivered &&
+                         order.Status != OrderStatus.Cancelled,
+                cancellationToken),
+            PublicCode = table.QrCodeAccess.PublicCode,
+            AccessUrl = table.QrCodeAccess.AccessPath
+        };
+    }
+
     public async Task<IReadOnlyList<CustomerOrderDto>> GetOrdersAsync(WorkspaceSessionContext session, bool kitchenOnly, CancellationToken cancellationToken = default)
     {
         var query = _context.CustomerOrders
@@ -349,6 +457,7 @@ public class WorkspaceService : IWorkspaceService
             request.Notes,
             request.Items,
             request.MenuSelections,
+            ParsePaymentMethodOrDefault(request.PaymentMethod),
             cancellationToken);
     }
 
@@ -396,6 +505,48 @@ public class WorkspaceService : IWorkspaceService
         return MapOrder(order);
     }
 
+    public async Task<CustomerOrderDto> UpdateOrderPaymentAsync(WorkspaceSessionContext session, Guid orderId, UpdateOrderPaymentRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var order = await _context.CustomerOrders
+            .Include(item => item.Items)
+            .Include(item => item.DiningTable)
+            .FirstOrDefaultAsync(
+                item => item.Id == orderId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Pedido nao encontrado.");
+
+        var paymentStatus = ParsePaymentStatus(request.PaymentStatus);
+
+        if (!string.IsNullOrWhiteSpace(request.PaymentMethod))
+        {
+            order.UpdatePaymentMethod(ParsePaymentMethod(request.PaymentMethod));
+        }
+
+        switch (paymentStatus)
+        {
+            case PaymentStatus.Pending:
+                order.MarkPaymentPending();
+                break;
+            case PaymentStatus.Paid:
+                if (order.PaymentMethod == PaymentMethod.Undefined)
+                {
+                    throw new ArgumentException("Selecione a forma de pagamento no caixa.", nameof(request.PaymentMethod));
+                }
+
+                order.MarkPaid();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(request.PaymentStatus), "Unsupported payment status.");
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapOrder(order);
+    }
+
     public async Task DeleteOrderAsync(WorkspaceSessionContext session, Guid orderId, CancellationToken cancellationToken = default)
     {
         var order = await _context.CustomerOrders
@@ -411,6 +562,50 @@ public class WorkspaceService : IWorkspaceService
         if (order.Status != OrderStatus.Cancelled)
         {
             throw new InvalidOperationException("So pedidos cancelados podem ser removidos.");
+        }
+
+        _context.OrderItems.RemoveRange(order.Items);
+        _context.CustomerOrders.Remove(order);
+        await RecalculateTableStatusAsync(order.DiningTable, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeletePaidOrderAsync(WorkspaceSessionContext session, Guid orderId, DeletePaidOrderRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Password);
+
+        if (!string.Equals(session.Role, nameof(UserRole.Owner), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Somente o owner pode apagar pedidos pagos.");
+        }
+
+        var owner = await _context.Users
+            .FirstOrDefaultAsync(
+                user => user.Id == session.UserId &&
+                        user.CompanyId == session.CompanyId &&
+                        user.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Owner nao encontrado.");
+
+        if (!_passwordHasher.Verify(request.Password, owner.PasswordHash))
+        {
+            throw new UnauthorizedAccessException("Senha incorreta.");
+        }
+
+        var order = await _context.CustomerOrders
+            .Include(item => item.Items)
+            .Include(item => item.DiningTable)
+            .FirstOrDefaultAsync(
+                item => item.Id == orderId &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Pedido nao encontrado.");
+
+        if (order.PaymentStatus != PaymentStatus.Paid)
+        {
+            throw new InvalidOperationException("So pedidos pagos podem ser apagados por aqui.");
         }
 
         _context.OrderItems.RemoveRange(order.Items);
@@ -602,6 +797,7 @@ public class WorkspaceService : IWorkspaceService
             request.Notes,
             request.Items,
             request.MenuSelections,
+            ParsePaymentMethodOrDefault(request.PaymentMethod),
             cancellationToken);
     }
 
@@ -611,6 +807,7 @@ public class WorkspaceService : IWorkspaceService
         string? notes,
         List<OrderItemInputDto> items,
         List<MenuOrderSelectionDto> menuSelections,
+        PaymentMethod paymentMethod,
         CancellationToken cancellationToken)
     {
         var orderItems = await BuildOrderItemsAsync(
@@ -625,7 +822,7 @@ public class WorkspaceService : IWorkspaceService
             throw new ArgumentException("At least one item must be informed.", nameof(items));
         }
 
-        return await PersistOrderAsync(table, customerName, notes, orderItems, cancellationToken);
+        return await PersistOrderAsync(table, customerName, notes, orderItems, paymentMethod, cancellationToken);
     }
 
     private async Task RecalculateTableStatusAsync(DiningTable table, CancellationToken cancellationToken)
@@ -667,16 +864,6 @@ public class WorkspaceService : IWorkspaceService
         while (await _context.QrCodeAccesses.AnyAsync(item => item.PublicCode == publicCode, cancellationToken));
 
         return publicCode;
-    }
-
-    private async Task<int> GetNextOrderNumberAsync(Guid companyId, CancellationToken cancellationToken)
-    {
-        var maxNumber = await _context.CustomerOrders
-            .Where(item => item.CompanyId == companyId)
-            .Select(item => (int?)item.Number)
-            .MaxAsync(cancellationToken);
-
-        return (maxNumber ?? 0) + 1;
     }
 
     private async Task<List<MenuCategoryDto>> BuildMenuAsync(Guid companyId, bool includeInactiveItems, CancellationToken cancellationToken)
@@ -754,9 +941,17 @@ public class WorkspaceService : IWorkspaceService
         string? customerName,
         string? notes,
         List<OrderItem> orderItems,
+        PaymentMethod paymentMethod,
         CancellationToken cancellationToken)
     {
-        var nextNumber = await GetNextOrderNumberAsync(table.CompanyId, cancellationToken);
+        var company = await _context.Companies
+            .FirstOrDefaultAsync(
+                item => item.Id == table.CompanyId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Company not found.");
+
+        var nextNumber = company.ReserveNextOrderNumber();
         var order = new CustomerOrder(
             table.TenantId,
             table.CompanyId,
@@ -764,7 +959,8 @@ public class WorkspaceService : IWorkspaceService
             nextNumber,
             customerName,
             notes,
-            orderItems);
+            orderItems,
+            paymentMethod);
 
         table.ChangeStatus(TableStatus.Occupied);
 
@@ -783,10 +979,13 @@ public class WorkspaceService : IWorkspaceService
             TableId = order.DiningTableId,
             TableName = tableName ?? order.DiningTable.Name,
             Status = order.Status.ToString(),
+            PaymentMethod = order.PaymentMethod.ToString(),
+            PaymentStatus = order.PaymentStatus.ToString(),
             CustomerName = order.CustomerName,
             Notes = order.Notes,
             TotalAmount = order.TotalAmount,
             SubmittedAtUtc = order.SubmittedAtUtc,
+            PaidAtUtc = order.PaidAtUtc,
             Items = order.Items.Select(item => new OrderItemDto
             {
                 Id = item.Id,
@@ -830,6 +1029,36 @@ public class WorkspaceService : IWorkspaceService
         if (!Enum.TryParse<OrderStatus>(value, true, out var parsed))
         {
             throw new ArgumentException("Invalid order status.", nameof(value));
+        }
+
+        return parsed;
+    }
+
+    private static PaymentMethod ParsePaymentMethod(string value)
+    {
+        if (!Enum.TryParse<PaymentMethod>(value, true, out var parsed))
+        {
+            throw new ArgumentException("Invalid payment method.", nameof(value));
+        }
+
+        return parsed;
+    }
+
+    private static PaymentMethod ParsePaymentMethodOrDefault(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return PaymentMethod.Undefined;
+        }
+
+        return ParsePaymentMethod(value);
+    }
+
+    private static PaymentStatus ParsePaymentStatus(string value)
+    {
+        if (!Enum.TryParse<PaymentStatus>(value, true, out var parsed))
+        {
+            throw new ArgumentException("Invalid payment status.", nameof(value));
         }
 
         return parsed;

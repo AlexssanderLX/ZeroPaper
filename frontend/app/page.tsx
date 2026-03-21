@@ -27,7 +27,7 @@ export default function Home() {
       <section className="hero-panel sales-hero">
         <div className="hero-stack sales-copy">
           <div className="brand-lockup">
-            <BrandMark />
+            <BrandMark variant="full" />
             <div className="brand-copy">
               <span className="eyebrow">ZeroPaper</span>
               <strong>Restaurant Operating System</strong>
