@@ -1,55 +1,75 @@
 # ZeroPaper
 
-ZeroPaper e um micro SaaS para restaurantes locais. O sistema foi pensado para centralizar a rotina da unidade em uma plataforma unica, com foco em operacao, cardapio, mesas, QR Code e fluxo de pedidos.
+ZeroPaper e um micro SaaS para restaurantes locais.
 
-## Proposta do produto
+O projeto foi pensado para reduzir atrito na operacao do dia a dia, concentrando cardapio, mesas, QR Code, pedidos e acompanhamento interno em uma unica plataforma.
 
-A ideia da ZeroPaper e reduzir atrito no dia a dia do restaurante com uma experiencia simples para quem administra a unidade e pratica para quem faz o pedido.
+## Objetivo do MVP
 
-Hoje o projeto segue esta linha:
+Esta versao do MVP existe para validar a base do produto em uso real.
 
-- acesso controlado para novas contas
-- separacao por empresa dentro da plataforma
-- operacao da unidade em ambiente proprio
-- cardapio digital com controle de disponibilidade
-- mesas com QR Code
-- pedidos indo para a cozinha
+Hoje o foco da ZeroPaper e:
 
-## Funcoes principais do MVP
+- facilitar o atendimento por mesa
+- transformar o QR Code em porta de entrada do pedido
+- organizar o fluxo entre cliente, cozinha e caixa
+- dar ao dono da unidade um painel simples para operar
 
-### Cadastro e acesso
+## O que o sistema ja cobre
 
-- cadastro inicial controlado por liberacao
-- recuperacao de senha
-- area administrativa da plataforma
-- area da unidade apos login
+### Plataforma
 
-### Cardapio
-
-- criacao de categorias
-- criacao de itens
-- envio de foto do prato
-- controle de item disponivel ou oculto
-
-### Mesas
-
-- criacao de mesas
-- geracao automatica de QR Code
-- download e impressao do QR
-
-### Pedidos
-
-- pedido publico a partir da mesa
-- encaminhamento para a cozinha
-- atualizacao de status do pedido
-- remocao de pedido cancelado
+- administracao central da ZeroPaper
+- liberacao controlada de novos cadastros
+- recuperacao de acesso
+- organizacao por unidade dentro da plataforma
 
 ### Unidade
 
-- ajustes basicos da empresa
-- area central de operacao do cliente
+- painel principal da unidade
+- ambiente proprio para operacao
+- identidade visual aplicada ao portal
 
-## Estrutura do projeto
+### Cardapio
+
+- organizacao por categorias
+- cadastro e edicao de produtos
+- imagem do produto
+- controle de disponibilidade
+- limpeza e manutencao do cardapio
+
+### Mesas e QR Code
+
+- criacao e ajuste de mesas
+- geracao automatica de QR Code por mesa
+- visualizacao e impressao do QR
+- folha dedicada para impressao
+
+### Pedido publico
+
+- acesso do cliente pelo QR Code
+- escolha de itens por toque
+- observacoes do pedido
+- confirmacao de envio
+- continuidade para um novo pedido
+
+### Operacao interna
+
+- pedidos para a cozinha
+- atualizacao de status do pedido
+- caixa com pedidos a cobrar e pagos
+- marcacao de pagamento
+- controle interno de encerramento do pedido
+
+## Experiencia do produto
+
+O MVP foi dividido em tres experiencias principais:
+
+- administracao da plataforma
+- operacao da unidade
+- pedido publico pela mesa
+
+## Estrutura do repositorio
 
 ```text
 ZeroPaper/
@@ -58,7 +78,7 @@ ZeroPaper/
 |-- README.md
 ```
 
-## Tecnologias
+## Stack
 
 ### Backend
 
@@ -73,26 +93,21 @@ ZeroPaper/
 - React
 - TypeScript
 
-## Como rodar localmente
+## Direcao atual
 
-1. Configurar a conexao com o banco MySQL
-2. Aplicar as migrations do backend
-3. Subir o backend
-4. Configurar a variavel de ambiente do frontend apontando para a API
-5. Subir o frontend
+Neste momento, a ZeroPaper esta sendo lapidada como base operacional de restaurante.
 
-## Estado atual
+O objetivo nao e cobrir tudo de uma vez, e sim fechar muito bem o fluxo principal:
 
-O projeto ja cobre a base do fluxo principal:
-
-- conta root da plataforma
-- liberacao de novos acessos
-- login e recuperacao de senha
-- portal da unidade
 - cardapio
-- mesas com QR
-- pedidos para a cozinha
+- mesa
+- QR Code
+- pedido
+- cozinha
+- caixa
 
-## Direcao do produto
+## Observacao
 
-O foco atual da ZeroPaper e consolidar uma base simples, bonita e funcional para uso real em restaurantes locais, antes de expandir para automacoes mais avancadas.
+Este README descreve o MVP de forma intencionalmente simples.
+
+Ele foi escrito para apresentar a proposta e as funcoes do produto, sem expor detalhes internos, rotas ou configuracoes sensiveis.
