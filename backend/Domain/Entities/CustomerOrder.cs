@@ -5,6 +5,7 @@ namespace ZeroPaper.Domain.Entities;
 
 public class CustomerOrder : TenantOwnedEntity
 {
+    private const int AutomaticPrintRetryLimit = 2;
     private readonly List<OrderItem> _items = [];
 
     private CustomerOrder()
@@ -29,7 +30,10 @@ public class CustomerOrder : TenantOwnedEntity
         SubmittedAtUtc = DateTime.UtcNow;
         Status = OrderStatus.Pending;
         PaymentMethod = paymentMethod;
+        RequestedPaymentMethod = paymentMethod;
         PaymentStatus = PaymentStatus.Pending;
+        PrintStatus = PrintStatus.Pending;
+        PrintQueuedAtUtc = SubmittedAtUtc;
 
         foreach (var item in items)
         {
@@ -46,13 +50,22 @@ public class CustomerOrder : TenantOwnedEntity
     public string? Notes { get; private set; }
     public OrderStatus Status { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
+    public PaymentMethod RequestedPaymentMethod { get; private set; }
     public PaymentStatus PaymentStatus { get; private set; }
+    public PrintStatus PrintStatus { get; private set; }
     public decimal TotalAmount { get; private set; }
     public DateTime SubmittedAtUtc { get; private set; }
     public DateTime? SentToKitchenAtUtc { get; private set; }
     public DateTime? ReadyAtUtc { get; private set; }
     public DateTime? ClosedAtUtc { get; private set; }
     public DateTime? PaidAtUtc { get; private set; }
+    public DateTime? PrintQueuedAtUtc { get; private set; }
+    public DateTime? PrintClaimedAtUtc { get; private set; }
+    public DateTime? PrintedAtUtc { get; private set; }
+    public int PrintAttempts { get; private set; }
+    public string? PrintLastError { get; private set; }
+    public string? PrintAgentName { get; private set; }
+    public string? PrintPrinterName { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
@@ -104,6 +117,13 @@ public class CustomerOrder : TenantOwnedEntity
 
         Status = OrderStatus.Cancelled;
         ClosedAtUtc = DateTime.UtcNow;
+
+        if (PrintStatus is PrintStatus.Pending or PrintStatus.Processing or PrintStatus.Failed)
+        {
+            PrintStatus = PrintStatus.Disabled;
+            PrintLastError = "Pedido cancelado antes da impressao.";
+        }
+
         Touch();
     }
 
@@ -139,6 +159,74 @@ public class CustomerOrder : TenantOwnedEntity
         }
 
         PaymentMethod = paymentMethod;
+        Touch();
+    }
+
+    public void DisablePrinting()
+    {
+        PrintStatus = PrintStatus.Disabled;
+        PrintQueuedAtUtc = null;
+        PrintClaimedAtUtc = null;
+        PrintedAtUtc = null;
+        PrintLastError = null;
+        Touch();
+    }
+
+    public void RequeuePrinting()
+    {
+        PrintStatus = PrintStatus.Pending;
+        PrintQueuedAtUtc = DateTime.UtcNow;
+        PrintClaimedAtUtc = null;
+        PrintedAtUtc = null;
+        PrintLastError = null;
+        Touch();
+    }
+
+    public void ClaimPrinting(string agentName, string? printerName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
+
+        PrintStatus = PrintStatus.Processing;
+        PrintClaimedAtUtc = DateTime.UtcNow;
+        PrintAttempts += 1;
+        PrintLastError = null;
+        PrintAgentName = agentName.Trim();
+        PrintPrinterName = string.IsNullOrWhiteSpace(printerName) ? null : printerName.Trim();
+        Touch();
+    }
+
+    public void MarkPrinted(string agentName, string? printerName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
+
+        PrintStatus = PrintStatus.Printed;
+        PrintedAtUtc = DateTime.UtcNow;
+        PrintLastError = null;
+        PrintAgentName = agentName.Trim();
+        PrintPrinterName = string.IsNullOrWhiteSpace(printerName) ? null : printerName.Trim();
+        Touch();
+    }
+
+    public void MarkPrintFailed(string? errorMessage, string agentName, string? printerName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
+
+        PrintAgentName = agentName.Trim();
+        PrintPrinterName = string.IsNullOrWhiteSpace(printerName) ? null : printerName.Trim();
+
+        if (PrintAttempts < AutomaticPrintRetryLimit)
+        {
+            PrintStatus = PrintStatus.Pending;
+            PrintQueuedAtUtc = DateTime.UtcNow;
+            PrintClaimedAtUtc = null;
+            PrintedAtUtc = null;
+            PrintLastError = null;
+            Touch();
+            return;
+        }
+
+        PrintStatus = PrintStatus.Failed;
+        PrintLastError = string.IsNullOrWhiteSpace(errorMessage) ? "Falha desconhecida ao imprimir." : errorMessage.Trim();
         Touch();
     }
 

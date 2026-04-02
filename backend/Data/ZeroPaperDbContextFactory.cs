@@ -41,7 +41,8 @@ public class ZeroPaperDbContextFactory : IDesignTimeDbContextFactory<ZeroPaperDb
 
         optionsBuilder.UseMySql(
             connectionString,
-            new MySqlServerVersion(new Version(8, 0, 36)));
+            new MySqlServerVersion(new Version(8, 0, 36)),
+            mysqlOptions => mysqlOptions.MigrationsHistoryTable("__efmigrationshistory"));
 
         return new ZeroPaperDbContext(optionsBuilder.Options);
     }

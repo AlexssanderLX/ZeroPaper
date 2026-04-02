@@ -17,7 +17,7 @@ namespace ZeroPaper.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "8.0.22")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
@@ -72,7 +72,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
-                    b.ToTable("Sessions", (string)null);
+                    b.ToTable("sessions", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.AppUser", b =>
@@ -124,7 +124,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("TenantId", "Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.Company", b =>
@@ -137,6 +137,16 @@ namespace ZeroPaper.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("varchar(80)");
+
+                    b.Property<int>("AlertPlaybackSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AlertSoundUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("AlertVolumePercent")
+                        .HasColumnType("int");
 
                     b.Property<string>("ContactEmail")
                         .HasMaxLength(180)
@@ -153,6 +163,15 @@ namespace ZeroPaper.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)");
 
+                    b.Property<bool>("EnableAutomaticPrinting")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("EnableOrderAlerts")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("EnableWaiterCallAlerts")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
@@ -163,6 +182,27 @@ namespace ZeroPaper.Migrations
                         .IsRequired()
                         .HasMaxLength(180)
                         .HasColumnType("varchar(180)");
+
+                    b.Property<string>("PrintAgentKeyHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<DateTime?>("PrintAgentLastSeenAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PrintAgentName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("PrintAgentPrinterName")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<int>("PrintOrdersPerPage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PrintPaperProfile")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("char(36)");
@@ -180,7 +220,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("TenantId", "AccessSlug")
                         .IsUnique();
 
-                    b.ToTable("Companies", (string)null);
+                    b.ToTable("companies", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.CustomerOrder", b =>
@@ -224,8 +264,38 @@ namespace ZeroPaper.Migrations
                     b.Property<int>("PaymentStatus")
                         .HasColumnType("int");
 
+                    b.Property<string>("PrintAgentName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<int>("PrintAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PrintClaimedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PrintLastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("PrintPrinterName")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<DateTime?>("PrintQueuedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("PrintStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PrintedAtUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<DateTime?>("ReadyAtUtc")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<int>("RequestedPaymentMethod")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("SentToKitchenAtUtc")
                         .HasColumnType("datetime(6)");
@@ -255,7 +325,107 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CompanyId", "Number")
                         .IsUnique();
 
-                    b.ToTable("CustomerOrders", (string)null);
+                    b.ToTable("customerorders", (string)null);
+                });
+
+            modelBuilder.Entity("ZeroPaper.Domain.Entities.DeletedOrderRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<DateTime>("DeletedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("DeletedByUserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("DeletedByUserName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("DeletionReason")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("varchar(160)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ItemsSummary")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(600)
+                        .HasColumnType("varchar(600)");
+
+                    b.Property<int>("OrderNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PaidAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PrintStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PrintedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("RequestedPaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SourceOrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SubmittedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TableName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceOrderId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("CompanyId", "SubmittedAtUtc");
+
+                    b.ToTable("deletedorderrecords", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.DiningTable", b =>
@@ -263,6 +433,10 @@ namespace ZeroPaper.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
+
+                    b.Property<string>("AlertSoundUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("char(36)");
@@ -308,7 +482,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CompanyId", "InternalCode")
                         .IsUnique();
 
-                    b.ToTable("DiningTables", (string)null);
+                    b.ToTable("diningtables", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.MenuCategory", b =>
@@ -347,7 +521,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique();
 
-                    b.ToTable("MenuCategories", (string)null);
+                    b.ToTable("menucategories", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.MenuItem", b =>
@@ -407,7 +581,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CompanyId", "MenuCategoryId", "Name")
                         .IsUnique();
 
-                    b.ToTable("MenuItems", (string)null);
+                    b.ToTable("menuitems", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.OrderItem", b =>
@@ -416,11 +590,19 @@ namespace ZeroPaper.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("CategoryName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
                     b.Property<Guid>("CustomerOrderId")
                         .HasColumnType("char(36)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
@@ -452,7 +634,7 @@ namespace ZeroPaper.Migrations
 
                     b.HasIndex("CustomerOrderId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.ToTable("orderitems", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.PasswordResetRequest", b =>
@@ -491,7 +673,7 @@ namespace ZeroPaper.Migrations
 
                     b.HasIndex("AppUserId", "IsActive");
 
-                    b.ToTable("PasswordResetRequests", (string)null);
+                    b.ToTable("passwordresetrequests", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.QrCodeAccess", b =>
@@ -554,7 +736,7 @@ namespace ZeroPaper.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("QrCodeAccesses", (string)null);
+                    b.ToTable("qrcodeaccesses", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.SignupCode", b =>
@@ -613,7 +795,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CodeHash")
                         .IsUnique();
 
-                    b.ToTable("SignupCodes", (string)null);
+                    b.ToTable("signupcodes", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.StockItem", b =>
@@ -670,7 +852,7 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique();
 
-                    b.ToTable("StockItems", (string)null);
+                    b.ToTable("stockitems", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.Subscription", b =>
@@ -716,7 +898,7 @@ namespace ZeroPaper.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("Subscriptions", (string)null);
+                    b.ToTable("subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.Tenant", b =>
@@ -749,7 +931,48 @@ namespace ZeroPaper.Migrations
                     b.HasIndex("Identifier")
                         .IsUnique();
 
-                    b.ToTable("Tenants", (string)null);
+                    b.ToTable("tenants", (string)null);
+                });
+
+            modelBuilder.Entity("ZeroPaper.Domain.Entities.WaiterCall", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("DiningTableId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiningTableId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("CompanyId", "DiningTableId", "ResolvedAtUtc");
+
+                    b.ToTable("waitercalls", (string)null);
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.AppSession", b =>
@@ -832,6 +1055,25 @@ namespace ZeroPaper.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("DiningTable");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("ZeroPaper.Domain.Entities.DeletedOrderRecord", b =>
+                {
+                    b.HasOne("ZeroPaper.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZeroPaper.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
 
                     b.Navigation("Tenant");
                 });
@@ -980,6 +1222,33 @@ namespace ZeroPaper.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("ZeroPaper.Domain.Entities.WaiterCall", b =>
+                {
+                    b.HasOne("ZeroPaper.Domain.Entities.Company", "Company")
+                        .WithMany("WaiterCalls")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZeroPaper.Domain.Entities.DiningTable", "DiningTable")
+                        .WithMany("WaiterCalls")
+                        .HasForeignKey("DiningTableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZeroPaper.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("DiningTable");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("ZeroPaper.Domain.Entities.AppUser", b =>
                 {
                     b.Navigation("Sessions");
@@ -1002,6 +1271,8 @@ namespace ZeroPaper.Migrations
                     b.Navigation("Tables");
 
                     b.Navigation("Users");
+
+                    b.Navigation("WaiterCalls");
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.CustomerOrder", b =>
@@ -1012,6 +1283,8 @@ namespace ZeroPaper.Migrations
             modelBuilder.Entity("ZeroPaper.Domain.Entities.DiningTable", b =>
                 {
                     b.Navigation("Orders");
+
+                    b.Navigation("WaiterCalls");
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.MenuCategory", b =>

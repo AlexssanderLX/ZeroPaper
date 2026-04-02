@@ -19,12 +19,19 @@ public interface IWorkspaceService
     Task<IReadOnlyList<DiningTableDto>> GetTablesAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
     Task<DiningTableDto> CreateTableAsync(WorkspaceSessionContext session, CreateDiningTableRequestDto request, CancellationToken cancellationToken = default);
     Task<DiningTableDto> UpdateTableAsync(WorkspaceSessionContext session, Guid tableId, UpdateDiningTableRequestDto request, CancellationToken cancellationToken = default);
+    Task<UploadTableAlertSoundResponseDto> UploadTableAlertSoundAsync(WorkspaceSessionContext session, Guid tableId, IFormFile file, CancellationToken cancellationToken = default);
+    Task<DiningTableDto> ResetTableAlertSoundAsync(WorkspaceSessionContext session, Guid tableId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CustomerOrderDto>> GetOrdersAsync(WorkspaceSessionContext session, bool kitchenOnly, CancellationToken cancellationToken = default);
     Task<CustomerOrderDto> CreateOrderAsync(WorkspaceSessionContext session, CreateCustomerOrderRequestDto request, CancellationToken cancellationToken = default);
     Task<CustomerOrderDto> UpdateOrderStatusAsync(WorkspaceSessionContext session, Guid orderId, UpdateOrderStatusRequestDto request, CancellationToken cancellationToken = default);
+    Task UpdateOrdersStatusBatchAsync(WorkspaceSessionContext session, BatchUpdateOrderStatusRequestDto request, CancellationToken cancellationToken = default);
     Task<CustomerOrderDto> UpdateOrderPaymentAsync(WorkspaceSessionContext session, Guid orderId, UpdateOrderPaymentRequestDto request, CancellationToken cancellationToken = default);
     Task DeletePaidOrderAsync(WorkspaceSessionContext session, Guid orderId, DeletePaidOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task DeleteAllPaidOrdersAsync(WorkspaceSessionContext session, DeletePaidOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task DeleteClosedOrdersBatchAsync(WorkspaceSessionContext session, BatchDeleteClosedOrdersRequestDto request, CancellationToken cancellationToken = default);
     Task DeleteOrderAsync(WorkspaceSessionContext session, Guid orderId, CancellationToken cancellationToken = default);
+    Task DeleteTodayOrderFlowAsync(WorkspaceSessionContext session, OwnerPasswordRequestDto request, CancellationToken cancellationToken = default);
+    Task<GeneratedWorkspaceFile> GenerateDailyCashReportPdfAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StockItemDto>> GetStockItemsAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
     Task<StockItemDto> CreateStockItemAsync(WorkspaceSessionContext session, SaveStockItemRequestDto request, CancellationToken cancellationToken = default);
     Task<StockItemDto> UpdateStockItemAsync(WorkspaceSessionContext session, Guid stockItemId, SaveStockItemRequestDto request, CancellationToken cancellationToken = default);
@@ -32,6 +39,13 @@ public interface IWorkspaceService
     Task<TeamMemberDto> CreateTeamMemberAsync(WorkspaceSessionContext session, CreateTeamMemberRequestDto request, CancellationToken cancellationToken = default);
     Task<CompanySettingsDto> GetCompanySettingsAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
     Task<CompanySettingsDto> UpdateCompanySettingsAsync(WorkspaceSessionContext session, UpdateCompanySettingsRequestDto request, CancellationToken cancellationToken = default);
+    Task<AlertSettingsDto> UpdateAlertSettingsAsync(WorkspaceSessionContext session, UpdateAlertSettingsRequestDto request, CancellationToken cancellationToken = default);
+    Task<UploadAlertSoundResponseDto> UploadAlertSoundAsync(WorkspaceSessionContext session, IFormFile file, CancellationToken cancellationToken = default);
+    Task<AlertSettingsDto> ResetAlertSoundAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WaiterCallDto>> GetWaiterCallsAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
+    Task<WorkspaceAlertsSignalDto> GetAlertsSignalAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
+    Task<WaiterCallDto> ResolveWaiterCallAsync(WorkspaceSessionContext session, Guid waiterCallId, CancellationToken cancellationToken = default);
     Task<PublicTableViewDto> GetPublicTableAsync(string publicCode, CancellationToken cancellationToken = default);
     Task<CustomerOrderDto> CreatePublicOrderAsync(string publicCode, CreateCustomerOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task<WaiterCallDto> CreatePublicWaiterCallAsync(string publicCode, CancellationToken cancellationToken = default);
 }

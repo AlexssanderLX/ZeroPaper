@@ -31,4 +31,13 @@ public class PublicOrderingController : ControllerBase
         var response = await _workspaceService.CreatePublicOrderAsync(publicCode, request, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, response);
     }
+
+    [HttpPost("{publicCode}/waiter-calls")]
+    [EnableRateLimiting("public-write")]
+    [ProducesResponseType(typeof(WaiterCallDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateWaiterCallAsync(string publicCode, CancellationToken cancellationToken)
+    {
+        var response = await _workspaceService.CreatePublicWaiterCallAsync(publicCode, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
 }

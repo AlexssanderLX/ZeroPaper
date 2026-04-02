@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logoutPortal } from "@/lib/api";
 import type { PortalSession } from "@/lib/owner-portal";
-import { PORTAL_SESSION_KEY } from "@/lib/owner-portal";
+import { clearPortalSession, loadPortalSession } from "@/lib/owner-portal";
 
 type SessionContextValue = {
   session: PortalSession;
@@ -19,7 +19,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const storedSession = window.sessionStorage.getItem(PORTAL_SESSION_KEY);
+    const storedSession = loadPortalSession();
 
     if (!storedSession) {
       router.replace("/login");
@@ -29,7 +29,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
     try {
       setSession(JSON.parse(storedSession) as PortalSession);
     } catch {
-      window.sessionStorage.removeItem(PORTAL_SESSION_KEY);
+      clearPortalSession();
       router.replace("/login");
       return;
     }
@@ -58,7 +58,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
         // Best-effort logout keeps the local session from surviving stale tokens.
       }
 
-      window.sessionStorage.removeItem(PORTAL_SESSION_KEY);
+      clearPortalSession();
       setSession(null);
       router.replace("/login");
     },

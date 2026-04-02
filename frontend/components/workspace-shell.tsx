@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { useAppSession } from "@/components/app-session-provider";
 import { BrandMark } from "@/components/brand-mark";
+import { WaiterCallMonitor } from "@/components/waiter-call-monitor";
 
 export function WorkspaceShell({
   children,
   backHref = "/app",
   backLabel,
+  showAlertCard = false,
 }: {
   children: React.ReactNode;
   backHref?: string;
   backLabel?: string;
+  showAlertCard?: boolean;
 }) {
   const { session, clearSession } = useAppSession();
 
@@ -53,6 +56,8 @@ export function WorkspaceShell({
       </header>
 
       {children}
+
+      <WaiterCallMonitor showCard={showAlertCard} />
     </main>
   );
 }

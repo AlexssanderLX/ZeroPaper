@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { APP_BASE_URL, createTable, getTables, updateTable, type DiningTable } from "@/lib/api";
+import { APP_BASE_URL, createTable, deleteTableAlertSound, getTables, updateTable, uploadTableAlertSound, type DiningTable } from "@/lib/api";
 import { handleApiError, type AsyncVoid } from "@/components/modules/module-utils";
 
 export function TablesModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
@@ -14,6 +14,8 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
   const [seats, setSeats] = useState("4");
   const [copiedTableId, setCopiedTableId] = useState("");
   const [downloadingTableId, setDownloadingTableId] = useState("");
+  const [uploadingSoundTableId, setUploadingSoundTableId] = useState("");
+  const [removingSoundTableId, setRemovingSoundTableId] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -39,11 +41,15 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
   }, [token]);
 
   function buildAbsoluteAccessUrl(accessUrl: string) {
+    if (typeof window !== "undefined") {
+      return new URL(accessUrl, window.location.origin).toString();
+    }
+
     if (APP_BASE_URL) {
       return new URL(accessUrl, APP_BASE_URL).toString();
     }
 
-    return typeof window === "undefined" ? accessUrl : new URL(accessUrl, window.location.origin).toString();
+    return accessUrl;
   }
 
   function buildQrImageUrl(accessUrl: string, size = 320, margin = 12) {
@@ -117,6 +123,38 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
     const printUrl = new URL(`/imprimir/mesa/${table.publicCode}`, window.location.origin);
     printUrl.searchParams.set("job", String(Date.now()));
     setPrintFrameSrc(printUrl.toString());
+  }
+
+  async function handleTableSoundUpload(tableId: string, file?: File | null) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      setUploadingSoundTableId(tableId);
+      const response = await uploadTableAlertSound(token, tableId, file);
+      replaceTableInState(response.table);
+      setSuccessMessage("Som da mesa atualizado.");
+      setErrorMessage("");
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel enviar o som da mesa.");
+    } finally {
+      setUploadingSoundTableId("");
+    }
+  }
+
+  async function handleResetTableSound(tableId: string) {
+    try {
+      setRemovingSoundTableId(tableId);
+      const response = await deleteTableAlertSound(token, tableId);
+      replaceTableInState(response);
+      setSuccessMessage("Som padrao da mesa restaurado.");
+      setErrorMessage("");
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel restaurar o som padrao da mesa.");
+    } finally {
+      setRemovingSoundTableId("");
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -286,6 +324,44 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
 
                       <div className="table-ready-note">
                         <p>QR pronto para imprimir e usar no salao.</p>
+                      </div>
+
+                      <div className="table-alert-sound-card">
+                        <div className="table-alert-sound-copy">
+                          <strong>Som da mesa</strong>
+                          <p>{table.hasCustomAlertSound ? "Som proprio para identificar essa mesa." : "Usa o som padrao dos alertas."}</p>
+                        </div>
+
+                        {table.alertSoundUrl ? (
+                          <audio className="table-alert-sound-player" controls preload="metadata" src={table.alertSoundUrl} />
+                        ) : null}
+
+                        <div className="toolbar-actions compact table-card-actions table-sound-actions">
+                          <label className="ghost-link button-link">
+                            {uploadingSoundTableId === table.id ? "Enviando..." : "Enviar som"}
+                            <input
+                              type="file"
+                              accept=".wav,.mp3,.ogg,audio/wav,audio/mpeg,audio/ogg"
+                              hidden
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                void handleTableSoundUpload(table.id, file);
+                                event.currentTarget.value = "";
+                              }}
+                            />
+                          </label>
+
+                          {table.hasCustomAlertSound ? (
+                            <button
+                              className="ghost-link button-link"
+                              type="button"
+                              disabled={removingSoundTableId === table.id}
+                              onClick={() => void handleResetTableSound(table.id)}
+                            >
+                              {removingSoundTableId === table.id ? "Restaurando..." : "Usar padrao"}
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="toolbar-actions compact table-card-actions">

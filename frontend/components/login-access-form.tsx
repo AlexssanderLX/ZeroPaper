@@ -4,7 +4,7 @@ import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiError, loginPortal } from "@/lib/api";
-import { PORTAL_SESSION_KEY, type AccessProfile, type PortalSession } from "@/lib/owner-portal";
+import { savePortalSession, type AccessProfile, type PortalSession } from "@/lib/owner-portal";
 
 export function LoginAccessForm() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export function LoginAccessForm() {
             role: response.role,
           };
 
-          window.sessionStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
+          savePortalSession(session);
           router.replace(profile === "admin" ? "/admin" : "/app");
         } catch (error) {
           if (error instanceof ApiError && error.status === 403) {

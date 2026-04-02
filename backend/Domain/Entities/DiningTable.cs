@@ -6,6 +6,7 @@ namespace ZeroPaper.Domain.Entities;
 public class DiningTable : TenantOwnedEntity
 {
     private readonly List<CustomerOrder> _orders = [];
+    private readonly List<WaiterCall> _waiterCalls = [];
 
     private DiningTable()
     {
@@ -33,11 +34,13 @@ public class DiningTable : TenantOwnedEntity
     public string InternalCode { get; private set; } = null!;
     public int Seats { get; private set; }
     public TableStatus Status { get; private set; }
+    public string? AlertSoundUrl { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
     public QrCodeAccess QrCodeAccess { get; private set; } = null!;
     public IReadOnlyCollection<CustomerOrder> Orders => _orders.AsReadOnly();
+    public IReadOnlyCollection<WaiterCall> WaiterCalls => _waiterCalls.AsReadOnly();
 
     public void Rename(string name)
     {
@@ -69,5 +72,10 @@ public class DiningTable : TenantOwnedEntity
         Status = status;
         Touch();
     }
-}
 
+    public void UpdateAlertSound(string? alertSoundUrl)
+    {
+        AlertSoundUrl = string.IsNullOrWhiteSpace(alertSoundUrl) ? null : alertSoundUrl.Trim();
+        Touch();
+    }
+}

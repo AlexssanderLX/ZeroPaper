@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import {
   createPublicOrder,
+  createPublicWaiterCall,
   getPublicTable,
   type CustomerOrder,
   type MenuCategory,
@@ -24,13 +25,15 @@ function buildSelectionPayload(selectionState: MenuSelectionState) {
 
 export function PublicTableOrder({ publicCode }: { publicCode: string }) {
   const [table, setTable] = useState<PublicTableView | null>(null);
-  const [expandedCategoryId, setExpandedCategoryId] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Pix");
   const [selectionState, setSelectionState] = useState<MenuSelectionState>({});
+  const [brokenImageIds, setBrokenImageIds] = useState<Record<string, true>>({});
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCallingWaiter, setIsCallingWaiter] = useState(false);
+  const [waiterMessage, setWaiterMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const visibleCategories = (table?.menu ?? []).filter((category) => category.items.length > 0);
 
@@ -40,7 +43,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     try {
       const response = await getPublicTable(publicCode);
       setTable(response);
-      setExpandedCategoryId("");
+      setBrokenImageIds({});
       setErrorMessage("");
     } catch (error) {
       await handleApiError(error, async () => undefined, setErrorMessage, "Nao foi possivel abrir a mesa.");
@@ -63,7 +66,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     }, 12000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [createdOrder, visibleCategories]);
+  }, [createdOrder]);
 
   const cartItems = (() => {
     const items = new Map<string, { item: MenuCategory["items"][number]; categoryName: string }>();
@@ -103,10 +106,6 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
   const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
   const totalUnits = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  function handleExpandCategory(categoryId: string) {
-    setExpandedCategoryId(categoryId);
-  }
-
   function updateItemQuantity(menuItemId: string, nextQuantity: number) {
     setSelectionState((currentValue) => {
       if (nextQuantity <= 0) {
@@ -127,8 +126,24 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
     setOrderNotes("");
     setPaymentMethod("Pix");
     setSelectionState({});
-    setExpandedCategoryId("");
+    setWaiterMessage("");
     setErrorMessage("");
+  }
+
+  async function handleCallWaiter() {
+    setWaiterMessage("Chamando atendente...");
+    setIsCallingWaiter(true);
+
+    try {
+      await createPublicWaiterCall(publicCode);
+      setWaiterMessage("Atendente chamado. Aguarde um instante.");
+      setErrorMessage("");
+    } catch (error) {
+      setWaiterMessage("");
+      await handleApiError(error, async () => undefined, setErrorMessage, "Nao foi possivel chamar o atendente.");
+    } finally {
+      setIsCallingWaiter(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -203,6 +218,9 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
                 <p className="field-hint">Essa confirmacao fecha sozinha em alguns segundos.</p>
 
                 <div className="toolbar-actions public-success-actions">
+                  <button className="ghost-link button-link" type="button" onClick={() => void handleCallWaiter()} disabled={isCallingWaiter}>
+                    {isCallingWaiter ? "Chamando..." : "Chamar atendente"}
+                  </button>
                   <button className="primary-link button-link" type="button" onClick={resetForNewOrder}>
                     Fazer novo pedido
                   </button>
@@ -213,16 +231,8 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
                 <div className="public-menu-main">
                   <div className="public-category-stack">
                     {visibleCategories.map((category) => (
-                      <section
-                        key={category.id}
-                        className={`public-category-details ${expandedCategoryId === category.id ? "is-open" : ""}`}
-                      >
-                        <button
-                          className="public-category-header-button"
-                          type="button"
-                          onClick={() => handleExpandCategory(category.id)}
-                          aria-expanded={expandedCategoryId === category.id}
-                        >
+                      <section key={category.id} className="public-category-details is-open always-open-category">
+                        <div className="public-category-header-static">
                           <div className="public-category-summary">
                             <div>
                               <strong>{category.name}</strong>
@@ -234,49 +244,79 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
                                   ? `a partir de ${formatCurrency(Math.min(...category.items.map((item) => item.price)))}`
                                   : "sem itens"}
                               </span>
-                              <span className="public-category-summary-arrow" aria-hidden="true">
-                                {expandedCategoryId === category.id ? "−" : "+"}
-                              </span>
                             </div>
                           </div>
-                        </button>
+                        </div>
 
-                        {expandedCategoryId === category.id ? (
-                          <div className="public-category-content">
-                            <div className="public-product-grid">
-                              {category.items.map((item) => {
-                                const quantity = selectionState[item.id] ?? 0;
+                        <div className="public-category-content">
+                          <div className="public-product-grid compact-public-product-grid">
+                            {category.items.map((item) => {
+                              const quantity = selectionState[item.id] ?? 0;
 
-                                return (
-                                  <article key={item.id} className={`public-product-card ${quantity > 0 ? "is-selected" : ""}`}>
-                                    {item.imageUrl ? (
-                                      <img className="public-product-image" src={item.imageUrl} alt={item.name} loading="lazy" />
-                                    ) : null}
+                              return (
+                                <article key={item.id} className={`public-product-card compact-public-product-card ${quantity > 0 ? "is-selected" : ""}`}>
+                                  {item.imageUrl ? (
+                                    !brokenImageIds[item.id] ? (
+                                      <img
+                                        className="public-product-image compact-public-product-image"
+                                        src={item.imageUrl}
+                                        alt={item.name}
+                                        loading="lazy"
+                                        onError={() =>
+                                          setBrokenImageIds((currentValue) => ({
+                                            ...currentValue,
+                                            [item.id]: true,
+                                          }))
+                                        }
+                                      />
+                                    ) : (
+                                      <div className="public-product-image compact-public-product-image public-product-image-placeholder" aria-hidden="true">
+                                        <span>{item.name.slice(0, 1)}</span>
+                                      </div>
+                                    )
+                                  ) : (
+                                    <div className="public-product-image compact-public-product-image public-product-image-placeholder" aria-hidden="true">
+                                      <span>{item.name.slice(0, 1)}</span>
+                                    </div>
+                                  )}
 
-                                    <div className="public-product-top">
+                                  <div className="public-product-copy compact-public-product-copy">
+                                    <div className="public-product-top compact-public-product-top">
                                       <div>
-                                        {item.accentLabel ? <span className="eyebrow">{item.accentLabel}</span> : null}
+                                        {item.accentLabel ? <span className="eyebrow compact-product-eyebrow">{item.accentLabel}</span> : null}
                                         <h2>{item.name}</h2>
                                         {item.description ? <p>{item.description}</p> : null}
                                       </div>
                                       <strong>{formatCurrency(item.price)}</strong>
                                     </div>
 
-                                    <div className="public-product-actions">
-                                      <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, Math.max(0, quantity - 1))}>
-                                        -
-                                      </button>
-                                      <span>{quantity}</span>
-                                      <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, quantity + 1)}>
-                                        +
-                                      </button>
+                                    <div className="compact-public-product-footer">
+                                      {quantity > 0 ? (
+                                        <div className="public-product-actions compact-public-product-actions">
+                                          <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, Math.max(0, quantity - 1))}>
+                                            -
+                                          </button>
+                                          <span>{quantity}</span>
+                                          <button className="ghost-link button-link" type="button" onClick={() => updateItemQuantity(item.id, quantity + 1)}>
+                                            +
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          className="ghost-link button-link compact-public-add-button"
+                                          type="button"
+                                          onClick={() => updateItemQuantity(item.id, 1)}
+                                        >
+                                          Adicionar
+                                        </button>
+                                      )}
                                     </div>
-                                  </article>
-                                );
-                              })}
-                            </div>
+                                  </div>
+                                </article>
+                              );
+                            })}
                           </div>
-                        ) : null}
+                        </div>
                       </section>
                     ))}
                   </div>
@@ -323,6 +363,7 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
                         { value: "Pix", label: "Pix" },
                         { value: "Credit", label: "Credito" },
                         { value: "Debit", label: "Debito" },
+                        { value: "Cash", label: "Dinheiro" },
                       ].map((option) => (
                         <button
                           key={option.value}
@@ -338,15 +379,23 @@ export function PublicTableOrder({ publicCode }: { publicCode: string }) {
 
                   <p className="field-hint public-cash-note">Acerto no caixa.</p>
 
+                  {waiterMessage ? <p className="module-feedback success">{waiterMessage}</p> : null}
+
                   <div className="public-cart-submit-row">
                     <div className="public-cart-total-box">
                       <span>Total</span>
                       <strong>{formatCurrency(totalAmount)}</strong>
                     </div>
 
-                    <button className="primary-link button-link" type="submit" disabled={isSaving}>
-                      {isSaving ? "Enviando..." : "Enviar pedido"}
-                    </button>
+                    <div className="public-cart-submit-actions">
+                      <button className="ghost-link button-link" type="button" disabled={isCallingWaiter} onClick={() => void handleCallWaiter()}>
+                        {isCallingWaiter ? "Chamando..." : "Chamar atendente"}
+                      </button>
+
+                      <button className="primary-link button-link" type="submit" disabled={isSaving}>
+                        {isSaving ? "Enviando..." : "Enviar pedido"}
+                      </button>
+                    </div>
                   </div>
                 </aside>
               </form>

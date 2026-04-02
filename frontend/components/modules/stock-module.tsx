@@ -120,8 +120,12 @@ export function StockModule({ token, onUnauthorized }: { token: string; onUnauth
   return (
     <section className="menu-workspace stock-workspace">
       <section className="surface-card module-form-card stock-create-card">
-        <span className="eyebrow">Novo item</span>
-        <h2>Adicionar ao estoque</h2>
+        <span className="eyebrow">Estoque interno</span>
+        <h2>Cadastrar insumo da loja</h2>
+        <p className="body-copy">
+          Controle aqui alimentos e materiais do dia a dia, como arroz, carne, limpeza e descartaveis. Esse estoque nao
+          aparece para o cliente.
+        </p>
 
         <form className="module-form" onSubmit={handleCreate}>
           <div className="module-inline-grid">
@@ -183,7 +187,7 @@ export function StockModule({ token, onUnauthorized }: { token: string; onUnauth
           </div>
 
           <button className="primary-link button-link" type="submit" disabled={isSavingCreate}>
-            {isSavingCreate ? "Salvando..." : "Adicionar item"}
+            {isSavingCreate ? "Salvando..." : "Adicionar insumo"}
           </button>
         </form>
       </section>
@@ -193,15 +197,15 @@ export function StockModule({ token, onUnauthorized }: { token: string; onUnauth
 
       <section className="surface-card module-list-card">
         <div className="module-section-head">
-          <span className="eyebrow">Estoque</span>
-          <strong>{items.length} itens</strong>
+          <span className="eyebrow">Estoque bruto</span>
+          <strong>{items.length} insumos</strong>
         </div>
 
         {loading ? (
           <p className="loading-state">Carregando estoque...</p>
         ) : items.length === 0 ? (
           <div className="module-empty-state">
-            <strong>Nenhum item.</strong>
+            <strong>Nenhum insumo cadastrado.</strong>
           </div>
         ) : (
           <div className="menu-category-stack stock-item-stack">

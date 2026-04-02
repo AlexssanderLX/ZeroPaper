@@ -65,11 +65,28 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
+function parseUtcDate(value: string) {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return new Date(Number.NaN);
+  }
+
+  const hasExplicitTimezone = /(?:[zZ]|[+\-]\d{2}:\d{2})$/.test(normalizedValue);
+
+  if (hasExplicitTimezone) {
+    return new Date(normalizedValue);
+  }
+
+  return new Date(`${normalizedValue}Z`);
+}
+
 export function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
-  }).format(new Date(value));
+    timeZone: "America/Sao_Paulo",
+  }).format(parseUtcDate(value));
 }
 
 export function formatPaymentMethod(value: string) {
@@ -82,6 +99,8 @@ export function formatPaymentMethod(value: string) {
       return "Credito";
     case "Debit":
       return "Debito";
+    case "Cash":
+      return "Dinheiro";
     default:
       return value;
   }

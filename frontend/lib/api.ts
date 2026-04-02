@@ -1,10 +1,16 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
+const CONFIGURED_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
 export const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL ?? "";
+const ASSET_VERSION = "20260322-1133";
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string;
+};
+
+type FileDownloadResult = {
+  blob: Blob;
+  fileName: string;
 };
 
 export class ApiError extends Error {
@@ -37,7 +43,12 @@ export type WorkspaceOverview = {
   openOrders: number;
   publishedMenuItems: number;
   totalMenuItems: number;
+  totalStockItems: number;
+  lowStockItems: number;
   pendingPayments: number;
+  pendingPrints: number;
+  printedPrints: number;
+  failedPrints: number;
 };
 
 export type DiningTable = {
@@ -49,6 +60,8 @@ export type DiningTable = {
   openOrderCount: number;
   publicCode: string;
   accessUrl: string;
+  alertSoundUrl?: string | null;
+  hasCustomAlertSound: boolean;
 };
 
 export type MenuItem = {
@@ -86,6 +99,8 @@ export type MenuOrderSelectionInput = {
 export type OrderItem = {
   id: string;
   name: string;
+  categoryName?: string | null;
+  imageUrl?: string | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -99,12 +114,19 @@ export type CustomerOrder = {
   tableName: string;
   status: string;
   paymentMethod: string;
+  requestedPaymentMethod: string;
   paymentStatus: string;
+  printStatus: string;
   customerName?: string | null;
   notes?: string | null;
   totalAmount: number;
   submittedAtUtc: string;
   paidAtUtc?: string | null;
+  printedAtUtc?: string | null;
+  printAttempts: number;
+  printLastError?: string | null;
+  printAgentName?: string | null;
+  printPrinterName?: string | null;
   items: OrderItem[];
 };
 
@@ -122,12 +144,64 @@ export type UploadMenuItemImageResult = {
   imageUrl: string;
 };
 
+export type AlertSettings = {
+  enableOrderAlerts: boolean;
+  enableWaiterCallAlerts: boolean;
+  soundUrl?: string | null;
+  hasCustomSound: boolean;
+  volumePercent: number;
+  playbackSeconds: number;
+};
+
+export type PrintOrderSummary = {
+  id: string;
+  number: number;
+  tableName: string;
+  status: string;
+  printStatus: string;
+  totalAmount: number;
+  submittedAtUtc: string;
+  printedAtUtc?: string | null;
+  printAttempts: number;
+  printLastError?: string | null;
+};
+
+export type PrintingSettings = {
+  enableAutomaticPrinting: boolean;
+  paperProfile: string;
+  ordersPerPage: number;
+  hasAgentKey: boolean;
+  agentOnline: boolean;
+  agentName?: string | null;
+  printerName?: string | null;
+  lastSeenAtUtc?: string | null;
+  pendingJobs: number;
+  failedJobs: number;
+  printedJobs: number;
+  downloadUrl: string;
+  recentOrders: PrintOrderSummary[];
+};
+
+export type RotatePrintingAgentKeyResult = {
+  agentKey: string;
+  printing: PrintingSettings;
+};
+
+export type UploadAlertSoundResult = {
+  alerts: AlertSettings;
+};
+
+export type UploadTableAlertSoundResult = {
+  table: DiningTable;
+};
+
 export type CompanySettings = {
   legalName: string;
   tradeName: string;
   accessSlug: string;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  alerts: AlertSettings;
 };
 
 export type PublicTableView = {
@@ -135,6 +209,23 @@ export type PublicTableView = {
   tableName: string;
   accessCode: string;
   menu: MenuCategory[];
+};
+
+export type WaiterCall = {
+  id: string;
+  tableId: string;
+  tableName: string;
+  tableAlertSoundUrl?: string | null;
+  requestedAtUtc: string;
+  resolvedAtUtc?: string | null;
+};
+
+export type WorkspaceAlertsSignal = {
+  pendingWaiterCalls: number;
+  latestWaiterCallAtUtc?: string | null;
+  latestWaiterCallTableName?: string | null;
+  latestWaiterCallTableSoundUrl?: string | null;
+  latestOrderAtUtc?: string | null;
 };
 
 export type RestaurantSignupPayload = {
@@ -235,6 +326,7 @@ export type ResetPasswordPayload = {
 };
 
 async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const apiBaseUrl = getApiBaseUrl();
   const headers = new Headers({
     Accept: "application/json",
   });
@@ -247,7 +339,7 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
     headers.set("Authorization", `Bearer ${options.token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     method: options.method ?? "GET",
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
@@ -275,6 +367,7 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
 }
 
 async function apiFormRequest<T>(path: string, body: FormData, token?: string): Promise<T> {
+  const apiBaseUrl = getApiBaseUrl();
   const headers = new Headers({
     Accept: "application/json",
   });
@@ -283,7 +376,7 @@ async function apiFormRequest<T>(path: string, body: FormData, token?: string): 
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
     headers,
     body,
@@ -306,14 +399,92 @@ async function apiFormRequest<T>(path: string, body: FormData, token?: string): 
   return (await response.json()) as T;
 }
 
+async function apiFileRequest(path: string, token: string): Promise<FileDownloadResult> {
+  const apiBaseUrl = getApiBaseUrl();
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/pdf",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    let message = "Nao foi possivel concluir a requisicao.";
+
+    try {
+      const errorBody = (await response.json()) as { detail?: string; title?: string };
+      message = errorBody.detail || errorBody.title || message;
+    } catch {
+      message = response.statusText || message;
+    }
+
+    throw new ApiError(message, response.status);
+  }
+
+  const contentDisposition = response.headers.get("Content-Disposition") ?? "";
+  const fileNameMatch =
+    contentDisposition.match(/filename\*=UTF-8''([^;]+)/i) ??
+    contentDisposition.match(/filename="?([^"]+)"?/i);
+
+  return {
+    blob: await response.blob(),
+    fileName: fileNameMatch?.[1] ? decodeURIComponent(fileNameMatch[1]) : "arquivo.pdf",
+  };
+}
+
 function resolveApiAssetUrl(url?: string | null) {
   if (!url) {
     return url ?? undefined;
   }
 
-  return url.startsWith("http://") || url.startsWith("https://")
-    ? url
-    : `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+  if (url.startsWith("/media/uploads/")) {
+    return appendAssetVersion(url);
+  }
+
+  if (url.startsWith("/")) {
+    return appendAssetVersion(`/media${url}`);
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      const parsed = new URL(url);
+
+        if (parsed.pathname.startsWith("/uploads/")) {
+          return appendAssetVersion(`/media${parsed.pathname}${parsed.search}`);
+        }
+
+        if (parsed.pathname.startsWith("/media/uploads/")) {
+          return appendAssetVersion(`${parsed.pathname}${parsed.search}`);
+        }
+
+        return url;
+    } catch {
+      return url;
+    }
+  }
+
+  return `/media/${url}`;
+}
+
+function appendAssetVersion(url: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${ASSET_VERSION}`;
+}
+
+function getApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    return "";
+  }
+
+  try {
+    const configuredUrl = new URL(CONFIGURED_API_BASE_URL);
+
+    return configuredUrl.origin;
+  } catch {
+    return CONFIGURED_API_BASE_URL;
+  }
 }
 
 function normalizeMenuItem(item: MenuItem): MenuItem {
@@ -323,11 +494,55 @@ function normalizeMenuItem(item: MenuItem): MenuItem {
   };
 }
 
+function normalizeOrderItem(item: OrderItem): OrderItem {
+  return {
+    ...item,
+    imageUrl: resolveApiAssetUrl(item.imageUrl),
+  };
+}
+
+function normalizeCustomerOrder(order: CustomerOrder): CustomerOrder {
+  return {
+    ...order,
+    items: order.items.map(normalizeOrderItem),
+  };
+}
+
+function normalizeDiningTable(table: DiningTable): DiningTable {
+  return {
+    ...table,
+    alertSoundUrl: resolveApiAssetUrl(table.alertSoundUrl),
+  };
+}
+
+function normalizeWaiterCall(waiterCall: WaiterCall): WaiterCall {
+  return {
+    ...waiterCall,
+    tableAlertSoundUrl: resolveApiAssetUrl(waiterCall.tableAlertSoundUrl),
+  };
+}
+
+function normalizeWorkspaceAlertsSignal(signal: WorkspaceAlertsSignal): WorkspaceAlertsSignal {
+  return {
+    ...signal,
+    latestWaiterCallTableSoundUrl: resolveApiAssetUrl(signal.latestWaiterCallTableSoundUrl),
+  };
+}
+
 function normalizeMenuCategories(categories: MenuCategory[]) {
   return categories.map((category) => ({
     ...category,
     items: category.items.map(normalizeMenuItem),
   }));
+}
+
+function normalizeAlertSettings(alerts: AlertSettings): AlertSettings {
+  return {
+    ...alerts,
+    soundUrl: resolveApiAssetUrl(alerts.soundUrl),
+    volumePercent: Number.isFinite(alerts.volumePercent) ? alerts.volumePercent : 100,
+    playbackSeconds: Number.isFinite(alerts.playbackSeconds) ? alerts.playbackSeconds : 6,
+  };
 }
 
 export function loginPortal(payload: LoginPayload) {
@@ -422,7 +637,7 @@ export function getWorkspaceOverview(token: string) {
 }
 
 export function getTables(token: string) {
-  return apiRequest<DiningTable[]>("/api/workspace/tables", { token });
+  return apiRequest<DiningTable[]>("/api/workspace/tables", { token }).then((response) => response.map(normalizeDiningTable));
 }
 
 export function getMenu(token: string) {
@@ -520,7 +735,7 @@ export function createTable(token: string, payload: { name: string; seats: numbe
     method: "POST",
     token,
     body: payload,
-  });
+  }).then(normalizeDiningTable);
 }
 
 export function updateTable(token: string, tableId: string, payload: { name: string; seats: number }) {
@@ -528,18 +743,45 @@ export function updateTable(token: string, tableId: string, payload: { name: str
     method: "PUT",
     token,
     body: payload,
-  });
+  }).then(normalizeDiningTable);
+}
+
+export function uploadTableAlertSound(token: string, tableId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFormRequest<UploadTableAlertSoundResult>(`/api/workspace/tables/${tableId}/alert-sound`, formData, token).then((response) => ({
+    ...response,
+    table: normalizeDiningTable(response.table),
+  }));
+}
+
+export function deleteTableAlertSound(token: string, tableId: string) {
+  return apiRequest<DiningTable>(`/api/workspace/tables/${tableId}/alert-sound`, {
+    method: "DELETE",
+    token,
+  }).then(normalizeDiningTable);
 }
 
 export function getOrders(token: string, kitchenOnly = false) {
-  return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}`, { token });
+  return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}`, { token }).then((response) =>
+    response.map(normalizeCustomerOrder),
+  );
 }
 
-export function updateOrderStatus(token: string, orderId: string, status: string) {
+export function updateOrderStatus(token: string, orderId: string, status: string, password?: string) {
   return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}/status`, {
     method: "PATCH",
     token,
-    body: { status },
+    body: { status, password },
+  }).then(normalizeCustomerOrder);
+}
+
+export function updateOrdersStatusBatch(token: string, orderIds: string[], status: string, password?: string) {
+  return apiRequest<void>("/api/workspace/orders/batch-status", {
+    method: "POST",
+    token,
+    body: { orderIds, status, password },
   });
 }
 
@@ -548,7 +790,7 @@ export function updateOrderPayment(token: string, orderId: string, paymentStatus
     method: "PATCH",
     token,
     body: { paymentStatus, paymentMethod },
-  });
+  }).then(normalizeCustomerOrder);
 }
 
 export function deleteOrder(token: string, orderId: string) {
@@ -564,6 +806,34 @@ export function deletePaidOrder(token: string, orderId: string, password: string
     token,
     body: { password },
   });
+}
+
+export function deleteAllPaidOrders(token: string, password: string) {
+  return apiRequest<void>("/api/workspace/orders/delete-paid-all", {
+    method: "POST",
+    token,
+    body: { password },
+  });
+}
+
+export function deleteClosedOrders(token: string, orderIds: string[], password?: string) {
+  return apiRequest<void>("/api/workspace/orders/delete-closed", {
+    method: "POST",
+    token,
+    body: { orderIds, password },
+  });
+}
+
+export function deleteTodayOrderFlow(token: string, password: string) {
+  return apiRequest<void>("/api/workspace/orders/delete-today-flow", {
+    method: "POST",
+    token,
+    body: { password },
+  });
+}
+
+export function downloadDailyCashReportPdf(token: string) {
+  return apiFileRequest("/api/workspace/orders/daily-report", token);
 }
 
 export function getStockItems(token: string) {
@@ -606,7 +876,10 @@ export function updateStockItem(
 }
 
 export function getCompanySettings(token: string) {
-  return apiRequest<CompanySettings>("/api/workspace/settings", { token });
+  return apiRequest<CompanySettings>("/api/workspace/settings", { token }).then((response) => ({
+    ...response,
+    alerts: normalizeAlertSettings(response.alerts),
+  }));
 }
 
 export function updateCompanySettings(
@@ -622,6 +895,71 @@ export function updateCompanySettings(
     method: "PUT",
     token,
     body: payload,
+  }).then((response) => ({
+    ...response,
+    alerts: normalizeAlertSettings(response.alerts),
+  }));
+}
+
+export function updateAlertSettings(
+  token: string,
+  payload: {
+    enableOrderAlerts: boolean;
+    enableWaiterCallAlerts: boolean;
+    volumePercent: number;
+    playbackSeconds: number;
+  },
+) {
+  return apiRequest<AlertSettings>("/api/workspace/settings/alerts", {
+    method: "PATCH",
+    token,
+    body: payload,
+  }).then(normalizeAlertSettings);
+}
+
+export function uploadAlertSound(token: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFormRequest<UploadAlertSoundResult>("/api/workspace/settings/alerts/sound", formData, token).then((response) => ({
+    ...response,
+    alerts: normalizeAlertSettings(response.alerts),
+  }));
+}
+
+export function deleteAlertSound(token: string) {
+  return apiRequest<AlertSettings>("/api/workspace/settings/alerts/sound", {
+    method: "DELETE",
+    token,
+  }).then(normalizeAlertSettings);
+}
+
+export function getPrintingSettings(token: string) {
+  return apiRequest<PrintingSettings>("/api/workspace/printing", { token });
+}
+
+export function updatePrintingSettings(
+  token: string,
+  payload: { enableAutomaticPrinting: boolean; paperProfile: string; ordersPerPage: number },
+) {
+  return apiRequest<PrintingSettings>("/api/workspace/printing", {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function rotatePrintingAgentKey(token: string) {
+  return apiRequest<RotatePrintingAgentKeyResult>("/api/workspace/printing/agent-key", {
+    method: "POST",
+    token,
+  });
+}
+
+export function requeuePrintOrder(token: string, orderId: string) {
+  return apiRequest<void>(`/api/workspace/printing/orders/${orderId}/requeue`, {
+    method: "POST",
+    token,
   });
 }
 
@@ -631,6 +969,12 @@ export function getPublicTable(publicCode: string) {
       ...response,
       menu: normalizeMenuCategories(response.menu),
     }));
+}
+
+export function createPublicWaiterCall(publicCode: string) {
+  return apiRequest<WaiterCall>(`/api/public/tables/${publicCode}/waiter-calls`, {
+    method: "POST",
+  });
 }
 
 export function createPublicOrder(
@@ -646,5 +990,20 @@ export function createPublicOrder(
   return apiRequest<CustomerOrder>(`/api/public/tables/${publicCode}/orders`, {
     method: "POST",
     body: payload,
-  });
+  }).then(normalizeCustomerOrder);
+}
+
+export function getWaiterCalls(token: string) {
+  return apiRequest<WaiterCall[]>("/api/workspace/waiter-calls", { token }).then((response) => response.map(normalizeWaiterCall));
+}
+
+export function getWorkspaceAlertsSignal(token: string) {
+  return apiRequest<WorkspaceAlertsSignal>("/api/workspace/alerts/signal", { token }).then(normalizeWorkspaceAlertsSignal);
+}
+
+export function resolveWaiterCall(token: string, waiterCallId: string) {
+  return apiRequest<WaiterCall>(`/api/workspace/waiter-calls/${waiterCallId}/resolve`, {
+    method: "PATCH",
+    token,
+  }).then(normalizeWaiterCall);
 }

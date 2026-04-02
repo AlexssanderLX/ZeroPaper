@@ -20,9 +20,19 @@ export const PORTAL_SESSION_KEY = "zp.portal.session";
 
 export const ownerModules: PortalModule[] = [
   {
+    slug: "implantacao",
+    title: "Implantacao",
+    eyebrow: "Guia",
+  },
+  {
     slug: "cardapio",
     title: "Cardapio",
     eyebrow: "Cardapio",
+  },
+  {
+    slug: "estoque",
+    title: "Estoque",
+    eyebrow: "Estoque",
   },
   {
     slug: "mesas",
@@ -38,6 +48,11 @@ export const ownerModules: PortalModule[] = [
     slug: "caixa",
     title: "Caixa",
     eyebrow: "Caixa",
+  },
+  {
+    slug: "impressao",
+    title: "Impressao",
+    eyebrow: "Impressao",
   },
   {
     slug: "ajustes",
@@ -57,4 +72,30 @@ export function buildOwnerName(email: string) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+export function savePortalSession(session: PortalSession) {
+  const serialized = JSON.stringify(session);
+
+  try {
+    window.sessionStorage.setItem(PORTAL_SESSION_KEY, serialized);
+  } catch {
+    // Ignore storage failures and let the caller continue with the in-memory session only.
+  }
+}
+
+export function loadPortalSession() {
+  try {
+    return window.sessionStorage.getItem(PORTAL_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearPortalSession() {
+  try {
+    window.sessionStorage.removeItem(PORTAL_SESSION_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
 }

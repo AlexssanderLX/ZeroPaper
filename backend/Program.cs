@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 using ZeroPaper.Data;
 using ZeroPaper.Repositories;
 using ZeroPaper.Repositories.Interfaces;
@@ -12,6 +13,8 @@ using ZeroPaper.Services;
 using ZeroPaper.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -23,7 +26,12 @@ builder.Logging.AddSimpleConsole(options =>
     options.SingleLine = true;
     options.TimestampFormat = "HH:mm:ss ";
 });
-builder.Logging.AddDebug();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddDebug();
+}
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection was not configured.");
@@ -65,7 +73,8 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddDbContext<ZeroPaperDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString))
+        ServerVersion.AutoDetect(connectionString),
+        mysqlOptions => mysqlOptions.MigrationsHistoryTable("__efmigrationshistory"))
 );
 
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
@@ -82,6 +91,7 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestNotificationService>();
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
+builder.Services.AddScoped<IPrintAutomationService, PrintAutomationService>();
 builder.Services.AddSingleton<PlatformRootSeeder>();
 
 var app = builder.Build();

@@ -178,6 +178,30 @@ public class WorkspaceController : ControllerBase
             : Ok(await _workspaceService.UpdateTableAsync(session, tableId, request, cancellationToken));
     }
 
+    [HttpPost("tables/{tableId:guid}/alert-sound")]
+    [ProducesResponseType(typeof(UploadTableAlertSoundResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UploadTableAlertSoundAsync(Guid tableId, [FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await _workspaceService.UploadTableAlertSoundAsync(session, tableId, file, cancellationToken));
+    }
+
+    [HttpDelete("tables/{tableId:guid}/alert-sound")]
+    [ProducesResponseType(typeof(DiningTableDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResetTableAlertSoundAsync(Guid tableId, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.ResetTableAlertSoundAsync(session, tableId, cancellationToken));
+    }
+
     [HttpGet("orders")]
     [ProducesResponseType(typeof(IReadOnlyList<CustomerOrderDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrdersAsync([FromQuery] bool kitchenOnly, CancellationToken cancellationToken)
@@ -211,6 +235,21 @@ public class WorkspaceController : ControllerBase
         return session is null
             ? Unauthorized()
             : Ok(await _workspaceService.UpdateOrderStatusAsync(session, orderId, request, cancellationToken));
+    }
+
+    [HttpPost("orders/batch-status")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> UpdateOrdersStatusBatchAsync([FromBody] BatchUpdateOrderStatusRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        await _workspaceService.UpdateOrdersStatusBatchAsync(session, request, cancellationToken);
+        return NoContent();
     }
 
     [HttpPatch("orders/{orderId:guid}/payment")]
@@ -251,6 +290,66 @@ public class WorkspaceController : ControllerBase
 
         await _workspaceService.DeletePaidOrderAsync(session, orderId, request, cancellationToken);
         return NoContent();
+    }
+
+    [HttpPost("orders/delete-paid-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteAllPaidOrdersAsync([FromBody] DeletePaidOrderRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        await _workspaceService.DeleteAllPaidOrdersAsync(session, request, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("orders/delete-closed")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteClosedOrdersBatchAsync([FromBody] BatchDeleteClosedOrdersRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        await _workspaceService.DeleteClosedOrdersBatchAsync(session, request, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("orders/delete-today-flow")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteTodayOrderFlowAsync([FromBody] OwnerPasswordRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        await _workspaceService.DeleteTodayOrderFlowAsync(session, request, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("orders/daily-report")]
+    [Produces("application/pdf")]
+    public async Task<IActionResult> DownloadDailyCashReportAsync(CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        var reportFile = await _workspaceService.GenerateDailyCashReportPdfAsync(session, cancellationToken);
+        return File(reportFile.Content, reportFile.ContentType, reportFile.FileName);
     }
 
     [HttpGet("stock")]
@@ -331,6 +430,70 @@ public class WorkspaceController : ControllerBase
         return session is null
             ? Unauthorized()
             : Ok(await _workspaceService.UpdateCompanySettingsAsync(session, request, cancellationToken));
+    }
+
+    [HttpPatch("settings/alerts")]
+    [ProducesResponseType(typeof(AlertSettingsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateAlertSettingsAsync([FromBody] UpdateAlertSettingsRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.UpdateAlertSettingsAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("settings/alerts/sound")]
+    [ProducesResponseType(typeof(UploadAlertSoundResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UploadAlertSoundAsync([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await _workspaceService.UploadAlertSoundAsync(session, file, cancellationToken));
+    }
+
+    [HttpDelete("settings/alerts/sound")]
+    [ProducesResponseType(typeof(AlertSettingsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResetAlertSoundAsync(CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.ResetAlertSoundAsync(session, cancellationToken));
+    }
+
+    [HttpGet("waiter-calls")]
+    [ProducesResponseType(typeof(IReadOnlyList<WaiterCallDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWaiterCallsAsync(CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.GetWaiterCallsAsync(session, cancellationToken));
+    }
+
+    [HttpGet("alerts/signal")]
+    [ProducesResponseType(typeof(WorkspaceAlertsSignalDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAlertsSignalAsync(CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.GetAlertsSignalAsync(session, cancellationToken));
+    }
+
+    [HttpPatch("waiter-calls/{waiterCallId:guid}/resolve")]
+    [ProducesResponseType(typeof(WaiterCallDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResolveWaiterCallAsync(Guid waiterCallId, CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _workspaceService.ResolveWaiterCallAsync(session, waiterCallId, cancellationToken));
     }
 
     private async Task<WorkspaceSessionContext?> GetRequiredSessionAsync(CancellationToken cancellationToken)

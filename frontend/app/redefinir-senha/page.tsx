@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { ResetPasswordForm } from "@/components/reset-password-form";
@@ -30,7 +31,9 @@ export default function ResetPasswordPage() {
         <section className="surface-card login-form-card">
           <span className="eyebrow">Senha</span>
           <h2 className="form-title">Atualizar acesso</h2>
-          <ResetPasswordForm />
+          <Suspense fallback={<p className="loading-state">Carregando redefinicao...</p>}>
+            <ResetPasswordForm />
+          </Suspense>
         </section>
       </section>
     </main>

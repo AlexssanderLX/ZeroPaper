@@ -18,7 +18,9 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<QrCodeAccess> QrCodeAccesses => Set<QrCodeAccess>();
     public DbSet<DiningTable> DiningTables => Set<DiningTable>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
+    public DbSet<DeletedOrderRecord> DeletedOrderRecords => Set<DeletedOrderRecord>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<WaiterCall> WaiterCalls => Set<WaiterCall>();
     public DbSet<StockItem> StockItems => Set<StockItem>();
     public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
@@ -33,7 +35,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<Tenant>(entity =>
         {
-            entity.ToTable("Tenants");
+            entity.ToTable("tenants");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
@@ -47,7 +49,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<Company>(entity =>
         {
-            entity.ToTable("Companies");
+            entity.ToTable("companies");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.LegalName).HasMaxLength(180).IsRequired();
@@ -57,6 +59,19 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.ContactEmail).HasMaxLength(180);
             entity.Property(x => x.ContactPhone).HasMaxLength(30);
             entity.Property(x => x.LastOrderNumber).IsRequired();
+            entity.Property(x => x.EnableOrderAlerts).IsRequired();
+            entity.Property(x => x.EnableWaiterCallAlerts).IsRequired();
+            entity.Property(x => x.AlertSoundUrl).HasMaxLength(500);
+            entity.Property(x => x.AlertVolumePercent).IsRequired();
+            entity.Property(x => x.AlertPlaybackSeconds).IsRequired();
+            entity.Property(x => x.EnableAutomaticPrinting).IsRequired();
+            entity.Property(x => x.PrintPaperProfile)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.PrintOrdersPerPage).IsRequired();
+            entity.Property(x => x.PrintAgentKeyHash).HasMaxLength(128);
+            entity.Property(x => x.PrintAgentName).HasMaxLength(120);
+            entity.Property(x => x.PrintAgentPrinterName).HasMaxLength(180);
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
@@ -71,7 +86,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<AppUser>(entity =>
         {
-            entity.ToTable("Users");
+            entity.ToTable("users");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.FullName).HasMaxLength(150).IsRequired();
@@ -99,7 +114,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<AppSession>(entity =>
         {
-            entity.ToTable("Sessions");
+            entity.ToTable("sessions");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
@@ -128,7 +143,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<Subscription>(entity =>
         {
-            entity.ToTable("Subscriptions");
+            entity.ToTable("subscriptions");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.PlanName).HasMaxLength(120).IsRequired();
@@ -148,7 +163,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<QrCodeAccess>(entity =>
         {
-            entity.ToTable("QrCodeAccesses");
+            entity.ToTable("qrcodeaccesses");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Label).HasMaxLength(120).IsRequired();
@@ -176,7 +191,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<DiningTable>(entity =>
         {
-            entity.ToTable("DiningTables");
+            entity.ToTable("diningtables");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
@@ -184,6 +199,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.Status)
                 .HasConversion<int>()
                 .IsRequired();
+            entity.Property(x => x.AlertSoundUrl).HasMaxLength(500);
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
@@ -209,7 +225,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<CustomerOrder>(entity =>
         {
-            entity.ToTable("CustomerOrders");
+            entity.ToTable("customerorders");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.CustomerName).HasMaxLength(120);
@@ -220,10 +236,19 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.PaymentMethod)
                 .HasConversion<int>()
                 .IsRequired();
+            entity.Property(x => x.RequestedPaymentMethod)
+                .HasConversion<int>()
+                .IsRequired();
             entity.Property(x => x.PaymentStatus)
                 .HasConversion<int>()
                 .IsRequired();
+            entity.Property(x => x.PrintStatus)
+                .HasConversion<int>()
+                .IsRequired();
             entity.Property(x => x.TotalAmount).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.PrintLastError).HasMaxLength(500);
+            entity.Property(x => x.PrintAgentName).HasMaxLength(120);
+            entity.Property(x => x.PrintPrinterName).HasMaxLength(180);
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
@@ -252,10 +277,12 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<OrderItem>(entity =>
         {
-            entity.ToTable("OrderItems");
+            entity.ToTable("orderitems");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.CategoryName).HasMaxLength(120);
+            entity.Property(x => x.ImageUrl).HasMaxLength(500);
             entity.Property(x => x.Quantity).HasPrecision(10, 2).IsRequired();
             entity.Property(x => x.UnitPrice).HasPrecision(10, 2).IsRequired();
             entity.Property(x => x.Notes).HasMaxLength(300);
@@ -269,9 +296,84 @@ public class ZeroPaperDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<DeletedOrderRecord>(entity =>
+        {
+            entity.ToTable("deletedorderrecords");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.TableName).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(120);
+            entity.Property(x => x.Notes).HasMaxLength(600);
+            entity.Property(x => x.ItemsSummary).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.Status)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.PaymentMethod)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.RequestedPaymentMethod)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.PaymentStatus)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.PrintStatus)
+                .HasConversion<int>()
+                .IsRequired();
+            entity.Property(x => x.TotalAmount).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.DeletedByUserName).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.DeletionReason).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.SubmittedAtUtc).IsRequired();
+            entity.Property(x => x.DeletedAtUtc).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => new { x.CompanyId, x.SubmittedAtUtc });
+            entity.HasIndex(x => x.SourceOrderId);
+
+            entity.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<WaiterCall>(entity =>
+        {
+            entity.ToTable("waitercalls");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.RequestedAtUtc).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => new { x.CompanyId, x.DiningTableId, x.ResolvedAtUtc });
+
+            entity.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.WaiterCalls)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.DiningTable)
+                .WithMany(x => x.WaiterCalls)
+                .HasForeignKey(x => x.DiningTableId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<StockItem>(entity =>
         {
-            entity.ToTable("StockItems");
+            entity.ToTable("stockitems");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
@@ -298,7 +400,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<MenuCategory>(entity =>
         {
-            entity.ToTable("MenuCategories");
+            entity.ToTable("menucategories");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
@@ -321,7 +423,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<MenuItem>(entity =>
         {
-            entity.ToTable("MenuItems");
+            entity.ToTable("menuitems");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
@@ -353,7 +455,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<SignupCode>(entity =>
         {
-            entity.ToTable("SignupCodes");
+            entity.ToTable("signupcodes");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Label).HasMaxLength(120).IsRequired();
@@ -370,7 +472,7 @@ public class ZeroPaperDbContext : DbContext
 
         modelBuilder.Entity<PasswordResetRequest>(entity =>
         {
-            entity.ToTable("PasswordResetRequests");
+            entity.ToTable("passwordresetrequests");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();

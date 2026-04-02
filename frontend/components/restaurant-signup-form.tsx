@@ -3,7 +3,7 @@
 import { FormEvent, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, createAccessRequest, createRestaurantSignup, loginPortal } from "@/lib/api";
-import { PORTAL_SESSION_KEY, type PortalSession } from "@/lib/owner-portal";
+import { savePortalSession, type PortalSession } from "@/lib/owner-portal";
 
 const defaultPlan = {
   planName: "ZeroPaper Base",
@@ -80,7 +80,7 @@ export function RestaurantSignupForm() {
             role: loginResponse.role,
           };
 
-          window.sessionStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify(session));
+          savePortalSession(session);
           router.replace("/app");
         } catch (error) {
           if (error instanceof ApiError) {

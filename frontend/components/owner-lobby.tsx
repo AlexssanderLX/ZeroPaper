@@ -45,9 +45,19 @@ export function OwnerLobby() {
 
   const quickOverview = [
     {
+      slug: "implantacao",
+      value: overview && overview.activeTables > 0 && overview.publishedMenuItems > 0 ? "Revisar" : "Comecar",
+      label: "Guia",
+    },
+    {
       slug: "cardapio",
       value: String(overview?.publishedMenuItems ?? 0),
       label: "Disponiveis",
+    },
+    {
+      slug: "estoque",
+      value: String(overview?.totalStockItems ?? 0),
+      label: "Insumos",
     },
     {
       slug: "mesas",
@@ -65,6 +75,13 @@ export function OwnerLobby() {
       label: "A cobrar",
     },
     {
+      slug: "impressao",
+      value: String(overview?.failedPrints && overview.failedPrints > 0 ? overview.failedPrints : overview?.printedPrints ?? 0),
+      label: overview?.failedPrints && overview.failedPrints > 0 ? "Com erro" : "Impressos",
+      note: overview?.failedPrints && overview.failedPrints > 0 ? "Falha de impressao" : undefined,
+      noteTone: overview?.failedPrints && overview.failedPrints > 0 ? "warning" : undefined,
+    },
+    {
       slug: "ajustes",
       value: session.ownerName,
       label: "Conta",
@@ -72,7 +89,7 @@ export function OwnerLobby() {
   ];
 
   return (
-    <WorkspaceShell>
+    <WorkspaceShell showAlertCard>
       <section className="surface-card workspace-summary-card owner-hero-card">
         <div className="workspace-summary-head owner-summary-head">
           <div className="owner-summary-stage" aria-hidden="true">
@@ -97,13 +114,16 @@ export function OwnerLobby() {
               <div className="module-card-head">
                 <h2>{module.title}</h2>
                 <span className="module-card-arrow" aria-hidden="true">
-                  ↗
+                  {"\u2197"}
                 </span>
               </div>
               {moduleMetric ? (
                 <div className="module-card-metric">
                   <strong>{moduleMetric.value}</strong>
                   <span>{moduleMetric.label}</span>
+                  {"note" in moduleMetric && moduleMetric.note ? (
+                    <small className={`module-card-note ${moduleMetric.noteTone === "warning" ? "warning" : ""}`}>{moduleMetric.note}</small>
+                  ) : null}
                 </div>
               ) : null}
             </Link>

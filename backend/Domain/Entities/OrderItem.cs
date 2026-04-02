@@ -13,16 +13,22 @@ public class OrderItem : TenantOwnedEntity
         string name,
         decimal quantity,
         decimal unitPrice,
+        string? categoryName = null,
+        string? imageUrl = null,
         string? notes = null) : base(tenantId)
     {
         Rename(name);
         UpdateQuantity(quantity);
         UpdateUnitPrice(unitPrice);
+        UpdateCategory(categoryName);
+        UpdateImage(imageUrl);
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
     }
 
     public Guid CustomerOrderId { get; private set; }
     public string Name { get; private set; } = null!;
+    public string? CategoryName { get; private set; }
+    public string? ImageUrl { get; private set; }
     public decimal Quantity { get; private set; }
     public decimal UnitPrice { get; private set; }
     public string? Notes { get; private set; }
@@ -34,6 +40,18 @@ public class OrderItem : TenantOwnedEntity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name.Trim();
+        Touch();
+    }
+
+    public void UpdateCategory(string? categoryName)
+    {
+        CategoryName = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
+        Touch();
+    }
+
+    public void UpdateImage(string? imageUrl)
+    {
+        ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
         Touch();
     }
 
@@ -59,4 +77,3 @@ public class OrderItem : TenantOwnedEntity
         Touch();
     }
 }
-

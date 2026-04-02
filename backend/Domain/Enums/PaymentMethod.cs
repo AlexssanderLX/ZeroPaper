@@ -5,5 +5,6 @@ public enum PaymentMethod
     Undefined = 0,
     Pix = 1,
     Credit = 2,
-    Debit = 3
+    Debit = 3,
+    Cash = 4
 }
