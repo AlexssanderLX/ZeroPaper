@@ -1,73 +1,61 @@
 # ZeroPaper
 
-ZeroPaper e um micro SaaS para restaurantes locais.
+ZeroPaper e uma plataforma operacional para restaurantes presenciais.
 
-O projeto foi pensado para reduzir atrito na operacao do dia a dia, concentrando cardapio, mesas, QR Code, pedidos e acompanhamento interno em uma unica plataforma.
+O foco do produto e reduzir atrito entre `mesa`, `cozinha`, `caixa`, `impressao` e `atendimento`, mantendo a operacao da unidade em um fluxo unico e mais simples de acompanhar.
 
-## Objetivo do MVP
+## Escopo atual
 
-Esta versao do MVP existe para validar a base do produto em uso real.
+Na fase atual, o sistema cobre os principais pontos do ciclo operacional do restaurante:
 
-Hoje o foco da ZeroPaper e:
+- cardapio com categorias, imagens, edicao e controle de disponibilidade
+- mesas com QR Code, impressao e gestao do acesso publico
+- pedido publico por mesa com experiencia voltada para toque e celular
+- fluxo interno de cozinha com status operacionais e reimpressao
+- caixa com controle de cobranca, pagamentos e limpeza do fluxo atual
+- alertas sonoros para chamados e novos pedidos
+- estoque interno da unidade
+- relatorio diario de caixa em PDF
+- impressao automatica com agente Windows
+- implantacao guiada da unidade dentro do painel
 
-- facilitar o atendimento por mesa
-- transformar o QR Code em porta de entrada do pedido
-- organizar o fluxo entre cliente, cozinha e caixa
-- dar ao dono da unidade um painel simples para operar
+## Modulos da unidade
 
-## O que o sistema ja cobre
+O painel da unidade esta organizado nos seguintes modulos:
 
-### Plataforma
+- `Implantacao`
+- `Cardapio`
+- `Estoque`
+- `Mesas`
+- `Pedidos para a cozinha`
+- `Caixa`
+- `Impressao`
+- `Unidade`
 
-- administracao central da ZeroPaper
-- liberacao controlada de novos cadastros
-- recuperacao de acesso
-- organizacao por unidade dentro da plataforma
+## Fluxo principal
 
-### Unidade
+O fluxo principal do ZeroPaper hoje e:
 
-- painel principal da unidade
-- ambiente proprio para operacao
-- identidade visual aplicada ao portal
+1. a unidade configura cardapio, mesas e impressao
+2. o cliente acessa a mesa pelo QR Code
+3. o pedido entra no backend e fica visivel para cozinha e caixa
+4. a cozinha acompanha o preparo e pode imprimir ou reimprimir
+5. o caixa acompanha a cobranca e fecha manualmente o pagamento
+6. a unidade acompanha alertas, chamados e impressao em um mesmo painel
 
-### Cardapio
+## Impressao automatica
 
-- organizacao por categorias
-- cadastro e edicao de produtos
-- imagem do produto
-- controle de disponibilidade
-- limpeza e manutencao do cardapio
+O projeto inclui o codigo-fonte do agente Windows de impressao em:
 
-### Mesas e QR Code
+- [tools/ZeroPaper.PrintAgent](C:\Users\Alexssander\Desktop\Programação\ZeroPaper\tools\ZeroPaper.PrintAgent)
 
-- criacao e ajuste de mesas
-- geracao automatica de QR Code por mesa
-- visualizacao e impressao do QR
-- folha dedicada para impressao
+O executavel nao fica versionado no Git. Para gerar o agente de forma local e copiar o arquivo para a area publica de download, use:
 
-### Pedido publico
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\build-print-agent.ps1
+```
 
-- acesso do cliente pelo QR Code
-- escolha de itens por toque
-- observacoes do pedido
-- confirmacao de envio
-- continuidade para um novo pedido
-
-### Operacao interna
-
-- pedidos para a cozinha
-- atualizacao de status do pedido
-- caixa com pedidos a cobrar e pagos
-- marcacao de pagamento
-- controle interno de encerramento do pedido
-
-## Experiencia do produto
-
-O MVP foi dividido em tres experiencias principais:
-
-- administracao da plataforma
-- operacao da unidade
-- pedido publico pela mesa
+Esse processo gera o executavel em `frontend/public/downloads` apenas quando necessario, evitando subir binarios grandes para o repositório.
 
 ## Estrutura do repositorio
 
@@ -75,6 +63,11 @@ O MVP foi dividido em tres experiencias principais:
 ZeroPaper/
 |-- backend/
 |-- frontend/
+|-- tools/
+|   |-- ZeroPaper.PrintAgent/
+|   |-- build-print-agent.ps1
+|-- infra/
+|   |-- nginx/
 |-- README.md
 ```
 
@@ -82,10 +75,11 @@ ZeroPaper/
 
 ### Backend
 
-- .NET
+- .NET 8
 - ASP.NET Core
 - Entity Framework Core
-- MySQL
+- MySQL / MariaDB
+- QuestPDF
 
 ### Frontend
 
@@ -93,21 +87,30 @@ ZeroPaper/
 - React
 - TypeScript
 
-## Direcao atual
+### Operacao local
 
-Neste momento, a ZeroPaper esta sendo lapidada como base operacional de restaurante.
+- agente Windows em .NET para impressao automatica
+- Nginx como proxy reverso
 
-O objetivo nao e cobrir tudo de uma vez, e sim fechar muito bem o fluxo principal:
+## Direcao do produto
 
-- cardapio
-- mesa
-- QR Code
-- pedido
-- cozinha
-- caixa
+O ZeroPaper esta sendo lapidado como base operacional de restaurante presencial.
+
+O criterio atual de evolucao do produto e simples:
+
+- fortalecer o fluxo principal antes de abrir novas frentes
+- reduzir cliques e ambiguidade operacional
+- priorizar estabilidade, responsividade e seguranca
+- manter o sistema facil de implantar em unidades pequenas e medias
+
+## Boas praticas adotadas neste repositorio
+
+- artefatos de build e deploy nao ficam versionados
+- uploads operacionais nao entram no Git
+- arquivos de ambiente locais e de producao nao entram no Git
+- o agente de impressao e versionado por codigo-fonte, nao por binario pesado
+- configuracoes de infraestrutura ficam separadas da aplicacao
 
 ## Observacao
 
-Este README descreve o MVP de forma intencionalmente simples.
-
-Ele foi escrito para apresentar a proposta e as funcoes do produto, sem expor detalhes internos, rotas ou configuracoes sensiveis.
+Este README foi escrito para apresentar o produto e a fase atual do projeto sem expor credenciais, rotas sensiveis, chaves privadas ou detalhes operacionais internos da VPS.
