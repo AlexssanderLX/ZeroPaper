@@ -8,6 +8,10 @@ obj/
 backend/bin/
 backend/obj/
 backend/.vs/
+backend/publish-net8*/
+tools/**/bin/
+tools/**/obj/
+tools/**/publish*/
 
 frontend/.next/
 frontend/node_modules/
@@ -15,14 +19,24 @@ frontend/out/
 frontend/dist/
 frontend/coverage/
 frontend/tsconfig.tsbuildinfo
+frontend/publish-standalone*/
+frontend/source-deploy-*.tar.gz
+frontend/public/downloads/*.exe
 frontend/.env.local
 frontend/.env.*.local
 
 *.log
 *.user
 *.suo
+*.tar.gz
+*.zip
+.codex-tools/
+.codex-tools/**
+.build/
+.codex-tmp/
+backend-production.env
+frontend-production.env
 backend-test-out.log
 backend-test-err.log
-.codex-tmp/
 backend/wwwroot/uploads/
 ChatGPT Image *.png
