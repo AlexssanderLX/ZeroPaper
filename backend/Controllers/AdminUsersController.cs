@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Admin;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
@@ -29,8 +30,12 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPatch("{userId:guid}/deactivate")]
+    [EnableRateLimiting("sensitive-write")]
     [ProducesResponseType(typeof(AdminUserDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeactivateUserAsync(
+        Guid userId,
+        [FromBody] AdminSensitiveActionRequestDto request,
+        CancellationToken cancellationToken)
     {
         var session = await GetRequiredSessionAsync(cancellationToken);
 
@@ -41,7 +46,7 @@ public class AdminUsersController : ControllerBase
 
         try
         {
-            return Ok(await _adminUserService.DeactivateUserAsync(session, userId, cancellationToken));
+            return Ok(await _adminUserService.DeactivateUserAsync(session, userId, request.Password, cancellationToken));
         }
         catch (KeyNotFoundException exception)
         {
@@ -54,8 +59,12 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPatch("{userId:guid}/reactivate")]
+    [EnableRateLimiting("sensitive-write")]
     [ProducesResponseType(typeof(AdminUserDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ReactivateUserAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> ReactivateUserAsync(
+        Guid userId,
+        [FromBody] AdminSensitiveActionRequestDto request,
+        CancellationToken cancellationToken)
     {
         var session = await GetRequiredSessionAsync(cancellationToken);
 
@@ -66,7 +75,7 @@ public class AdminUsersController : ControllerBase
 
         try
         {
-            return Ok(await _adminUserService.ReactivateUserAsync(session, userId, cancellationToken));
+            return Ok(await _adminUserService.ReactivateUserAsync(session, userId, request.Password, cancellationToken));
         }
         catch (KeyNotFoundException exception)
         {
@@ -79,8 +88,12 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpDelete("{userId:guid}")]
+    [EnableRateLimiting("sensitive-write")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> DeleteUserAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteUserAsync(
+        Guid userId,
+        [FromBody] AdminSensitiveActionRequestDto request,
+        CancellationToken cancellationToken)
     {
         var session = await GetRequiredSessionAsync(cancellationToken);
 
@@ -91,7 +104,7 @@ public class AdminUsersController : ControllerBase
 
         try
         {
-            await _adminUserService.DeleteUserAsync(session, userId, cancellationToken);
+            await _adminUserService.DeleteUserAsync(session, userId, request.Password, cancellationToken);
             return NoContent();
         }
         catch (KeyNotFoundException exception)

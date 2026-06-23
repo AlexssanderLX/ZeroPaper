@@ -31,6 +31,11 @@ public class AppUser : TenantOwnedEntity
     public string PasswordHash { get; private set; } = null!;
     public UserRole Role { get; private set; }
     public DateTime? LastLoginAtUtc { get; private set; }
+    public string? ShortcutAccessTokenHash { get; private set; }
+    public DateTime? ShortcutAccessCreatedAtUtc { get; private set; }
+    public DateTime? ShortcutAccessExpiresAtUtc { get; private set; }
+    public DateTime? ShortcutAccessLastUsedAtUtc { get; private set; }
+    public DateTime? ShortcutAccessRevokedAtUtc { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
@@ -63,5 +68,46 @@ public class AppUser : TenantOwnedEntity
     {
         LastLoginAtUtc = DateTime.UtcNow;
         Touch();
+    }
+
+    public void RotateShortcutAccessToken(string tokenHash, DateTime createdAtUtc, DateTime expiresAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
+
+        if (expiresAtUtc <= createdAtUtc)
+        {
+            throw new ArgumentException("A validade do atalho precisa ser futura.", nameof(expiresAtUtc));
+        }
+
+        ShortcutAccessTokenHash = tokenHash.Trim();
+        ShortcutAccessCreatedAtUtc = createdAtUtc;
+        ShortcutAccessExpiresAtUtc = expiresAtUtc;
+        ShortcutAccessLastUsedAtUtc = null;
+        ShortcutAccessRevokedAtUtc = null;
+        Touch();
+    }
+
+    public void RegisterShortcutAccessUsage(DateTime usedAtUtc)
+    {
+        ShortcutAccessLastUsedAtUtc = usedAtUtc;
+        Touch();
+    }
+
+    public void RevokeShortcutAccess(DateTime revokedAtUtc)
+    {
+        ShortcutAccessTokenHash = null;
+        ShortcutAccessCreatedAtUtc = null;
+        ShortcutAccessExpiresAtUtc = null;
+        ShortcutAccessLastUsedAtUtc = null;
+        ShortcutAccessRevokedAtUtc = revokedAtUtc;
+        Touch();
+    }
+
+    public bool HasActiveShortcutAccess(DateTime utcNow)
+    {
+        return !string.IsNullOrWhiteSpace(ShortcutAccessTokenHash) &&
+               ShortcutAccessRevokedAtUtc is null &&
+               ShortcutAccessExpiresAtUtc.HasValue &&
+               ShortcutAccessExpiresAtUtc.Value > utcNow;
     }
 }

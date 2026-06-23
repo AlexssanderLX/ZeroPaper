@@ -45,7 +45,7 @@ public class DailyCashReportDocument : IDocument
                     "Nenhum pagamento registrado hoje.");
                 ComposeSimpleTable(
                     column.Item(),
-                    "Pedidos a cobrar no momento",
+                    "Pedidos a cobrar hoje",
                     ["Pedido", "Mesa", "Situacao", "Pagamento", "Total", "Horario", "Detalhes"],
                     _data.PendingOrders.Select(item => new[]
                     {
@@ -57,7 +57,7 @@ public class DailyCashReportDocument : IDocument
                         item.TimeLabel,
                         BuildOrderDetails(item)
                     }).ToList(),
-                    "Nenhum pedido pendente no momento.");
+                    "Nenhum pedido pendente registrado hoje.");
                 ComposeSimpleTable(
                     column.Item(),
                     "Pedidos pagos hoje",

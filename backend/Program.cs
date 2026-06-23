@@ -1,16 +1,20 @@
-using System.Net;
-using System.Net.Mime;
-using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using QuestPDF.Infrastructure;
+using System.Net;
+using System.Net.Mime;
+using System.Threading.RateLimiting;
 using ZeroPaper.Data;
 using ZeroPaper.Repositories;
 using ZeroPaper.Repositories.Interfaces;
 using ZeroPaper.Services;
 using ZeroPaper.Services.Interfaces;
+using ZeroPaper.Services.Models;
+using ZeroPaper.Services.Reports;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,10 +44,32 @@ var allowedOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins")
     ?? ["http://localhost:3000"];
 var enableHttpsRedirection = builder.Configuration.GetValue("Security:EnableHttpsRedirection", false);
 var httpsPort = builder.Configuration.GetValue<int?>("Security:HttpsPort");
+var dataProtectionPath = builder.Configuration["Security:DataProtectionPath"];
+var uploadsPath = builder.Configuration["Storage:UploadsPath"];
+
+if (string.IsNullOrWhiteSpace(dataProtectionPath))
+{
+    dataProtectionPath = builder.Environment.IsDevelopment()
+        ? Path.Combine(builder.Environment.ContentRootPath, ".dataprotection")
+        : Path.Combine("/var/lib/zeropaper", "dataprotection");
+}
+
+if (string.IsNullOrWhiteSpace(uploadsPath))
+{
+    uploadsPath = builder.Environment.IsDevelopment()
+        ? Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads")
+        : Path.Combine("/var/lib/zeropaper", "uploads");
+}
+
+Directory.CreateDirectory(dataProtectionPath);
+Directory.CreateDirectory(uploadsPath);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("ZeroPaper");
 if (enableHttpsRedirection && httpsPort.HasValue)
 {
     builder.Services.AddHttpsRedirection(options => options.HttpsPort = httpsPort.Value);
@@ -68,14 +94,47 @@ builder.Services.AddRateLimiter(options =>
         limiter.PermitLimit = 10;
         limiter.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("integration-write", limiter =>
+    {
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.PermitLimit = 120;
+        limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("webhook-ingress", limiter =>
+    {
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.PermitLimit = 30000;
+        limiter.QueueLimit = 1000;
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    options.AddFixedWindowLimiter("sensitive-write", limiter =>
+    {
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.PermitLimit = 12;
+        limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("upload-write", limiter =>
+    {
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.PermitLimit = 20;
+        limiter.QueueLimit = 0;
+    });
 });
 
 builder.Services.AddDbContext<ZeroPaperDbContext>(options =>
     options.UseMySql(
         connectionString,
         ServerVersion.AutoDetect(connectionString),
-        mysqlOptions => mysqlOptions.MigrationsHistoryTable("__efmigrationshistory"))
+        mysqlOptions => mysqlOptions
+            .MigrationsHistoryTable("__efmigrationshistory")
+            .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
 );
+
+builder.Services.Configure<OpenAiApiOptions>(builder.Configuration.GetSection(OpenAiApiOptions.SectionName));
+builder.Services.Configure<PublicAppOptions>(builder.Configuration.GetSection(PublicAppOptions.SectionName));
+builder.Services.Configure<EvolutionApiOptions>(builder.Configuration.GetSection(EvolutionApiOptions.SectionName));
+builder.Services.Configure<DeliveryDistanceOptions>(builder.Configuration.GetSection(DeliveryDistanceOptions.SectionName));
+builder.Services.Configure<MercadoPagoOptions>(builder.Configuration.GetSection(MercadoPagoOptions.SectionName));
 
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
@@ -84,14 +143,92 @@ builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<IQrCodeAccessRepository, QrCodeAccessRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<ICashOrderTableService, CashOrderTableService>();
 builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAdminSignupCodeService, AdminSignupCodeService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IAdminOwnerService, AdminOwnerService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestNotificationService>();
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
+builder.Services.AddScoped<ISalesReportService, SalesReportService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
+builder.Services.AddScoped<ICashClosingService, CashClosingService>();
+builder.Services.AddScoped<IDeliveryFreightService, DeliveryFreightService>();
+builder.Services.AddScoped<IDeliveryCustomerLinkService, DeliveryCustomerLinkService>();
+builder.Services.AddHttpClient<ApproximatePostalCodeDeliveryDistanceProvider>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<DeliveryDistanceOptions>>().Value;
+    var baseUrl = string.IsNullOrWhiteSpace(options.Approximate.BaseUrl)
+        ? "https://nominatim.openstreetmap.org/"
+        : options.Approximate.BaseUrl.Trim();
+
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl += "/";
+    }
+
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(8);
+});
+builder.Services.AddScoped<IDeliveryDistanceProvider>(serviceProvider => serviceProvider.GetRequiredService<ApproximatePostalCodeDeliveryDistanceProvider>());
+builder.Services.AddScoped<IDeliveryDistanceProvider, MockDeliveryDistanceProvider>();
 builder.Services.AddScoped<IPrintAutomationService, PrintAutomationService>();
+builder.Services.AddHttpClient<GoogleRoutesDeliveryDistanceProvider>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<DeliveryDistanceOptions>>().Value;
+    var baseUrl = string.IsNullOrWhiteSpace(options.GoogleMaps.BaseUrl)
+        ? "https://routes.googleapis.com/"
+        : options.GoogleMaps.BaseUrl.Trim();
+
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl += "/";
+    }
+
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(12);
+});
+builder.Services.AddScoped<IDeliveryDistanceProvider>(serviceProvider => serviceProvider.GetRequiredService<GoogleRoutesDeliveryDistanceProvider>());
+builder.Services.AddHttpClient<IAiAssistantService, AiAssistantService>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<OpenAiApiOptions>>().Value;
+    var configuredBaseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
+        ? Environment.GetEnvironmentVariable("OPENAI_BASE_URL")
+        : options.BaseUrl;
+    var baseUrl = string.IsNullOrWhiteSpace(configuredBaseUrl)
+        ? OpenAiApiOptions.DefaultBaseUrl
+        : configuredBaseUrl.Trim();
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl += "/";
+    }
+
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(35);
+});
+builder.Services.AddHttpClient<IWhatsAppIntegrationService, WhatsAppIntegrationService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.z-api.io/", UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(20);
+});
+builder.Services.AddHttpClient<IMercadoPagoService, MercadoPagoService>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MercadoPagoOptions>>().Value;
+    var baseUrl = string.IsNullOrWhiteSpace(options.ApiBaseUrl)
+        ? MercadoPagoOptions.DefaultApiBaseUrl
+        : options.ApiBaseUrl.Trim();
+
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl += "/";
+    }
+
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(20);
+});
 builder.Services.AddSingleton<PlatformRootSeeder>();
 
 var app = builder.Build();
@@ -99,6 +236,8 @@ using (var scope = app.Services.CreateScope())
 {
     var rootSeeder = scope.ServiceProvider.GetRequiredService<PlatformRootSeeder>();
     await rootSeeder.EnsureRootAccountAsync();
+    var cashOrderTableService = scope.ServiceProvider.GetRequiredService<ICashOrderTableService>();
+    await cashOrderTableService.EnsureForActiveOwnersAsync();
 }
 
 app.UseExceptionHandler(errorApp =>
@@ -152,6 +291,11 @@ app.Use(async (context, next) =>
 
 app.UseRateLimiter();
 app.UseCors("frontend");
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 app.UseStaticFiles();
 
 if (enableHttpsRedirection && httpsPort.HasValue)

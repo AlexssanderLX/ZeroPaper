@@ -42,7 +42,9 @@ public class ZeroPaperDbContextFactory : IDesignTimeDbContextFactory<ZeroPaperDb
         optionsBuilder.UseMySql(
             connectionString,
             new MySqlServerVersion(new Version(8, 0, 36)),
-            mysqlOptions => mysqlOptions.MigrationsHistoryTable("__efmigrationshistory"));
+            mysqlOptions => mysqlOptions
+                .MigrationsHistoryTable("__efmigrationshistory")
+                .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
 
         return new ZeroPaperDbContext(optionsBuilder.Options);
     }

@@ -27,24 +27,24 @@ public class RestaurantOnboardingRequestDto
     [MaxLength(180)]
     public string OwnerEmail { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(60)]
-    public string AccessCode { get; set; } = string.Empty;
+    public string? AccessCode { get; set; }
 
     [Required]
     [MinLength(6)]
     [MaxLength(100)]
     public string OwnerPassword { get; set; } = string.Empty;
 
+    [Required]
     [MaxLength(30)]
-    public string? ContactPhone { get; set; }
+    public string ContactPhone { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(120)]
-    public string PlanName { get; set; } = "Plano Bairro";
+    public string PlanName { get; set; } = "ZeroPaper Operacao";
 
     [Range(0, 999999)]
-    public decimal MonthlyPrice { get; set; } = 149.90m;
+    public decimal MonthlyPrice { get; set; } = 120m;
 
     [Range(1, 500)]
     public int MaxUsers { get; set; } = 5;

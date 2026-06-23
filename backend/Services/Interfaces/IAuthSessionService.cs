@@ -6,6 +6,7 @@ namespace ZeroPaper.Services.Interfaces;
 public interface IAuthSessionService
 {
     Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default);
+    Task<LoginResponseDto?> LoginWithShortcutAsync(ShortcutLoginRequestDto request, CancellationToken cancellationToken = default);
     Task<WorkspaceSessionContext?> GetSessionAsync(string? authorizationHeader, CancellationToken cancellationToken = default);
     Task<bool> ConfirmPasswordAsync(string? authorizationHeader, string password, CancellationToken cancellationToken = default);
     Task LogoutAsync(string? authorizationHeader, CancellationToken cancellationToken = default);

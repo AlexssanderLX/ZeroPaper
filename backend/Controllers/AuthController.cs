@@ -51,6 +51,39 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("shortcut-login")]
+    [EnableRateLimiting("public-write")]
+    [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ShortcutLoginAsync([FromBody] ShortcutLoginRequestDto request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _authSessionService.LoginWithShortcutAsync(request, cancellationToken);
+            return response is null ? Unauthorized() : Ok(response);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Dados invalidos",
+                Detail = exception.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
+            {
+                Title = "Atalho indisponivel",
+                Detail = exception.Message,
+                Status = StatusCodes.Status403Forbidden
+            });
+        }
+    }
+
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)

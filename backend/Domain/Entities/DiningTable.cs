@@ -18,13 +18,17 @@ public class DiningTable : TenantOwnedEntity
         Guid qrCodeAccessId,
         string name,
         string internalCode,
-        int seats) : base(tenantId)
+        int seats,
+        string? comandaLabel = null,
+        bool isDeliveryChannel = false) : base(tenantId)
     {
         CompanyId = companyId;
         QrCodeAccessId = qrCodeAccessId;
         Rename(name);
         ChangeInternalCode(internalCode);
         UpdateSeats(seats);
+        UpdateComandaLabel(comandaLabel);
+        IsDeliveryChannel = isDeliveryChannel;
         Status = TableStatus.Available;
     }
 
@@ -33,8 +37,10 @@ public class DiningTable : TenantOwnedEntity
     public string Name { get; private set; } = null!;
     public string InternalCode { get; private set; } = null!;
     public int Seats { get; private set; }
+    public string? ComandaLabel { get; private set; }
     public TableStatus Status { get; private set; }
     public string? AlertSoundUrl { get; private set; }
+    public bool IsDeliveryChannel { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
@@ -64,6 +70,26 @@ public class DiningTable : TenantOwnedEntity
         }
 
         Seats = seats;
+        Touch();
+    }
+
+    public void UpdateComandaLabel(string? comandaLabel)
+    {
+        if (string.IsNullOrWhiteSpace(comandaLabel))
+        {
+            ComandaLabel = null;
+            Touch();
+            return;
+        }
+
+        var normalizedValue = comandaLabel.Trim();
+
+        if (normalizedValue.Length > 40)
+        {
+            throw new ArgumentException("Comanda label must be 40 characters or fewer.", nameof(comandaLabel));
+        }
+
+        ComandaLabel = normalizedValue;
         Touch();
     }
 

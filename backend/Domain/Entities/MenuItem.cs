@@ -4,6 +4,8 @@ namespace ZeroPaper.Domain.Entities;
 
 public class MenuItem : TenantOwnedEntity
 {
+    private readonly List<MenuItemAdditionalGroup> _additionalGroups = [];
+
     private MenuItem()
     {
     }
@@ -17,13 +19,15 @@ public class MenuItem : TenantOwnedEntity
         string? description = null,
         string? accentLabel = null,
         string? imageUrl = null,
-        int displayOrder = 0) : base(tenantId)
+        int displayOrder = 0,
+        int? maxAdditionalSelections = null) : base(tenantId)
     {
         CompanyId = companyId;
         MenuCategoryId = menuCategoryId;
         UpdateCatalog(name, description, accentLabel, imageUrl);
         UpdatePrice(price);
         SetDisplayOrder(displayOrder);
+        UpdateAdditionalLimit(maxAdditionalSelections);
     }
 
     public Guid CompanyId { get; private set; }
@@ -34,10 +38,12 @@ public class MenuItem : TenantOwnedEntity
     public string? ImageUrl { get; private set; }
     public decimal Price { get; private set; }
     public int DisplayOrder { get; private set; }
+    public int? MaxAdditionalSelections { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
     public MenuCategory MenuCategory { get; private set; } = null!;
+    public IReadOnlyCollection<MenuItemAdditionalGroup> AdditionalGroups => _additionalGroups.AsReadOnly();
 
     public void UpdateCatalog(string name, string? description, string? accentLabel, string? imageUrl)
     {
@@ -75,6 +81,31 @@ public class MenuItem : TenantOwnedEntity
     public void SetDisplayOrder(int displayOrder)
     {
         DisplayOrder = Math.Max(0, displayOrder);
+        Touch();
+    }
+
+    public void UpdateAdditionalLimit(int? maxAdditionalSelections)
+    {
+        if (maxAdditionalSelections is < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxAdditionalSelections), "O limite de adicionais nao pode ser negativo.");
+        }
+
+        if (maxAdditionalSelections is > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxAdditionalSelections), "O limite de adicionais precisa ser menor que 100.");
+        }
+
+        MaxAdditionalSelections = maxAdditionalSelections;
+        Touch();
+    }
+
+    public void ReplaceAdditionalGroups(IEnumerable<MenuItemAdditionalGroup> additionalGroups)
+    {
+        ArgumentNullException.ThrowIfNull(additionalGroups);
+
+        _additionalGroups.Clear();
+        _additionalGroups.AddRange(additionalGroups);
         Touch();
     }
 }

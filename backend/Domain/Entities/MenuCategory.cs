@@ -10,15 +10,17 @@ public class MenuCategory : TenantOwnedEntity
     {
     }
 
-    public MenuCategory(Guid tenantId, Guid companyId, string name, int displayOrder = 0) : base(tenantId)
+    public MenuCategory(Guid tenantId, Guid companyId, string name, int displayOrder = 0, string? imageUrl = null) : base(tenantId)
     {
         CompanyId = companyId;
         Rename(name);
         SetDisplayOrder(displayOrder);
+        UpdateImage(imageUrl);
     }
 
     public Guid CompanyId { get; private set; }
     public string Name { get; private set; } = null!;
+    public string? ImageUrl { get; private set; }
     public int DisplayOrder { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
@@ -35,6 +37,12 @@ public class MenuCategory : TenantOwnedEntity
     public void SetDisplayOrder(int displayOrder)
     {
         DisplayOrder = Math.Max(0, displayOrder);
+        Touch();
+    }
+
+    public void UpdateImage(string? imageUrl)
+    {
+        ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
         Touch();
     }
 }

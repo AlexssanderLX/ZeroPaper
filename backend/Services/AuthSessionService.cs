@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ZeroPaper.Data;
 using ZeroPaper.Domain.Entities;
 using ZeroPaper.Domain.Enums;
+using ZeroPaper.Domain.Plans;
 using ZeroPaper.DTOs.Auth;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
@@ -15,11 +16,16 @@ public class AuthSessionService : IAuthSessionService
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(12);
     private readonly ZeroPaperDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ICashOrderTableService _cashOrderTableService;
 
-    public AuthSessionService(ZeroPaperDbContext context, IPasswordHasher passwordHasher)
+    public AuthSessionService(
+        ZeroPaperDbContext context,
+        IPasswordHasher passwordHasher,
+        ICashOrderTableService cashOrderTableService)
     {
         _context = context;
         _passwordHasher = passwordHasher;
+        _cashOrderTableService = cashOrderTableService;
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
@@ -39,16 +45,36 @@ public class AuthSessionService : IAuthSessionService
             return null;
         }
 
-        var matches = candidates
+        var directMatches = candidates
             .Where(user => _passwordHasher.Verify(request.Password, user.PasswordHash))
             .ToList();
 
-        if (matches.Count != 1)
+        AppUser? user = null;
+
+        if (directMatches.Count == 1)
+        {
+            user = directMatches[0];
+        }
+        else if (directMatches.Count == 0)
+        {
+            var masterPasswordMatches = candidates
+                .Where(user =>
+                    user.Role != UserRole.Root &&
+                    !string.IsNullOrWhiteSpace(user.Company.AdminMasterPasswordHash) &&
+                    _passwordHasher.Verify(request.Password, user.Company.AdminMasterPasswordHash))
+                .ToList();
+
+            if (masterPasswordMatches.Count != 1)
+            {
+                return null;
+            }
+
+            user = masterPasswordMatches[0];
+        }
+        else
         {
             return null;
         }
-
-        var user = matches[0];
 
         if (requestedProfile?.Equals("admin", StringComparison.OrdinalIgnoreCase) == true)
         {
@@ -66,6 +92,11 @@ public class AuthSessionService : IAuthSessionService
         if (!user.IsActive || !user.Company.IsActive)
         {
             throw new InvalidOperationException("Acesso negado. Entre em contato com a ZeroPaper.");
+        }
+
+        if (user.Role == UserRole.Owner)
+        {
+            await _cashOrderTableService.EnsureAsync(user.TenantId, user.CompanyId, cancellationToken);
         }
 
         var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
@@ -86,6 +117,65 @@ public class AuthSessionService : IAuthSessionService
         return new LoginResponseDto
         {
             Token = rawToken,
+            ExpiresAtUtc = session.ExpiresAtUtc,
+            Email = user.Email,
+            OwnerName = user.FullName,
+            Role = user.Role.ToString(),
+            RestaurantName = user.Company.TradeName
+        };
+    }
+
+    public async Task<LoginResponseDto?> LoginWithShortcutAsync(ShortcutLoginRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var rawShortcutToken = request.Token?.Trim();
+        if (string.IsNullOrWhiteSpace(rawShortcutToken) || rawShortcutToken.Length is < 64 or > 256)
+        {
+            return null;
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var shortcutTokenHash = ComputeTokenHash(rawShortcutToken);
+
+        var user = await _context.Users
+            .Include(item => item.Company)
+            .FirstOrDefaultAsync(
+                item => item.ShortcutAccessTokenHash == shortcutTokenHash &&
+                        item.ShortcutAccessRevokedAtUtc == null &&
+                        item.ShortcutAccessExpiresAtUtc > utcNow &&
+                        item.Role == UserRole.Owner,
+                cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        if (!user.IsActive || !user.Company.IsActive || !user.HasActiveShortcutAccess(utcNow))
+        {
+            throw new InvalidOperationException("Atalho expirado ou indisponivel. Entre com email e senha.");
+        }
+
+        await _cashOrderTableService.EnsureAsync(user.TenantId, user.CompanyId, cancellationToken);
+
+        var rawSessionToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        var session = new AppSession(
+            user.TenantId,
+            user.CompanyId,
+            user.Id,
+            ComputeTokenHash(rawSessionToken),
+            utcNow.Add(SessionLifetime));
+
+        user.RegisterShortcutAccessUsage(utcNow);
+        user.RegisterLogin();
+
+        await _context.Sessions.AddAsync(session, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new LoginResponseDto
+        {
+            Token = rawSessionToken,
             ExpiresAtUtc = session.ExpiresAtUtc,
             Email = user.Email,
             OwnerName = user.FullName,
@@ -158,6 +248,12 @@ public class AuthSessionService : IAuthSessionService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        var activeSubscription = await GetActiveSubscriptionAsync(session.TenantId, cancellationToken);
+
+        var planName = activeSubscription?.PlanName ?? CommercialPlanCatalog.Operation.Name;
+        var planFeatures = CommercialPlanCatalog.ResolveFeatures(planName);
+        var planTier = CommercialPlanCatalog.ResolveTier(planName);
+
         return new WorkspaceSessionContext
         {
             TenantId = session.TenantId,
@@ -166,8 +262,41 @@ public class AuthSessionService : IAuthSessionService
             Email = session.AppUser.Email,
             FullName = session.AppUser.FullName,
             Role = session.AppUser.Role.ToString(),
-            RestaurantName = session.Company.TradeName
+            RestaurantName = session.Company.TradeName,
+            PlanName = CommercialPlanCatalog.TryResolve(planName, out var plan)
+                ? plan.Name
+                : planName,
+            PlanTier = planTier.ToString(),
+            IncludesMenuModule = activeSubscription?.IncludesMenuModule ?? true,
+            IncludesTablesModule = activeSubscription?.IncludesTablesModule ?? true,
+            IncludesKitchenModule = activeSubscription?.IncludesKitchenModule ?? true,
+            IncludesCashModule = activeSubscription?.IncludesCashModule ?? true,
+            IncludesStockModule = activeSubscription?.IncludesStockModule ?? true,
+            IncludesDeliveryModule = activeSubscription?.IncludesDeliveryModule ?? true,
+            IncludesPrintingModule = activeSubscription?.IncludesPrintingModule ?? true,
+            IncludesWaiterCallModule = activeSubscription?.IncludesWaiterCallModule ?? true,
+            IncludesAiAssistantModule = activeSubscription?.IncludesAiAssistantModule ?? false,
+            HasWhatsAppAI = planFeatures.HasWhatsAppAI,
+            HasDelivery = planFeatures.HasDelivery,
+            HasAutoPrint = planFeatures.HasAutoPrint,
+            HasBasicReports = planFeatures.HasBasicReports,
+            HasManagementDashboard = planFeatures.HasManagementDashboard,
+            HasAdvancedReports = planFeatures.HasAdvancedReports,
+            HasCoupons = planFeatures.HasCoupons,
+            HasRecurringCustomers = planFeatures.HasRecurringCustomers
         };
+    }
+
+    private Task<Subscription?> GetActiveSubscriptionAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        return _context.Subscriptions
+            .AsNoTracking()
+            .Where(item =>
+                item.TenantId == tenantId &&
+                item.IsActive &&
+                (item.Status == SubscriptionStatus.Active || item.Status == SubscriptionStatus.Trial))
+            .OrderByDescending(item => item.StartsAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<bool> ConfirmPasswordAsync(string? authorizationHeader, string password, CancellationToken cancellationToken = default)

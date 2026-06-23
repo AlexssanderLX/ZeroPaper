@@ -21,7 +21,28 @@ public class PublicAccessRequestsController : ControllerBase
     [ProducesResponseType(typeof(AccessRequestResponseDto), StatusCodes.Status202Accepted)]
     public async Task<IActionResult> CreateAsync([FromBody] AccessRequestDto request, CancellationToken cancellationToken)
     {
-        var response = await _accessRequestNotificationService.SendAsync(request, cancellationToken);
-        return Accepted(response);
+        try
+        {
+            var response = await _accessRequestNotificationService.SendAsync(request, cancellationToken);
+            return Accepted(response);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+            {
+                Title = "Envio indisponivel",
+                Detail = exception.Message,
+                Status = StatusCodes.Status503ServiceUnavailable
+            });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Dados invalidos",
+                Detail = exception.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
     }
 }

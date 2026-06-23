@@ -17,6 +17,11 @@ public class LoginResponseDto
     public string RestaurantName { get; set; } = string.Empty;
 }
 
+public class ShortcutLoginRequestDto
+{
+    public string Token { get; set; } = string.Empty;
+}
+
 public class PasswordResetRequestDto
 {
     public string Email { get; set; } = string.Empty;

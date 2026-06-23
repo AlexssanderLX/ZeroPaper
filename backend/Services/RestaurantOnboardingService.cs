@@ -5,7 +5,9 @@ using System.Text;
 using ZeroPaper.Data;
 using ZeroPaper.Domain.Entities;
 using ZeroPaper.Domain.Enums;
+using ZeroPaper.Domain.Plans;
 using ZeroPaper.DTOs.Onboarding;
+using ZeroPaper.DTOs.Public;
 using ZeroPaper.Repositories.Interfaces;
 using ZeroPaper.Services.Interfaces;
 
@@ -21,6 +23,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
     private readonly IQrCodeAccessRepository _qrCodeAccessRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IAccessRequestNotificationService _accessRequestNotificationService;
+    private readonly ICashOrderTableService _cashOrderTableService;
 
     public RestaurantOnboardingService(
         ZeroPaperDbContext context,
@@ -30,7 +34,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         ISubscriptionRepository subscriptionRepository,
         IQrCodeAccessRepository qrCodeAccessRepository,
         IUnitOfWork unitOfWork,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        IAccessRequestNotificationService accessRequestNotificationService,
+        ICashOrderTableService cashOrderTableService)
     {
         _context = context;
         _tenantRepository = tenantRepository;
@@ -40,13 +46,17 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         _qrCodeAccessRepository = qrCodeAccessRepository;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _accessRequestNotificationService = accessRequestNotificationService;
+        _cashOrderTableService = cashOrderTableService;
     }
 
     public async Task<RestaurantOnboardingResponseDto> CreateAsync(
         RestaurantOnboardingRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var signupCode = await ValidateSignupCodeAsync(request.AccessCode, request.OwnerEmail, cancellationToken);
+        var signupCode = string.IsNullOrWhiteSpace(request.AccessCode)
+            ? null
+            : await ValidateSignupCodeAsync(request.AccessCode, request.OwnerEmail, cancellationToken);
         var tenantIdentifier = await EnsureUniqueTenantIdentifierAsync(
             request.TenantIdentifier ?? request.RestaurantName,
             cancellationToken);
@@ -74,13 +84,23 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             _passwordHasher.Hash(request.OwnerPassword),
             UserRole.Owner);
 
+        if (signupCode is null)
+        {
+            owner.Deactivate();
+        }
+
+        var requestedPlanName = signupCode?.AllowedPlanName ?? request.PlanName;
+        var selectedPlan = CommercialPlanCatalog.Resolve(requestedPlanName);
+        var maxUsers = signupCode?.AllowedMaxUsers ?? request.MaxUsers;
+
         var subscription = new Subscription(
             tenant.Id,
-            signupCode.AllowedPlanName ?? request.PlanName,
-            request.MonthlyPrice,
-            signupCode.AllowedMaxUsers ?? request.MaxUsers,
+            selectedPlan.Name,
+            selectedPlan.MonthlyPrice,
+            maxUsers,
             DateTime.UtcNow,
             SubscriptionStatus.Active);
+        subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
 
         var qrCodeAccess = new QrCodeAccess(
             tenant.Id,
@@ -95,10 +115,19 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         await _appUserRepository.AddAsync(owner, cancellationToken);
         await _subscriptionRepository.AddAsync(subscription, cancellationToken);
         await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
-        signupCode.RegisterUse(DateTime.UtcNow, request.OwnerEmail);
+        signupCode?.RegisterUse(DateTime.UtcNow, request.OwnerEmail);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        if (signupCode is null)
+        {
+            await NotifyPendingApprovalAsync(request, subscription, cancellationToken);
+        }
+        else
+        {
+            await _cashOrderTableService.EnsureAsync(tenant.Id, company.Id, cancellationToken);
+        }
 
         return new RestaurantOnboardingResponseDto
         {
@@ -106,8 +135,28 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             AccessSlug = company.AccessSlug,
             AccessUrl = $"/r/{company.AccessSlug}/menu",
             OwnerEmail = owner.Email,
-            PlanName = subscription.PlanName
+            PlanName = subscription.PlanName,
+            RequiresApproval = signupCode is null,
+            Message = signupCode is null
+                ? "Pre-cadastro enviado. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
+                : "Cadastro liberado."
         };
+    }
+
+    private Task<AccessRequestResponseDto> NotifyPendingApprovalAsync(
+        RestaurantOnboardingRequestDto request,
+        Subscription subscription,
+        CancellationToken cancellationToken)
+    {
+        return _accessRequestNotificationService.SendAsync(new AccessRequestDto
+        {
+            RestaurantName = request.RestaurantName,
+            LegalName = request.LegalName,
+            OwnerName = request.OwnerName,
+            OwnerEmail = request.OwnerEmail,
+            ContactPhone = request.ContactPhone,
+            Notes = $"Pre-cadastro criado e aguardando liberacao no painel admin. Plano escolhido: {subscription.PlanName} ({subscription.MonthlyPrice:C}/mes)."
+        }, cancellationToken);
     }
 
     private async Task<SignupCode> ValidateSignupCodeAsync(string rawCode, string ownerEmail, CancellationToken cancellationToken)

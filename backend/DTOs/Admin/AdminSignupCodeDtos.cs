@@ -20,9 +20,16 @@ public class SignupCodeDto
     public int UsedCount { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public DateTime? LastUsedAtUtc { get; set; }
 }
 
 public class CreateSignupCodeResponseDto : SignupCodeDto
 {
     public string RawCode { get; set; } = string.Empty;
+}
+
+public class CleanupSignupCodesResponseDto
+{
+    public int DeletedCount { get; set; }
+    public int RemainingCount { get; set; }
 }

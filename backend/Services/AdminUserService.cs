@@ -10,10 +10,12 @@ namespace ZeroPaper.Services;
 public class AdminUserService : IAdminUserService
 {
     private readonly ZeroPaperDbContext _context;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public AdminUserService(ZeroPaperDbContext context)
+    public AdminUserService(ZeroPaperDbContext context, IPasswordHasher passwordHasher)
     {
         _context = context;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<IReadOnlyList<AdminUserDto>> GetUsersAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
@@ -65,9 +67,10 @@ public class AdminUserService : IAdminUserService
         return users;
     }
 
-    public async Task<AdminUserDto> DeactivateUserAsync(WorkspaceSessionContext session, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<AdminUserDto> DeactivateUserAsync(WorkspaceSessionContext session, Guid userId, string password, CancellationToken cancellationToken = default)
     {
         EnsureRoot(session);
+        await ValidateRootPasswordAsync(session, password, cancellationToken);
 
         var user = await _context.Users
             .Include(item => item.Company)
@@ -90,9 +93,10 @@ public class AdminUserService : IAdminUserService
         return await GetUserByIdAsync(user.Id, cancellationToken);
     }
 
-    public async Task<AdminUserDto> ReactivateUserAsync(WorkspaceSessionContext session, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<AdminUserDto> ReactivateUserAsync(WorkspaceSessionContext session, Guid userId, string password, CancellationToken cancellationToken = default)
     {
         EnsureRoot(session);
+        await ValidateRootPasswordAsync(session, password, cancellationToken);
 
         var user = await _context.Users
             .Include(item => item.Company)
@@ -107,9 +111,10 @@ public class AdminUserService : IAdminUserService
         return await GetUserByIdAsync(user.Id, cancellationToken);
     }
 
-    public async Task DeleteUserAsync(WorkspaceSessionContext session, Guid userId, CancellationToken cancellationToken = default)
+    public async Task DeleteUserAsync(WorkspaceSessionContext session, Guid userId, string password, CancellationToken cancellationToken = default)
     {
         EnsureRoot(session);
+        await ValidateRootPasswordAsync(session, password, cancellationToken);
 
         var user = await _context.Users
             .Include(item => item.Sessions)
@@ -185,6 +190,27 @@ public class AdminUserService : IAdminUserService
         if (user.Role == UserRole.Root)
         {
             throw new InvalidOperationException("A conta root nao pode ser alterada por esta acao.");
+        }
+    }
+
+    private async Task ValidateRootPasswordAsync(
+        WorkspaceSessionContext session,
+        string password,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+
+        var currentUser = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                item => item.Id == session.UserId &&
+                        item.IsActive,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Conta root nao encontrada.");
+
+        if (currentUser.Role != UserRole.Root || !_passwordHasher.Verify(password, currentUser.PasswordHash))
+        {
+            throw new InvalidOperationException("Senha root incorreta.");
         }
     }
 }

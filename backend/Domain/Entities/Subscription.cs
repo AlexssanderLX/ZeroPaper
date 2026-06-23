@@ -1,10 +1,21 @@
 using ZeroPaper.Domain.Common;
 using ZeroPaper.Domain.Enums;
+using ZeroPaper.Domain.Plans;
 
 namespace ZeroPaper.Domain.Entities;
 
 public class Subscription : TenantOwnedEntity
 {
+    public const decimal MenuModulePrice = 9.90m;
+    public const decimal TablesModulePrice = 10.00m;
+    public const decimal KitchenModulePrice = 12.00m;
+    public const decimal CashModulePrice = 12.00m;
+    public const decimal StockModulePrice = 9.00m;
+    public const decimal DeliveryModulePrice = 10.00m;
+    public const decimal PrintingModulePrice = 8.00m;
+    public const decimal WaiterCallModulePrice = 9.00m;
+    public const decimal AiAssistantModulePrice = 40.00m;
+
     private Subscription()
     {
     }
@@ -25,6 +36,15 @@ public class Subscription : TenantOwnedEntity
     public string PlanName { get; private set; } = null!;
     public decimal MonthlyPrice { get; private set; }
     public int MaxUsers { get; private set; }
+    public bool IncludesMenuModule { get; private set; } = true;
+    public bool IncludesTablesModule { get; private set; } = true;
+    public bool IncludesKitchenModule { get; private set; } = true;
+    public bool IncludesCashModule { get; private set; } = true;
+    public bool IncludesStockModule { get; private set; } = true;
+    public bool IncludesDeliveryModule { get; private set; } = true;
+    public bool IncludesPrintingModule { get; private set; } = true;
+    public bool IncludesWaiterCallModule { get; private set; } = true;
+    public bool IncludesAiAssistantModule { get; private set; }
     public DateTime StartsAtUtc { get; private set; }
     public DateTime? EndsAtUtc { get; private set; }
     public SubscriptionStatus Status { get; private set; }
@@ -49,6 +69,47 @@ public class Subscription : TenantOwnedEntity
         MonthlyPrice = decimal.Round(monthlyPrice, 2);
         MaxUsers = maxUsers;
         Touch();
+    }
+
+    public void UpdateFeatureSet(
+        bool includesMenuModule,
+        bool includesTablesModule,
+        bool includesKitchenModule,
+        bool includesCashModule,
+        bool includesStockModule,
+        bool includesDeliveryModule,
+        bool includesPrintingModule,
+        bool includesWaiterCallModule,
+        bool includesAiAssistantModule)
+    {
+        IncludesMenuModule = includesMenuModule;
+        IncludesTablesModule = includesTablesModule;
+        IncludesKitchenModule = includesKitchenModule;
+        IncludesCashModule = includesCashModule;
+        IncludesStockModule = includesStockModule;
+        IncludesDeliveryModule = includesDeliveryModule;
+        IncludesPrintingModule = includesPrintingModule;
+        IncludesWaiterCallModule = includesWaiterCallModule;
+        IncludesAiAssistantModule = includesAiAssistantModule;
+        Touch();
+    }
+
+    public void ApplyCommercialPlan(CommercialPlanDefinition plan, int? maxUsers = null)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        UpdateFeatureSet(
+            plan.IncludesMenuModule,
+            plan.IncludesTablesModule,
+            plan.IncludesKitchenModule,
+            plan.IncludesCashModule,
+            plan.IncludesStockModule,
+            plan.IncludesDeliveryModule,
+            plan.IncludesPrintingModule,
+            plan.IncludesWaiterCallModule,
+            plan.IncludesAiAssistantModule);
+
+        ChangePlan(plan.Name, plan.MonthlyPrice, maxUsers.GetValueOrDefault(plan.DefaultMaxUsers));
     }
 
     public void Reactivate()

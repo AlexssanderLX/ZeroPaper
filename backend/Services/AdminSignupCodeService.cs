@@ -63,7 +63,47 @@ public class AdminSignupCodeService : IAdminSignupCodeService
             UsedCount = code.UsedCount,
             IsActive = code.IsActive,
             CreatedAtUtc = code.CreatedAtUtc,
+            LastUsedAtUtc = code.LastUsedAtUtc,
             RawCode = rawCode
+        };
+    }
+
+    public async Task DeleteSignupCodeAsync(WorkspaceSessionContext session, Guid codeId, CancellationToken cancellationToken = default)
+    {
+        EnsureRoot(session);
+
+        var code = await _context.SignupCodes
+            .FirstOrDefaultAsync(item => item.Id == codeId, cancellationToken)
+            ?? throw new KeyNotFoundException("Codigo nao encontrado.");
+
+        _context.SignupCodes.Remove(code);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<CleanupSignupCodesResponseDto> CleanupSignupCodesAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
+    {
+        EnsureRoot(session);
+
+        var utcNow = DateTime.UtcNow;
+        var removableCodes = await _context.SignupCodes
+            .Where(item =>
+                item.ExpiresAtUtc <= utcNow ||
+                !item.IsActive ||
+                item.UsedCount >= item.MaxUses)
+            .ToListAsync(cancellationToken);
+
+        if (removableCodes.Count > 0)
+        {
+            _context.SignupCodes.RemoveRange(removableCodes);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        var remainingCount = await _context.SignupCodes.CountAsync(cancellationToken);
+
+        return new CleanupSignupCodesResponseDto
+        {
+            DeletedCount = removableCodes.Count,
+            RemainingCount = remainingCount
         };
     }
 
@@ -88,7 +128,8 @@ public class AdminSignupCodeService : IAdminSignupCodeService
             MaxUses = code.MaxUses,
             UsedCount = code.UsedCount,
             IsActive = code.IsActive,
-            CreatedAtUtc = code.CreatedAtUtc
+            CreatedAtUtc = code.CreatedAtUtc,
+            LastUsedAtUtc = code.LastUsedAtUtc
         };
     }
 }
