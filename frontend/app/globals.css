@@ -19612,11 +19612,11 @@ select {
   z-index: 45;
   width: min(100%, 540px);
   min-height: var(--public-footer-height);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  gap: 2px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   border-top: 1px solid #e8ecef;
   background: rgba(255, 255, 255, 0.97);
@@ -19625,23 +19625,26 @@ select {
 }
 
 .public-order-floating-copy {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  display: contents;
 }
 
 .public-footer-tab {
-  min-height: 48px;
+  flex: 1 1 0;
+  min-height: 52px;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 3px;
+  padding: 6px 4px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: transparent;
   color: #707984;
+  font-size: 0.68rem;
   font-weight: 850;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .public-footer-tab.is-active {
@@ -19655,45 +19658,41 @@ select {
 }
 
 .public-footer-tab strong {
-  min-width: 20px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
   background: #1683d8;
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
 }
 
 .public-footer-tab svg {
   flex: 0 0 auto;
 }
 
-.public-order-floating-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .public-order-floating-total {
-  min-width: 92px;
+  flex: 0 0 auto;
+  min-width: 76px;
   display: grid;
   justify-items: end;
   text-align: right;
+  padding-left: 8px;
+  border-left: 1px solid #e8ecef;
+}
+
+.public-order-floating-total span {
+  color: #707984;
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
 .public-order-floating-total strong {
   color: #282c31;
   font-family: var(--font-body), sans-serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 950;
-}
-
-.public-order-floating-actions .button-link {
-  min-height: 48px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  white-space: nowrap;
 }
 
 .public-app-card .public-delivery-review-card,
@@ -20014,10 +20013,6 @@ select {
   .public-app-card .compact-public-product-image {
     width: 108px;
     height: 92px;
-  }
-
-  .public-order-floating-bar {
-    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .public-app-card .public-cart-line-row {

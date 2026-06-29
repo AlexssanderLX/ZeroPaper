@@ -1475,6 +1475,11 @@ export function PublicTableOrder({
                       aria-current={orderStage === "menu" ? "page" : undefined}
                       onClick={goBackToMenu}
                     >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="18" x2="15" y2="18" />
+                      </svg>
                       <span>Cardapio</span>
                     </button>
                     <button
@@ -1484,8 +1489,12 @@ export function PublicTableOrder({
                       onClick={goToCart}
                       disabled={totalUnits === 0}
                     >
-                      <span>Carrinho</span>
-                      {totalUnits > 0 ? <strong>{totalUnits}</strong> : null}
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                      </svg>
+                      <span>Carrinho {totalUnits > 0 ? <strong>{totalUnits}</strong> : null}</span>
                     </button>
                     <button
                       className={`public-footer-tab ${isCheckoutStage ? "is-active" : ""}`}
@@ -1494,6 +1503,9 @@ export function PublicTableOrder({
                       onClick={goToCheckout}
                       disabled={totalUnits === 0 || isOrderingClosed}
                     >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                       <span>Finalizar</span>
                     </button>
                     {canOpenCustomerProfile ? (
@@ -1503,7 +1515,7 @@ export function PublicTableOrder({
                         aria-current={isCustomerProfileOpen ? "page" : undefined}
                         onClick={() => setIsCustomerProfileOpen(true)}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
                         </svg>
                         <span>Perfil</span>
