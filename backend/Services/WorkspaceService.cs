@@ -1528,9 +1528,7 @@ public class WorkspaceService : IWorkspaceService
         }
 
         var orders = await _context.CustomerOrders
-            .Include(item => item.Items)
-                .ThenInclude(item => item.AdditionalSelections)
-            .Include(item => item.DiningTable)
+            .AsNoTracking()
             .Where(item =>
                 item.CompanyId == session.CompanyId &&
                 item.IsActive &&
@@ -1578,6 +1576,14 @@ public class WorkspaceService : IWorkspaceService
                     payments.Add(new CustomerOrderPayment(session.TenantId, order.Id, method, order.TotalAmount));
                 }
 
+                var paymentTotal = decimal.Round(payments.Sum(item => item.Amount), 2);
+                if (paymentTotal != order.TotalAmount)
+                {
+                    result.IgnoredCount++;
+                    result.IgnoredReasons.Add($"Pedido #{order.Number}: A soma dos pagamentos precisa bater com o total final do pedido.");
+                    continue;
+                }
+
                 paymentPlans.Add((order, payments));
                 result.MarkedCount++;
             }
@@ -1590,18 +1596,50 @@ public class WorkspaceService : IWorkspaceService
 
         if (result.MarkedCount > 0)
         {
-            var markedOrderIds = paymentPlans.Select(item => item.Order.Id).ToList();
+            var paidAtUtc = DateTime.UtcNow;
 
-            await _context.CustomerOrderPayments
-                .Where(item => markedOrderIds.Contains(item.CustomerOrderId))
-                .ExecuteDeleteAsync(cancellationToken);
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var paymentsToInsert = new List<CustomerOrderPayment>();
 
             foreach (var (order, payments) in paymentPlans)
             {
-                order.ReplacePayments(payments);
+                var paymentMethod = payments.Count == 1 ? payments[0].Method : PaymentMethod.Undefined;
+                var updatedRows = await _context.CustomerOrders
+                    .Where(item =>
+                        item.Id == order.Id &&
+                        item.CompanyId == session.CompanyId &&
+                        item.IsActive &&
+                        item.PaymentStatus != PaymentStatus.Paid &&
+                        item.Status != OrderStatus.Cancelled)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(item => item.PaymentStatus, PaymentStatus.Paid)
+                        .SetProperty(item => item.PaymentMethod, paymentMethod)
+                        .SetProperty(item => item.PaidAtUtc, paidAtUtc)
+                        .SetProperty(item => item.UpdatedAtUtc, paidAtUtc),
+                        cancellationToken);
+
+                if (updatedRows == 0)
+                {
+                    result.MarkedCount--;
+                    result.IgnoredCount++;
+                    result.IgnoredReasons.Add($"Pedido #{order.Number} ja estava pago ou cancelado.");
+                    continue;
+                }
+
+                await _context.CustomerOrderPayments
+                    .Where(item => item.CustomerOrderId == order.Id)
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                paymentsToInsert.AddRange(payments);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            if (paymentsToInsert.Count > 0)
+            {
+                await _context.CustomerOrderPayments.AddRangeAsync(paymentsToInsert, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
         }
 
         return result;
