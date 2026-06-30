@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using ZeroPaper.Data;
@@ -15,6 +16,8 @@ namespace ZeroPaper.Services;
 
 public class RestaurantOnboardingService : IRestaurantOnboardingService
 {
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SignupLocks = new(StringComparer.Ordinal);
+
     private readonly ZeroPaperDbContext _context;
     private readonly ITenantRepository _tenantRepository;
     private readonly ICompanyRepository _companyRepository;
@@ -54,81 +57,148 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         RestaurantOnboardingRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var signupCode = string.IsNullOrWhiteSpace(request.AccessCode)
-            ? null
-            : await ValidateSignupCodeAsync(request.AccessCode, request.OwnerEmail, cancellationToken);
-        var tenantIdentifier = await EnsureUniqueTenantIdentifierAsync(
-            request.TenantIdentifier ?? request.RestaurantName,
-            cancellationToken);
+        var normalizedOwnerEmail = NormalizeEmail(request.OwnerEmail);
+        var lockKey = normalizedOwnerEmail;
+        var signupLock = SignupLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
-        var tenant = new Tenant(request.RestaurantName, tenantIdentifier);
-
-        var accessSlug = await EnsureUniqueAccessSlugAsync(
-            tenant.Id,
-            request.AccessSlug ?? request.RestaurantName,
-            cancellationToken);
-
-        var company = new Company(
-            tenant.Id,
-            request.LegalName,
-            request.RestaurantName,
-            accessSlug,
-            contactPhone: request.ContactPhone,
-            contactEmail: request.OwnerEmail);
-
-        var owner = new AppUser(
-            tenant.Id,
-            company.Id,
-            request.OwnerName,
-            request.OwnerEmail,
-            _passwordHasher.Hash(request.OwnerPassword),
-            UserRole.Owner);
-
-        if (signupCode is null)
+        await signupLock.WaitAsync(cancellationToken);
+        try
         {
-            owner.Deactivate();
+            var existingSignup = await FindExistingSignupAsync(normalizedOwnerEmail, cancellationToken);
+            if (existingSignup is not null)
+            {
+                return existingSignup;
+            }
+
+            var signupCode = string.IsNullOrWhiteSpace(request.AccessCode)
+                ? null
+                : await ValidateSignupCodeAsync(request.AccessCode, normalizedOwnerEmail, cancellationToken);
+            var tenantIdentifier = await EnsureUniqueTenantIdentifierAsync(
+                request.TenantIdentifier ?? request.RestaurantName,
+                cancellationToken);
+
+            var tenant = new Tenant(request.RestaurantName, tenantIdentifier);
+
+            var accessSlug = await EnsureUniqueAccessSlugAsync(
+                tenant.Id,
+                request.AccessSlug ?? request.RestaurantName,
+                cancellationToken);
+
+            var company = new Company(
+                tenant.Id,
+                request.LegalName,
+                request.RestaurantName,
+                accessSlug,
+                contactPhone: request.ContactPhone,
+                contactEmail: normalizedOwnerEmail);
+
+            var owner = new AppUser(
+                tenant.Id,
+                company.Id,
+                request.OwnerName,
+                normalizedOwnerEmail,
+                _passwordHasher.Hash(request.OwnerPassword),
+                UserRole.Owner);
+
+            if (signupCode is null)
+            {
+                owner.Deactivate();
+            }
+
+            var requestedPlanName = signupCode?.AllowedPlanName ?? request.PlanName;
+            var selectedPlan = CommercialPlanCatalog.Resolve(requestedPlanName);
+            var maxUsers = signupCode?.AllowedMaxUsers ?? request.MaxUsers;
+
+            var subscription = new Subscription(
+                tenant.Id,
+                selectedPlan.Name,
+                selectedPlan.MonthlyPrice,
+                maxUsers,
+                DateTime.UtcNow,
+                SubscriptionStatus.Active);
+            subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
+
+            var qrCodeAccess = new QrCodeAccess(
+                tenant.Id,
+                company.Id,
+                "Entrada principal do restaurante",
+                $"/r/{accessSlug}/menu");
+
+            await using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            await _tenantRepository.AddAsync(tenant, cancellationToken);
+            await _companyRepository.AddAsync(company, cancellationToken);
+            await _appUserRepository.AddAsync(owner, cancellationToken);
+            await _subscriptionRepository.AddAsync(subscription, cancellationToken);
+            await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
+            signupCode?.RegisterUse(DateTime.UtcNow, normalizedOwnerEmail);
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            if (signupCode is null)
+            {
+                await NotifyPendingApprovalAsync(request, subscription, cancellationToken);
+            }
+            else
+            {
+                await _cashOrderTableService.EnsureAsync(tenant.Id, company.Id, cancellationToken);
+            }
+
+            return BuildResponse(tenant, company, owner, subscription, signupCode is null);
+        }
+        finally
+        {
+            signupLock.Release();
+            if (signupLock.CurrentCount == 1)
+            {
+                SignupLocks.TryRemove(lockKey, out _);
+            }
+        }
+    }
+
+    private async Task<RestaurantOnboardingResponseDto?> FindExistingSignupAsync(string ownerEmail, CancellationToken cancellationToken)
+    {
+        var owner = await _context.Users
+            .AsNoTracking()
+            .Include(item => item.Company)
+            .Include(item => item.Tenant)
+            .Where(item => item.Role == UserRole.Owner && item.Email == ownerEmail && item.Company.IsActive)
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (owner is null)
+        {
+            return null;
         }
 
-        var requestedPlanName = signupCode?.AllowedPlanName ?? request.PlanName;
-        var selectedPlan = CommercialPlanCatalog.Resolve(requestedPlanName);
-        var maxUsers = signupCode?.AllowedMaxUsers ?? request.MaxUsers;
+        var subscription = await _context.Subscriptions
+            .AsNoTracking()
+            .Where(item => item.TenantId == owner.TenantId)
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var subscription = new Subscription(
-            tenant.Id,
-            selectedPlan.Name,
-            selectedPlan.MonthlyPrice,
-            maxUsers,
-            DateTime.UtcNow,
-            SubscriptionStatus.Active);
-        subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
-
-        var qrCodeAccess = new QrCodeAccess(
-            tenant.Id,
-            company.Id,
-            "Entrada principal do restaurante",
-            $"/r/{accessSlug}/menu");
-
-        await using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-        await _tenantRepository.AddAsync(tenant, cancellationToken);
-        await _companyRepository.AddAsync(company, cancellationToken);
-        await _appUserRepository.AddAsync(owner, cancellationToken);
-        await _subscriptionRepository.AddAsync(subscription, cancellationToken);
-        await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
-        signupCode?.RegisterUse(DateTime.UtcNow, request.OwnerEmail);
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        if (signupCode is null)
+        return new RestaurantOnboardingResponseDto
         {
-            await NotifyPendingApprovalAsync(request, subscription, cancellationToken);
-        }
-        else
-        {
-            await _cashOrderTableService.EnsureAsync(tenant.Id, company.Id, cancellationToken);
-        }
+            TenantIdentifier = owner.Tenant.Identifier,
+            AccessSlug = owner.Company.AccessSlug,
+            AccessUrl = $"/r/{owner.Company.AccessSlug}/menu",
+            OwnerEmail = owner.Email,
+            PlanName = subscription?.PlanName ?? string.Empty,
+            RequiresApproval = !owner.IsActive,
+            Message = owner.IsActive
+                ? "Cadastro ja existe e esta liberado para login."
+                : "Pre-cadastro ja recebido. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
+        };
+    }
 
+    private static RestaurantOnboardingResponseDto BuildResponse(
+        Tenant tenant,
+        Company company,
+        AppUser owner,
+        Subscription subscription,
+        bool requiresApproval)
+    {
         return new RestaurantOnboardingResponseDto
         {
             TenantIdentifier = tenant.Identifier,
@@ -136,8 +206,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             AccessUrl = $"/r/{company.AccessSlug}/menu",
             OwnerEmail = owner.Email,
             PlanName = subscription.PlanName,
-            RequiresApproval = signupCode is null,
-            Message = signupCode is null
+            RequiresApproval = requiresApproval,
+            Message = requiresApproval
                 ? "Pre-cadastro enviado. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
                 : "Cadastro liberado."
         };
@@ -239,4 +309,11 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             Encoding.UTF8.GetBytes(SignupCode.NormalizeRawCode(rawCode))));
     }
+
+    private static string NormalizeEmail(string email)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        return email.Trim().ToLowerInvariant();
+    }
+
 }
