@@ -1531,7 +1531,6 @@ public class WorkspaceService : IWorkspaceService
             .Include(item => item.Items)
                 .ThenInclude(item => item.AdditionalSelections)
             .Include(item => item.DiningTable)
-            .Include(item => item.Payments)
             .Where(item =>
                 item.CompanyId == session.CompanyId &&
                 item.IsActive &&
@@ -1540,6 +1539,7 @@ public class WorkspaceService : IWorkspaceService
 
         var result = new MarkAllOrdersPaidResultDto();
         var orderLookup = orders.ToDictionary(item => item.Id);
+        var paymentPlans = new List<(CustomerOrder Order, List<CustomerOrderPayment> Payments)>();
 
         foreach (var requestOrder in requestedOrders.Values)
         {
@@ -1572,15 +1572,13 @@ public class WorkspaceService : IWorkspaceService
 
                     if (method == PaymentMethod.Undefined)
                     {
-                        result.IgnoredCount++;
-                        result.IgnoredReasons.Add($"Pedido #{order.Number} nao tem forma de pagamento definida.");
-                        continue;
+                        method = PaymentMethod.Cash;
                     }
 
                     payments.Add(new CustomerOrderPayment(session.TenantId, order.Id, method, order.TotalAmount));
                 }
 
-                order.ReplacePayments(payments);
+                paymentPlans.Add((order, payments));
                 result.MarkedCount++;
             }
             catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or ArgumentNullException)
@@ -1592,6 +1590,17 @@ public class WorkspaceService : IWorkspaceService
 
         if (result.MarkedCount > 0)
         {
+            var markedOrderIds = paymentPlans.Select(item => item.Order.Id).ToList();
+
+            await _context.CustomerOrderPayments
+                .Where(item => markedOrderIds.Contains(item.CustomerOrderId))
+                .ExecuteDeleteAsync(cancellationToken);
+
+            foreach (var (order, payments) in paymentPlans)
+            {
+                order.ReplacePayments(payments);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
         }
 
