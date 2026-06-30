@@ -743,11 +743,13 @@ export function AdminSignupCodeManager() {
       }
 
       if (sensitiveAction.type === "delete-company" || sensitiveAction.type === "reject-signup") {
-        const typedName = normalizeAdminConfirmation(hardDeleteConfirmationText);
-        const expectedName = normalizeAdminConfirmation(sensitiveAction.company.restaurantName);
-        if (typedName !== expectedName) {
-          setConfirmErrorMessage(`Digite o nome da empresa: ${sensitiveAction.company.restaurantName}`);
-          return;
+        if (sensitiveAction.type === "delete-company") {
+          const typedName = normalizeAdminConfirmation(hardDeleteConfirmationText);
+          const expectedName = normalizeAdminConfirmation(sensitiveAction.company.restaurantName);
+          if (typedName !== expectedName) {
+            setConfirmErrorMessage(`Digite o nome da empresa: ${sensitiveAction.company.restaurantName}`);
+            return;
+          }
         }
 
         setProcessingKey(`company:${sensitiveAction.company.companyId}`);
@@ -1702,7 +1704,7 @@ export function AdminSignupCodeManager() {
                 </div>
               ) : null}
 
-              {sensitiveAction.type === "delete-company" || sensitiveAction.type === "reject-signup" ? (
+              {sensitiveAction.type === "delete-company" ? (
                 <div className="module-empty-state">
                   <strong>Confirmacao da empresa</strong>
                   <p>
@@ -1743,7 +1745,7 @@ export function AdminSignupCodeManager() {
                   type="submit"
                   disabled={
                     confirmingSensitiveAction ||
-                    ((sensitiveAction.type === "delete-company" || sensitiveAction.type === "reject-signup") &&
+                    (sensitiveAction.type === "delete-company" &&
                       normalizeAdminConfirmation(hardDeleteConfirmationText) !== normalizeAdminConfirmation(sensitiveAction.company.restaurantName))
                   }
                 >
