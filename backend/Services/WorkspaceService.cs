@@ -180,7 +180,8 @@ public class WorkspaceService : IWorkspaceService
             HasManagementDashboard = session.HasManagementDashboard,
             HasAdvancedReports = session.HasAdvancedReports,
             HasCoupons = session.HasCoupons,
-            HasRecurringCustomers = session.HasRecurringCustomers
+            HasRecurringCustomers = session.HasRecurringCustomers,
+            HasSalesAgents = session.HasSalesAgents
         };
     }
 
@@ -1439,6 +1440,7 @@ public class WorkspaceService : IWorkspaceService
     public async Task<IReadOnlyList<CustomerOrderHistoryDto>> GetCustomerOrderHistoryAsync(
         WorkspaceSessionContext session,
         string phoneNumber,
+        int? limit = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedPhone = NormalizeCustomerProfilePhone(phoneNumber);
@@ -1455,6 +1457,8 @@ public class WorkspaceService : IWorkspaceService
             throw new KeyNotFoundException("Cliente nao encontrado.");
         }
 
+        var take = Math.Clamp(limit.GetValueOrDefault(50), 1, 50);
+
         return await _context.CustomerOrderHistories
             .AsNoTracking()
             .Include(item => item.Items)
@@ -1462,7 +1466,7 @@ public class WorkspaceService : IWorkspaceService
                            item.CustomerProfileId == profileId &&
                            item.IsActive)
             .OrderByDescending(item => item.CreatedAtUtc)
-            .Take(50)
+            .Take(take)
             .Select(item => new CustomerOrderHistoryDto
             {
                 OrderId = item.OrderId,
@@ -1555,7 +1559,7 @@ public class WorkspaceService : IWorkspaceService
 
             try
             {
-                var payments = requestOrder.Payments
+                var payments = (requestOrder.Payments ?? [])
                     .Where(item => item.Amount > 0)
                     .Select(item => new CustomerOrderPayment(session.TenantId, order.Id, ParsePaymentMethod(item.Method), item.Amount))
                     .ToList();
@@ -1579,7 +1583,7 @@ public class WorkspaceService : IWorkspaceService
                 order.ReplacePayments(payments);
                 result.MarkedCount++;
             }
-            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or ArgumentNullException)
             {
                 result.IgnoredCount++;
                 result.IgnoredReasons.Add($"Pedido #{order.Number}: {exception.Message}");
@@ -2470,6 +2474,36 @@ public class WorkspaceService : IWorkspaceService
             cancellationToken);
     }
 
+    public async Task<CustomerOrderDto> CreateSellerLinkOrderAsync(
+        Guid salesAgentId,
+        Guid tenantId,
+        Guid companyId,
+        CreateCustomerOrderRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var cashTable = await _cashOrderTableService.EnsureAsync(tenantId, companyId, cancellationToken);
+
+        return await CreateOrderForTableAsync(
+            cashTable,
+            request.CustomerName,
+            request.Notes,
+            request.DeliveryPhone,
+            request.DeliveryAddress,
+            request.DeliveryNumber,
+            request.DeliveryNeighborhood,
+            request.DeliveryComplement,
+            request.DeliveryPostalCode,
+            request.FulfillmentType,
+            request.Items,
+            request.MenuSelections,
+            ParsePaymentMethodOrDefault(request.PaymentMethod),
+            request.CouponCode,
+            cancellationToken,
+            salesAgentId);
+    }
+
     public async Task<DeliveryFreightQuoteDto> QuotePublicDeliveryFreightAsync(
         string publicCode,
         DeliveryFreightQuoteRequestDto request,
@@ -2622,6 +2656,92 @@ public class WorkspaceService : IWorkspaceService
             DeliveryPostalCode = lastOrderWasPickup ? null : lastOrder.DeliveryPostalCode,
             LastOrderAtUtc = lastOrder.SubmittedAtUtc,
             Message = $"Usamos os dados do seu ultimo pedido em {lastOrder.SubmittedAtUtc.ToString("dd/MM/yyyy", PtBrCulture)}. Confira o endereco e altere se precisar."
+        };
+    }
+
+    public async Task<PublicCustomerProfileDto> GetPublicCustomerProfileAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await _deliveryCustomerLinkService.TryReadShortCodeAsync(code, cancellationToken);
+        if (payload is null)
+        {
+            return new PublicCustomerProfileDto
+            {
+                Found = false,
+                Message = "Perfil do cliente nao encontrado ou link invalido."
+            };
+        }
+
+        var normalizedPhone = DeliveryCustomerProfile.NormalizePhone(payload.Phone);
+        var profile = await _context.DeliveryCustomerProfiles
+            .AsNoTracking()
+            .Include(item => item.Company)
+            .FirstOrDefaultAsync(
+                item =>
+                    item.CompanyId == payload.CompanyId &&
+                    item.Phone == normalizedPhone &&
+                    item.IsActive &&
+                    item.Company.IsActive,
+                cancellationToken);
+
+        if (profile is null)
+        {
+            return new PublicCustomerProfileDto
+            {
+                Found = false,
+                Message = "Perfil do cliente nao encontrado ou link invalido."
+            };
+        }
+
+        var recentHistory = await _context.CustomerOrderHistories
+            .AsNoTracking()
+            .Include(item => item.Items)
+            .Where(item =>
+                item.CompanyId == profile.CompanyId &&
+                item.CustomerProfileId == profile.Id &&
+                item.IsActive)
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var orderIds = recentHistory.Select(item => item.OrderId).ToList();
+        var orders = await _context.CustomerOrders
+            .AsNoTracking()
+            .Include(item => item.DiningTable)
+            .Include(item => item.Items)
+            .Where(item =>
+                item.CompanyId == profile.CompanyId &&
+                item.IsActive &&
+                orderIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+
+        var recentOrders = recentHistory
+            .Select(history =>
+            {
+                orders.TryGetValue(history.OrderId, out var order);
+                return MapPublicCustomerRecentOrder(history, order);
+            })
+            .ToList();
+
+        return new PublicCustomerProfileDto
+        {
+            Found = true,
+            CustomerName = profile.CustomerName,
+            MaskedPhone = MaskCustomerPhone(profile.Phone),
+            PrimaryAddress = MapPublicCustomerPrimaryAddress(profile),
+            BusinessName = profile.Company.TradeName,
+            BusinessSlug = profile.Company.AccessSlug,
+            CanEditProfile = false,
+            CanReorder = false,
+            HasActiveOrder = recentOrders.Any(item =>
+                string.Equals(item.Status, OrderStatus.Pending.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(item.Status, OrderStatus.InKitchen.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(item.Status, OrderStatus.Ready.ToString(), StringComparison.OrdinalIgnoreCase)),
+            RecentOrders = recentOrders,
+            Message = recentOrders.Count == 0
+                ? "Perfil localizado. Ainda nao ha pedidos recentes para exibir."
+                : "Perfil localizado."
         };
     }
 
@@ -2816,7 +2936,8 @@ public class WorkspaceService : IWorkspaceService
         List<MenuOrderSelectionDto> menuSelections,
         PaymentMethod paymentMethod,
         string? couponCode,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Guid? salesAgentId = null)
     {
         var resolvedFulfillmentType = ResolveFulfillmentType(table, fulfillmentType);
         var isPickupOrder = resolvedFulfillmentType == FulfillmentTypePickup;
@@ -2879,7 +3000,8 @@ public class WorkspaceService : IWorkspaceService
             orderItems,
             paymentMethod,
             couponCode,
-            cancellationToken);
+            cancellationToken,
+            salesAgentId);
 
         await UpsertDeliveryCustomerProfileAsync(order, deliveryNeighborhood, cancellationToken);
         var publicDeliveryCustomerUrl = await BuildPublicDeliveryCustomerUrlAsync(order, cancellationToken);
@@ -3511,7 +3633,8 @@ public class WorkspaceService : IWorkspaceService
         List<OrderItem> orderItems,
         PaymentMethod paymentMethod,
         string? couponCode,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Guid? salesAgentId = null)
     {
         var company = await _context.Companies
             .FirstOrDefaultAsync(
@@ -3560,6 +3683,11 @@ public class WorkspaceService : IWorkspaceService
             itemsSubtotal,
             incrementUsage: true,
             cancellationToken);
+
+        if (salesAgentId.HasValue)
+        {
+            order.SetSalesAgent(salesAgentId.Value, Domain.Enums.SalesOrigin.SellerLink);
+        }
 
         if (!company.EnableAutomaticPrinting)
         {
@@ -4485,6 +4613,75 @@ public class WorkspaceService : IWorkspaceService
             UpdatedAtUtc = profile.UpdatedAtUtc,
             LastOrderAtUtc = profile.LastOrderAtUtc
         };
+    }
+
+    private static PublicCustomerPrimaryAddressDto? MapPublicCustomerPrimaryAddress(DeliveryCustomerProfile profile)
+    {
+        if (string.IsNullOrWhiteSpace(profile.DeliveryAddress) &&
+            string.IsNullOrWhiteSpace(profile.DeliveryNumber) &&
+            string.IsNullOrWhiteSpace(profile.DeliveryNeighborhood) &&
+            string.IsNullOrWhiteSpace(profile.DeliveryComplement) &&
+            string.IsNullOrWhiteSpace(profile.DeliveryPostalCode))
+        {
+            return null;
+        }
+
+        return new PublicCustomerPrimaryAddressDto
+        {
+            Street = profile.DeliveryAddress,
+            Number = profile.DeliveryNumber,
+            Neighborhood = profile.DeliveryNeighborhood,
+            Complement = profile.DeliveryComplement,
+            ZipCode = profile.DeliveryPostalCode
+        };
+    }
+
+    private static PublicCustomerRecentOrderDto MapPublicCustomerRecentOrder(
+        CustomerOrderHistory history,
+        CustomerOrder? order)
+    {
+        var items = order is not null
+            ? order.Items
+                .OrderBy(item => item.CreatedAtUtc)
+                .Select(item => new PublicCustomerRecentOrderItemDto
+                {
+                    Name = item.Name,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Total = item.TotalPrice
+                })
+                .ToList()
+            : history.Items
+                .OrderBy(item => item.CreatedAtUtc)
+                .Select(item => new PublicCustomerRecentOrderItemDto
+                {
+                    Name = item.ItemName,
+                    Quantity = item.Quantity
+                })
+                .ToList();
+
+        return new PublicCustomerRecentOrderDto
+        {
+            OrderNumber = order?.Number,
+            DisplayCode = order is null ? null : $"#{order.Number}",
+            CreatedAt = AsUtc(order?.SubmittedAtUtc ?? history.CreatedAtUtc),
+            Status = order?.Status.ToString() ?? "Recorded",
+            Total = order?.TotalAmount ?? history.TotalAmount,
+            FulfillmentType = order is null ? FulfillmentTypeDelivery : ResolveFulfillmentType(order),
+            Items = items
+        };
+    }
+
+    private static string MaskCustomerPhone(string phone)
+    {
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.Length <= 4)
+        {
+            return "****";
+        }
+
+        var lastDigits = digits[^4..];
+        return $"********{lastDigits}";
     }
 
     private CustomerOrderDto MapOrder(
