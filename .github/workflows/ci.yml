@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'NuGet.Config', 'backend/ZeroPaper.csproj', 'tools/TestOps/TestOps.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore backend
+        run: dotnet restore backend/ZeroPaper.csproj
+
+      - name: Build backend
+        run: dotnet build backend/ZeroPaper.csproj --configuration Release --no-restore
+
+      - name: Run .NET tests when present
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t test_projects < <(
+            find backend tools \
+              -path '*/bin' -prune -o \
+              -path '*/obj' -prune -o \
+              -name '*.csproj' -print |
+            while IFS= read -r project; do
+              if grep -Eq 'Microsoft.NET.Test.Sdk|xunit|NUnit|MSTest' "$project"; then
+                printf '%s\n' "$project"
+              fi
+            done
+          )
+
+          if [ "${#test_projects[@]}" -eq 0 ]; then
+            echo "No .NET test projects found. Skipping dotnet test."
+            exit 0
+          fi
+
+          for project in "${test_projects[@]}"; do
+            dotnet test "$project" --configuration Release --no-restore --no-build
+          done
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend lint when script exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if npm pkg get scripts.lint | grep -qv '^{}$'; then
+            npm run lint
+          else
+            echo "No frontend lint script found. Skipping."
+          fi
+
+      - name: Run frontend typecheck when script exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if npm pkg get scripts.typecheck | grep -qv '^{}$'; then
+            npm run typecheck
+          else
+            echo "No frontend typecheck script found. Skipping."
+          fi
+
+      - name: Build frontend
+        run: npm run build
+
+  print-agent:
+    name: Print Agent (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-print-agent-${{ hashFiles('global.json', 'NuGet.Config', 'tools/ZeroPaper.PrintAgent/ZeroPaper.PrintAgent.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-print-agent-
+
+      - name: Restore print agent
+        run: dotnet restore tools/ZeroPaper.PrintAgent/ZeroPaper.PrintAgent.csproj
+
+      - name: Build print agent
+        run: dotnet build tools/ZeroPaper.PrintAgent/ZeroPaper.PrintAgent.csproj --configuration Release --no-restore
