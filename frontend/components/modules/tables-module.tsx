@@ -1,26 +1,30 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { APP_BASE_URL, createTable, deleteTableAlertSound, getTables, updateTable, uploadTableAlertSound, type DiningTable } from "@/lib/api";
 import { handleApiError, type AsyncVoid } from "@/components/modules/module-utils";
 
 export function TablesModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [qrModalTableId, setQrModalTableId] = useState("");
-  const [printFrameSrc, setPrintFrameSrc] = useState("");
   const [editingTableId, setEditingTableId] = useState("");
   const [name, setName] = useState("");
   const [seats, setSeats] = useState("4");
+  const [comandaLabel, setComandaLabel] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editSeats, setEditSeats] = useState("4");
+  const [editComandaLabel, setEditComandaLabel] = useState("");
   const [copiedTableId, setCopiedTableId] = useState("");
   const [downloadingTableId, setDownloadingTableId] = useState("");
   const [uploadingSoundTableId, setUploadingSoundTableId] = useState("");
   const [removingSoundTableId, setRemovingSoundTableId] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const formCardRef = useRef<HTMLElement | null>(null);
 
   async function loadTables() {
     setLoading(true);
@@ -60,23 +64,30 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
     return `https://api.qrserver.com/v1/create-qr-code/?size=1200x1200&margin=24&format=png&data=${encodeURIComponent(buildAbsoluteAccessUrl(accessUrl))}`;
   }
 
+  function escapeHtml(value: string) {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
   function replaceTableInState(nextTable: DiningTable) {
     setTables((currentValue) => currentValue.map((table) => (table.id === nextTable.id ? nextTable : table)));
   }
 
-  function resetTableEditor() {
-    setEditingTableId("");
+  function resetCreateForm() {
     setName("");
     setSeats("4");
+    setComandaLabel("");
   }
 
-  function scrollToForm() {
-    requestAnimationFrame(() => {
-      formCardRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
+  function resetTableEditor() {
+    setEditingTableId("");
+    setEditName("");
+    setEditSeats("4");
+    setEditComandaLabel("");
   }
 
   async function handleCopyLink(accessUrl: string, tableId: string, message = "Link copiado.") {
@@ -116,13 +127,159 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
     }
   }
 
-  function handlePrintQr(table: DiningTable) {
+  async function handlePrintQr(table: DiningTable) {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const printUrl = new URL(`/imprimir/mesa/${table.publicCode}`, window.location.origin);
-    printUrl.searchParams.set("job", String(Date.now()));
-    setPrintFrameSrc(printUrl.toString());
+    const printWindow = window.open("", `zeropaper-qr-${table.id}`, "width=420,height=640");
+
+    if (!printWindow) {
+      setErrorMessage("O navegador bloqueou a janela de impressao. Libere pop-ups para continuar.");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Preparando QR</title>
+          <style>
+            body {
+              margin: 0;
+              min-height: 100vh;
+              display: grid;
+              place-items: center;
+              background: #f6efe7;
+              color: #231915;
+              font-family: Georgia, "Times New Roman", serif;
+            }
+
+            p {
+              margin: 0;
+              font-size: 18px;
+            }
+          </style>
+        </head>
+        <body>
+          <p>Preparando arquivo de impressao...</p>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    try {
+      const qrDataUrl = await QRCode.toDataURL(buildAbsoluteAccessUrl(table.accessUrl), {
+        width: 1400,
+        margin: 2,
+      });
+
+      const safeTableName = escapeHtml(table.name);
+
+      printWindow.document.open();
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="utf-8" />
+            <title>QR ${safeTableName}</title>
+            <style>
+              @page {
+                size: 80mm 120mm;
+                margin: 8mm;
+              }
+
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                background: #f6efe7;
+                color: #231915;
+                font-family: Georgia, "Times New Roman", serif;
+              }
+
+              .sheet {
+                width: 100%;
+                max-width: 78mm;
+                padding: 10mm 8mm;
+                border-radius: 10mm;
+                background: #fffaf5;
+                box-sizing: border-box;
+                text-align: center;
+                box-shadow: 0 12px 30px rgba(35, 25, 21, 0.12);
+              }
+
+              .eyebrow {
+                margin: 0 0 4mm;
+                font: 600 11pt Arial, sans-serif;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+              }
+
+              .table-name {
+                margin: 0 0 5mm;
+                font-size: 26pt;
+                line-height: 0.95;
+              }
+
+              .message {
+                margin: 0 0 6mm;
+                font: 15pt Arial, sans-serif;
+                line-height: 1.35;
+              }
+
+              img {
+                display: block;
+                width: 100%;
+                height: auto;
+                margin: 0 auto;
+              }
+
+              @media print {
+                body {
+                  background: #fff;
+                }
+
+                .sheet {
+                  box-shadow: none;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <main class="sheet">
+              <p class="eyebrow">ZeroPaper</p>
+              <h1 class="table-name">${safeTableName}</h1>
+              <p class="message">Escaneie para acessar o pedido da mesa.</p>
+              <img id="qr-image" src="${qrDataUrl}" alt="QR da mesa ${safeTableName}" />
+            </main>
+            <script>
+              const image = document.getElementById("qr-image");
+              const triggerPrint = () => window.setTimeout(() => window.print(), 120);
+
+              if (image && image.complete) {
+                triggerPrint();
+              } else if (image) {
+                image.addEventListener("load", triggerPrint, { once: true });
+              } else {
+                triggerPrint();
+              }
+
+              window.addEventListener("afterprint", () => {
+                window.close();
+              });
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      setSuccessMessage("Impressao preparada.");
+    } catch {
+      printWindow.close();
+      setErrorMessage("Nao foi possivel preparar o QR para impressao.");
+    }
   }
 
   async function handleTableSoundUpload(tableId: string, file?: File | null) {
@@ -163,37 +320,54 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
     setSuccessMessage("");
 
     try {
-      if (editingTableId) {
-        const updatedTable = await updateTable(token, editingTableId, {
-          name,
-          seats: Number(seats),
-        });
+      const createdTable = await createTable(token, {
+        name,
+        seats: Number(seats),
+        comandaLabel,
+      });
 
-        replaceTableInState(updatedTable);
-        setQrModalTableId(updatedTable.id);
-        setSuccessMessage("Mesa atualizada.");
-      } else {
-        const createdTable = await createTable(token, {
-          name,
-          seats: Number(seats),
-        });
-
-        setTables((currentValue) => [createdTable, ...currentValue]);
-        setQrModalTableId(createdTable.id);
-        setSuccessMessage("Mesa criada. QR pronto para imprimir.");
-      }
-
-      resetTableEditor();
+      setTables((currentValue) => [createdTable, ...currentValue]);
+      setQrModalTableId(createdTable.id);
+      setSuccessMessage("Mesa criada. QR pronto para imprimir.");
+      resetCreateForm();
       setErrorMessage("");
     } catch (error) {
       await handleApiError(
         error,
         onUnauthorized,
         setErrorMessage,
-        editingTableId ? "Nao foi possivel atualizar a mesa." : "Nao foi possivel criar a mesa.",
+        "Nao foi possivel criar a mesa.",
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleEditSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingTableId) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setSuccessMessage("");
+
+    try {
+      const updatedTable = await updateTable(token, editingTableId, {
+        name: editName,
+        seats: Number(editSeats),
+        comandaLabel: editComandaLabel,
+      });
+
+      replaceTableInState(updatedTable);
+      setSuccessMessage("Mesa atualizada.");
+      setErrorMessage("");
+      resetTableEditor();
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel atualizar a mesa.");
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -201,31 +375,19 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
 
   function handleEditTable(table: DiningTable) {
     setEditingTableId(table.id);
-    setName(table.name);
-    setSeats(String(table.seats));
+    setEditName(table.name);
+    setEditSeats(String(table.seats));
+    setEditComandaLabel(table.comandaLabel ?? "");
     setSuccessMessage("");
     setErrorMessage("");
-    scrollToForm();
   }
 
   return (
     <>
-      {printFrameSrc ? (
-        <iframe
-          key={printFrameSrc}
-          className="qr-print-iframe no-print"
-          src={printFrameSrc}
-          title="Impressao do QR"
-          onLoad={() => {
-            window.setTimeout(() => setPrintFrameSrc(""), 1600);
-          }}
-        />
-      ) : null}
-
       <section className="tables-workspace">
-        <section ref={formCardRef} className="surface-card module-form-card table-creation-card">
+        <section className="surface-card module-form-card table-creation-card">
           <span className="eyebrow">Nova mesa</span>
-          <h2>{editingTableId ? "Editar mesa" : "Criar mesa com QR pronto"}</h2>
+          <h2>Criar mesa com QR pronto</h2>
 
           <form className="module-form" onSubmit={handleSubmit}>
             <div className="field-group">
@@ -244,20 +406,20 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
               />
             </div>
 
+            <div className="field-group">
+              <label htmlFor="tableComanda">Comanda opcional</label>
+              <input
+                id="tableComanda"
+                value={comandaLabel}
+                maxLength={40}
+                onChange={(event) => setComandaLabel(event.target.value)}
+                placeholder="Ex.: C-12 ou Comanda bar"
+              />
+            </div>
+
             <div className="toolbar-actions menu-category-form-actions">
-              {editingTableId ? (
-                <button className="ghost-link button-link" type="button" onClick={resetTableEditor}>
-                  Cancelar edicao
-                </button>
-              ) : null}
               <button className="primary-link button-link" type="submit" disabled={isSaving}>
-                {isSaving
-                  ? editingTableId
-                    ? "Salvando..."
-                    : "Criando..."
-                  : editingTableId
-                    ? "Salvar mesa"
-                    : "Criar mesa"}
+                {isSaving ? "Criando..." : "Criar mesa"}
               </button>
             </div>
           </form>
@@ -285,8 +447,9 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                   <div className="entity-head">
                     <div>
                       <h3>{table.name}</h3>
-                      <p>QR pronto para compartilhar</p>
+                      <p>{table.isDeliveryChannel ? "Canal fixo para delivery e IA." : "QR pronto para compartilhar"}</p>
                     </div>
+                    {table.isDeliveryChannel ? <span className="status-chip ready">Delivery</span> : null}
                   </div>
 
                   <div className="table-card-grid">
@@ -320,10 +483,20 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                           <span>Pedidos</span>
                           <strong>{table.openOrderCount}</strong>
                         </article>
+                        <article className="table-preview-stat">
+                          <span>{table.isDeliveryChannel ? "Canal" : "Comanda"}</span>
+                          <strong>{table.isDeliveryChannel ? "Delivery" : table.comandaLabel?.trim() ? table.comandaLabel : "Livre"}</strong>
+                        </article>
                       </div>
 
                       <div className="table-ready-note">
-                        <p>QR pronto para imprimir e usar no salao.</p>
+                        <p>
+                          {table.isDeliveryChannel
+                            ? "Use este link fixo no atendimento digital e no delivery."
+                            : table.comandaLabel?.trim()
+                              ? `Mesa preparada com referencia de comanda ${table.comandaLabel}.`
+                              : "QR pronto para imprimir e usar no salao."}
+                        </p>
                       </div>
 
                       <div className="table-alert-sound-card">
@@ -366,7 +539,7 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
 
                       <div className="toolbar-actions compact table-card-actions">
                         <button className="ghost-link button-link" type="button" onClick={() => handleEditTable(table)}>
-                          Editar
+                          {table.isDeliveryChannel ? "Editar canal" : "Editar"}
                         </button>
                         <button className="ghost-link button-link" type="button" onClick={() => setQrModalTableId(table.id)}>
                           Ver QR
@@ -415,6 +588,61 @@ export function TablesModule({ token, onUnauthorized }: { token: string; onUnaut
                 Fechar
               </button>
             </div>
+          </section>
+        </div>
+      ) : null}
+
+      {editingTableId ? (
+        <div className="admin-modal-backdrop" onClick={resetTableEditor}>
+          <section className="surface-card admin-sensitive-modal table-editor-modal" onClick={(event) => event.stopPropagation()}>
+            <span className="eyebrow">Editar mesa</span>
+            <h2>Atualize a mesa sem sair da lista</h2>
+            <p>Revise nome, lugares e a referencia opcional de comanda. Ao salvar, a mesa continua no mesmo ponto da tela.</p>
+
+            <form className="module-form" onSubmit={handleEditSubmit}>
+              <div className="field-group">
+                <label htmlFor="editTableName">Nome da mesa</label>
+                <input
+                  id="editTableName"
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  placeholder="Mesa 01"
+                />
+              </div>
+
+              <div className="field-group">
+                <label htmlFor="editTableSeats">Lugares</label>
+                <input
+                  id="editTableSeats"
+                  type="number"
+                  min="1"
+                  value={editSeats}
+                  onChange={(event) => setEditSeats(event.target.value)}
+                />
+              </div>
+
+              <div className="field-group">
+                <label htmlFor="editTableComanda">Comanda opcional</label>
+                <input
+                  id="editTableComanda"
+                  value={editComandaLabel}
+                  maxLength={40}
+                  onChange={(event) => setEditComandaLabel(event.target.value)}
+                  placeholder="Ex.: C-12 ou Comanda bar"
+                />
+              </div>
+
+              <div className="toolbar-actions menu-category-form-actions">
+                <button className="ghost-link button-link" type="button" onClick={resetTableEditor}>
+                  Fechar
+                </button>
+                <button className="primary-link button-link" type="submit" disabled={isUpdating}>
+                  {isUpdating ? "Salvando..." : "Salvar mesa"}
+                </button>
+              </div>
+            </form>
+
+            {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
           </section>
         </div>
       ) : null}

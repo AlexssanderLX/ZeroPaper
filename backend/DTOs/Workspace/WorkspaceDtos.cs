@@ -33,6 +33,7 @@ public class WorkspaceOverviewDto
     public bool HasAdvancedReports { get; set; }
     public bool HasCoupons { get; set; }
     public bool HasRecurringCustomers { get; set; }
+    public bool HasSalesAgents { get; set; }
 }
 
 public class DiningTableDto
@@ -407,6 +408,9 @@ public class CustomerOrderDto
     public string? PrintLastError { get; set; }
     public string? PrintAgentName { get; set; }
     public string? PrintPrinterName { get; set; }
+    public Guid? SalesAgentId { get; set; }
+    public string? SalesAgentName { get; set; }
+    public string? SalesOrigin { get; set; }
     public List<OrderPaymentDto> Payments { get; set; } = [];
     public List<OrderItemDto> Items { get; set; } = [];
 }

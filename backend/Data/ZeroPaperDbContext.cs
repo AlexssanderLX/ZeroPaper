@@ -44,6 +44,7 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<PrintAgent> PrintAgents => Set<PrintAgent>();
     public DbSet<PrintJob> PrintJobs => Set<PrintJob>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
+    public DbSet<SalesAgent> SalesAgents => Set<SalesAgent>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -1102,6 +1103,40 @@ public class ZeroPaperDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.AppUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SalesAgent>(entity =>
+        {
+            entity.ToTable("salesagents");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(30);
+            entity.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.CommissionPercent).HasPrecision(5, 2);
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.CompanyId, x.IsActive });
+
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CustomerOrder>(entity =>
+        {
+            entity.Property(x => x.SalesAgentId).IsRequired(false);
+            entity.Property(x => x.SalesOrigin).HasConversion<int>().IsRequired(false);
+
+            entity.HasOne(x => x.SalesAgent)
+                .WithMany()
+                .HasForeignKey(x => x.SalesAgentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
         });
     }
 }

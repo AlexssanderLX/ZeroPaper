@@ -592,7 +592,10 @@ public class WorkspaceController : ControllerBase
 
     [HttpGet("customers/{phoneNumber}/history")]
     [ProducesResponseType(typeof(IReadOnlyList<CustomerOrderHistoryDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCustomerOrderHistoryAsync(string phoneNumber, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetCustomerOrderHistoryAsync(
+        string phoneNumber,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken)
     {
         var session = await GetRequiredSessionAsync(cancellationToken);
         if (session is null)
@@ -601,7 +604,7 @@ public class WorkspaceController : ControllerBase
         }
 
         var accessResult = EnsureModuleEnabled(session.IncludesDeliveryModule || session.IncludesCashModule, "Clientes");
-        return accessResult ?? Ok(await _workspaceService.GetCustomerOrderHistoryAsync(session, phoneNumber, cancellationToken));
+        return accessResult ?? Ok(await _workspaceService.GetCustomerOrderHistoryAsync(session, phoneNumber, limit, cancellationToken));
     }
 
     [HttpPut("customers/{phoneNumber}/profile")]

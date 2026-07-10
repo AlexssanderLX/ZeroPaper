@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Text.Json;
 
 namespace ZeroPaper.PrintAgent;
@@ -16,6 +18,21 @@ internal sealed class AgentConfig
     public string PrinterName { get; set; } = string.Empty;
     public int PollIntervalSeconds { get; set; } = 1;
     public bool StartWithWindows { get; set; }
+
+    // Modo de saida: "RealPrinter" (impressora fisica) ou "FilePreview" (salva previa em arquivo).
+    public string OutputMode { get; set; } = "RealPrinter";
+
+    // Pasta onde a previa em arquivo e salva. Vazio = pasta padrao em Documentos.
+    public string PreviewFolder { get; set; } = string.Empty;
+
+    public bool UseFilePreview =>
+        string.Equals(OutputMode, "FilePreview", StringComparison.OrdinalIgnoreCase);
+
+    public static string DefaultPreviewFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ZeroPaper", "previews");
+
+    public string ResolvePreviewFolder() =>
+        string.IsNullOrWhiteSpace(PreviewFolder) ? DefaultPreviewFolder : PreviewFolder;
 
     public static string ConfigDirectoryPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZeroPaper");

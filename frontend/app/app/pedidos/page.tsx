@@ -15,7 +15,14 @@ export default function OrdersPage() {
   }
 
   return (
-    <WorkspaceModulePage module={moduleData}>
+    <WorkspaceModulePage
+      module={moduleData}
+      token={session.token}
+      onUnauthorized={clearSession}
+      heading="Cozinha"
+      description="Veja A fazer e Prontos na mesma tela. Troque de etapa pelas abas e busque por nome, mesa ou telefone sem sair daqui."
+      showSummary={false}
+    >
       <OrdersModule token={session.token} onUnauthorized={clearSession} />
     </WorkspaceModulePage>
   );

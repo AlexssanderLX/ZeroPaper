@@ -15,7 +15,7 @@ export default function TablesPage() {
   }
 
   return (
-    <WorkspaceModulePage module={moduleData}>
+    <WorkspaceModulePage module={moduleData} token={session.token} onUnauthorized={clearSession}>
       <TablesModule token={session.token} onUnauthorized={clearSession} />
     </WorkspaceModulePage>
   );

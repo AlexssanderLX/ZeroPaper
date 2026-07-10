@@ -4,6 +4,32 @@ import { useState } from "react";
 import { formatCurrency } from "@/components/modules/module-utils";
 import type { OrderItem } from "@/lib/api";
 
+function formatQuantity(value: number) {
+  return Number.isInteger(value) ? value.toString() : value.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+}
+
+function formatSelectionLabel(selection: OrderItem["additionalSelections"][number]) {
+  const groupName = selection.groupName.trim();
+  const optionName = selection.optionName.trim();
+
+  if (!groupName || groupName.toLocaleLowerCase("pt-BR") === optionName.toLocaleLowerCase("pt-BR")) {
+    return optionName;
+  }
+
+  return `${groupName}: ${optionName}`;
+}
+
+function formatItemComplement(item: OrderItem, selection: OrderItem["additionalSelections"][number]) {
+  const quantityPrefix = item.quantity > 1 ? `${formatQuantity(item.quantity)}x ` : "";
+  const priceLabel = selection.unitPrice > 0
+    ? item.quantity > 1
+      ? ` (${formatCurrency(selection.unitPrice)} cada)`
+      : ` (${formatCurrency(selection.unitPrice)})`
+    : "";
+
+  return `+ ${quantityPrefix}${formatSelectionLabel(selection)}${priceLabel}`;
+}
+
 function OrderItemCompactImage({ item }: { item: OrderItem }) {
   const [hasError, setHasError] = useState(false);
 
@@ -42,6 +68,15 @@ export function OrderItemsCompact({ items }: { items: OrderItem[] }) {
               {item.categoryName ? <span className="order-item-compact-category">{item.categoryName}</span> : null}
               <strong>{item.name}</strong>
             </div>
+            {item.additionalSelections.length ? (
+              <div className="order-item-compact-additions">
+                {item.additionalSelections.map((selection) => (
+                  <span key={`${item.id}-${selection.groupName}-${selection.optionName}`} className="order-item-compact-addition-chip">
+                    {formatItemComplement(item, selection)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             {item.notes ? <p>Obs: {item.notes}</p> : null}
           </div>
 

@@ -28,7 +28,6 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
     private static readonly TimeSpan RecentOutboundEchoWindow = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan RecentInboundReplayWindow = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan AutomatedReplyBurstWindow = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan EvolutionInboundWarmupPeriod = TimeSpan.FromMinutes(2);
     private const int MaximumAutomatedRepliesPerBurstWindow = 5;
 
     private static readonly string[] EvolutionWebhookEvents =
@@ -41,7 +40,6 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
 
     private static readonly ConcurrentDictionary<string, EvolutionConnectionSnapshot> PendingEvolutionSnapshots = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> InboundCompanyLocks = new();
-    private static readonly ConcurrentDictionary<Guid, DateTime> EvolutionInboundWarmupUntilUtc = new();
 
     private readonly HttpClient _httpClient;
     private readonly ZeroPaperDbContext _context;
@@ -347,18 +345,9 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
             return;
         }
 
-        if (parsedMessage.IsEvolutionMessage &&
-            EvolutionInboundWarmupUntilUtc.TryGetValue(company.Id, out var warmupUntilUtc) &&
-            nowUtc < warmupUntilUtc)
-        {
-            _logger.LogWarning(
-                "Mensagem Evolution ignorada durante aquecimento da conexao para a unidade {CompanyId}. Liberacao prevista em {WarmupUntilUtc}.",
-                company.Id,
-                warmupUntilUtc);
-            return;
-        }
-
-        var normalizedPhone = NormalizePhoneForWhatsApp(parsedMessage.Phone);
+        var normalizedPhone = parsedMessage.IsEvolutionMessage
+            ? NormalizeEvolutionChatIdentifier(parsedMessage.Phone)
+            : NormalizePhoneForWhatsApp(parsedMessage.Phone);
         if (string.IsNullOrWhiteSpace(normalizedPhone))
         {
             return;
@@ -623,7 +612,6 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         if (string.Equals(state, "open", StringComparison.OrdinalIgnoreCase))
         {
             PendingEvolutionSnapshots.TryRemove(company.WhatsAppInstanceId ?? string.Empty, out _);
-            EvolutionInboundWarmupUntilUtc[company.Id] = DateTime.UtcNow.Add(EvolutionInboundWarmupPeriod);
             company.RegisterWhatsAppConnected(snapshot.ConnectedPhone ?? ExtractEvolutionConnectionPhone(data), DateTime.UtcNow);
         }
         else
@@ -698,19 +686,36 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         var conversation = await _context.WhatsAppConversations
             .FirstOrDefaultAsync(
                 item => item.CompanyId == company.Id &&
-                        item.ExternalPhone == normalizedPhone &&
-                        item.IsActive,
+                        item.ExternalPhone == normalizedPhone,
                 cancellationToken);
 
         if (conversation is not null)
         {
+            conversation.Activate();
             return conversation;
         }
 
         conversation = new WhatsAppConversation(company.TenantId, company.Id, normalizedPhone, customerName);
         await _context.WhatsAppConversations.AddAsync(conversation, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-        return conversation;
+
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            return conversation;
+        }
+        catch (DbUpdateException exception) when (IsDuplicateWhatsAppConversationException(exception))
+        {
+            _context.Entry(conversation).State = EntityState.Detached;
+
+            var existingConversation = await _context.WhatsAppConversations
+                .FirstAsync(
+                    item => item.CompanyId == company.Id &&
+                            item.ExternalPhone == normalizedPhone,
+                    cancellationToken);
+
+            existingConversation.Activate();
+            return existingConversation;
+        }
     }
 
     private async Task<List<AiAssistantConversationTurnDto>> BuildConversationHistoryAsync(Guid conversationId, CancellationToken cancellationToken)
@@ -1063,11 +1068,17 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         request.Headers.TryAddWithoutValidation("apikey", ResolveEvolutionApiKey());
         request.Content = JsonContent.Create(new
         {
-            enabled = true,
-            url = BuildEvolutionWebhookUrl(company.WhatsAppInstanceId, webhookSecret),
-            webhookByEvents = false,
-            webhookBase64 = true,
-            events = EvolutionWebhookEvents
+            webhook = new
+            {
+                enabled = true,
+                url = BuildEvolutionWebhookUrl(company.WhatsAppInstanceId, webhookSecret),
+                byEvents = false,
+                webhookByEvents = false,
+                webhook_base64 = true,
+                webhookBase64 = true,
+                @base64 = true,
+                events = EvolutionWebhookEvents
+            }
         });
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -1315,9 +1326,12 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
 
     private static ParsedInboundMessage ParseEvolutionInboundMessage(JsonElement data)
     {
-        var remoteJid = GetString(data, ["key", "remoteJid"]) ?? string.Empty;
-        var remoteJidAlt = GetString(data, ["key", "remoteJidAlt"]) ?? string.Empty;
-        var directJid = ResolveEvolutionDirectChatJid(remoteJid, remoteJidAlt);
+        var directJid = ResolveEvolutionDirectChatJid(
+            GetString(data, ["key", "remoteJid"]),
+            GetString(data, ["key", "remoteJidAlt"]),
+            GetString(data, ["key", "participant"]),
+            GetString(data, ["participant"]),
+            GetString(data, ["sender"], ["sender", "id"]));
         var fromMe = GetBool(data, ["key", "fromMe"]);
         var text = GetString(
             data,
@@ -1356,22 +1370,27 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         };
     }
 
-    private static string ResolveEvolutionDirectChatJid(string remoteJid, string remoteJidAlt)
+    private static string ResolveEvolutionDirectChatJid(params string?[] candidates)
     {
-        if (IsEvolutionDirectChatJid(remoteJid))
+        var phoneJid = candidates.FirstOrDefault(IsEvolutionPhoneChatJid);
+        if (!string.IsNullOrWhiteSpace(phoneJid))
         {
-            return remoteJid;
+            return phoneJid;
         }
 
-        return IsEvolutionDirectChatJid(remoteJidAlt)
-            ? remoteJidAlt
-            : string.Empty;
+        return candidates.FirstOrDefault(IsEvolutionLidChatJid) ?? string.Empty;
     }
 
-    private static bool IsEvolutionDirectChatJid(string jid)
+    private static bool IsEvolutionPhoneChatJid(string? jid)
     {
         return !string.IsNullOrWhiteSpace(jid) &&
                jid.EndsWith("@s.whatsapp.net", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsEvolutionLidChatJid(string? jid)
+    {
+        return !string.IsNullOrWhiteSpace(jid) &&
+               jid.EndsWith("@lid", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSupportedEvolutionInboundMessageType(string messageType)
@@ -1649,6 +1668,18 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         }
 
         return digits;
+    }
+
+    private static string NormalizeEvolutionChatIdentifier(string value)
+    {
+        return NormalizePhoneForWhatsApp(value);
+    }
+
+    private static bool IsDuplicateWhatsAppConversationException(DbUpdateException exception)
+    {
+        var message = exception.ToString();
+        return message.Contains("IX_whatsappconversations_CompanyId_ExternalPhone", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? NormalizeConnectionPhone(string? phone)

@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import QRCode from "qrcode";
 import { APP_BASE_URL } from "@/lib/api";
 
 export default function PrintTableQrPage() {
   const params = useParams<{ publicCode: string }>();
-  const imageRef = useRef<HTMLImageElement | null>(null);
   const hasPrintedRef = useRef(false);
+  const [qrImageUrl, setQrImageUrl] = useState("");
   const [imageReady, setImageReady] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
 
@@ -18,19 +19,37 @@ export default function PrintTableQrPage() {
     return new URL(`/q/${publicCode}`, baseUrl).toString();
   }, [publicCode]);
 
-  const qrImageUrl = useMemo(
-    () =>
-      `https://api.qrserver.com/v1/create-qr-code/?size=1400x1400&margin=24&format=png&data=${encodeURIComponent(accessUrl)}`,
-    [accessUrl],
-  );
-
   useEffect(() => {
-    const image = imageRef.current;
+    let cancelled = false;
 
-    if (image?.complete) {
-      setImageReady(true);
+    async function buildQrCode() {
+      try {
+        setImageReady(false);
+        setImageFailed(false);
+
+        const dataUrl = await QRCode.toDataURL(accessUrl, {
+          width: 1400,
+          margin: 2,
+        });
+
+        if (!cancelled) {
+          setQrImageUrl(dataUrl);
+          setImageReady(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setQrImageUrl("");
+          setImageFailed(true);
+        }
+      }
     }
-  }, []);
+
+    void buildQrCode();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessUrl]);
 
   useEffect(() => {
     if (hasPrintedRef.current || (!imageReady && !imageFailed)) {
@@ -38,6 +57,16 @@ export default function PrintTableQrPage() {
     }
 
     hasPrintedRef.current = true;
+
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: imageReady ? "zeropaper:qr-print-ready" : "zeropaper:qr-print-failed",
+        },
+        window.location.origin,
+      );
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       window.focus();
@@ -54,15 +83,25 @@ export default function PrintTableQrPage() {
           <p className="qr-print-message">Seja bem-vindo! Escaneie para pedir.</p>
 
           <div className="qr-print-frame">
-            <img
-              ref={imageRef}
-              className="qr-print-image"
-              src={qrImageUrl}
-              alt="QR da mesa"
-              onLoad={() => setImageReady(true)}
-              onError={() => setImageFailed(true)}
-              referrerPolicy="no-referrer"
-            />
+            {qrImageUrl ? (
+              <img
+                className="qr-print-image"
+                src={qrImageUrl}
+                alt="QR da mesa"
+                loading="eager"
+              />
+            ) : (
+              <div className="qr-print-fallback">
+                <strong>QR indisponivel</strong>
+                <p>Tente atualizar a pagina ou use o botao abaixo para imprimir manualmente.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="qr-print-actions no-print">
+            <button className="ghost-link button-link" type="button" onClick={() => window.print()}>
+              Imprimir agora
+            </button>
           </div>
         </article>
       </section>

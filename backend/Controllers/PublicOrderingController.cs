@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Workspace;
+using ZeroPaper.Repositories.Interfaces;
 using ZeroPaper.Services.Interfaces;
 
 namespace ZeroPaper.Controllers;
@@ -11,11 +12,19 @@ public class PublicOrderingController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
     private readonly ICouponService _couponService;
+    private readonly ISalesAgentService _salesAgentService;
+    private readonly ISalesAgentRepository _salesAgentRepository;
 
-    public PublicOrderingController(IWorkspaceService workspaceService, ICouponService couponService)
+    public PublicOrderingController(
+        IWorkspaceService workspaceService,
+        ICouponService couponService,
+        ISalesAgentService salesAgentService,
+        ISalesAgentRepository salesAgentRepository)
     {
         _workspaceService = workspaceService;
         _couponService = couponService;
+        _salesAgentService = salesAgentService;
+        _salesAgentRepository = salesAgentRepository;
     }
 
     [HttpGet("{publicCode}")]
@@ -87,6 +96,14 @@ public class PublicOrderingController : ControllerBase
         return Ok(await _workspaceService.GetPublicDeliveryCustomerProfileAsync(publicCode, token, cancellationToken));
     }
 
+    [HttpGet("~/api/public/customer-profile/{code}")]
+    [ProducesResponseType(typeof(PublicCustomerProfileDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomerProfileAsync(string code, CancellationToken cancellationToken)
+    {
+        var response = await _workspaceService.GetPublicCustomerProfileAsync(code, cancellationToken);
+        return response.Found ? Ok(response) : NotFound(response);
+    }
+
     [HttpGet("~/api/public/delivery-links/{code}")]
     [ProducesResponseType(typeof(PublicDeliveryShortLinkDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> ResolveDeliveryShortLinkAsync(string code, CancellationToken cancellationToken)
@@ -132,6 +149,44 @@ public class PublicOrderingController : ControllerBase
     {
         var response = await _workspaceService.CreatePublicWaiterCallAsync(publicCode, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpGet("~/api/public/seller-link/{code}")]
+    [ProducesResponseType(typeof(PublicSellerLinkDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSellerLinkAsync(string code, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _salesAgentService.GetPublicSellerLinkAsync(code, cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpPost("~/api/public/seller-link/{code}/orders")]
+    [EnableRateLimiting("public-write")]
+    [ProducesResponseType(typeof(CustomerOrderDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateSellerLinkOrderAsync(
+        string code,
+        [FromBody] CreateCustomerOrderRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var agent = await _salesAgentRepository.GetByCodeAsync(code.Trim().ToLowerInvariant(), cancellationToken);
+        if (agent is null) return NotFound();
+
+        try
+        {
+            var result = await _workspaceService.CreateSellerLinkOrderAsync(
+                agent.Id, agent.TenantId, agent.CompanyId, request, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, result);
+        }
+        catch (InvalidOperationException exception) when (IsOutOfServiceWindow(exception))
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { message = exception.Message });
+        }
     }
 
     private static object BuildPublicEditDisabledResponse()

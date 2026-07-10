@@ -15,8 +15,14 @@ export default function MenuPage() {
   }
 
   return (
-    <WorkspaceModulePage module={moduleData}>
-      <MenuModule token={session.token} onUnauthorized={clearSession} />
+    <WorkspaceModulePage
+      module={moduleData}
+      token={session.token}
+      onUnauthorized={clearSession}
+      heading="Cardapio"
+      description="Organize categorias e produtos sem carregar tudo de uma vez."
+    >
+      <MenuModule token={session.token} onUnauthorized={clearSession} section="items" />
     </WorkspaceModulePage>
   );
 }

@@ -18,6 +18,7 @@ Na fase atual, o sistema cobre os principais pontos do ciclo operacional do rest
 - relatorio diario de caixa em PDF
 - impressao automatica com agente Windows
 - implantacao guiada da unidade dentro do painel
+- base de atendimento com IA preparada para uso seguro da OpenAI pelo backend
 
 ## Modulos da unidade
 
@@ -30,6 +31,7 @@ O painel da unidade esta organizado nos seguintes modulos:
 - `Pedidos para a cozinha`
 - `Caixa`
 - `Impressao`
+- `Atendimento e IA`
 - `Unidade`
 
 ## Fluxo principal
@@ -91,6 +93,23 @@ ZeroPaper/
 
 - agente Windows em .NET para impressao automatica
 - Nginx como proxy reverso
+
+## OpenAI no backend
+
+O ZeroPaper agora inclui a base do modulo `Atendimento e IA`, preparada para usar a OpenAI pelo backend sem expor chave no frontend.
+
+Para ativar a integracao em producao, a chave deve ficar somente no ambiente do backend, usando uma destas variaveis:
+
+- `OPENAI_API_KEY`
+- `OpenAI__ApiKey`
+
+O modulo da unidade nao grava a chave. Ele apenas controla:
+
+- ativacao do assistente
+- modelo usado pela unidade
+- prompt operacional da unidade
+- mensagens de saudacao, redirecionamento e fallback
+- teste seguro da resposta via backend
 
 ## Direcao do produto
 

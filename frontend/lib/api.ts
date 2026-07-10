@@ -38,6 +38,10 @@ export type LoginResult = {
   restaurantName: string;
 };
 
+export type ShortcutLoginPayload = {
+  token: string;
+};
+
 export type WorkspaceOverview = {
   activeTables: number;
   openOrders: number;
@@ -49,12 +53,91 @@ export type WorkspaceOverview = {
   pendingPrints: number;
   printedPrints: number;
   failedPrints: number;
+  includesMenuModule: boolean;
+  includesTablesModule: boolean;
+  includesKitchenModule: boolean;
+  includesCashModule: boolean;
+  includesStockModule: boolean;
+  includesDeliveryModule: boolean;
+  includesPrintingModule: boolean;
+  includesWaiterCallModule: boolean;
+  includesAiAssistantModule: boolean;
+  hasCoupons?: boolean;
+  hasAutoPrint?: boolean;
+  hasBasicReports?: boolean;
+  hasAdvancedReports?: boolean;
+  hasManagementDashboard?: boolean;
+  hasSalesAgents?: boolean;
+};
+
+export type Coupon = {
+  id: string;
+  code: string;
+  description?: string | null;
+  discountType: string;
+  discountValue: number;
+  minimumOrderAmount: number;
+  startsAtUtc?: string | null;
+  endsAtUtc?: string | null;
+  isActive: boolean;
+  usageLimit?: number | null;
+  usageCount: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+};
+
+export type SaveCouponPayload = {
+  code: string;
+  description?: string | null;
+  discountType: string;
+  discountValue: number;
+  minimumOrderAmount: number;
+  startsAtUtc?: string | null;
+  endsAtUtc?: string | null;
+  usageLimit?: number | null;
+};
+
+export type CashClosingPaymentMethod = {
+  method: string;
+  amount: number;
+  ordersCount: number;
+};
+
+export type CashClosingReport = {
+  referenceDate: string;
+  totalSold: number;
+  ordersCount: number;
+  averageTicket: number;
+  discountsTotal: number;
+  cancelledOrdersCount: number;
+  paymentMethods: CashClosingPaymentMethod[];
+};
+
+export type MercadoPagoStatus = {
+  configured: boolean;
+  connected: boolean;
+  accountUserId?: string | null;
+  liveMode: boolean;
+  connectedAtUtc?: string | null;
+};
+
+export type MercadoPagoConnectResponse = {
+  authorizationUrl: string;
+};
+
+export type MercadoPagoCheckoutResponse = {
+  available: boolean;
+  initPoint?: string | null;
+  preferenceId?: string | null;
+  message: string;
 };
 
 export type DiningTable = {
   id: string;
   name: string;
   internalCode: string;
+  comandaLabel?: string | null;
+  isDeliveryChannel: boolean;
   seats: number;
   status: string;
   openOrderCount: number;
@@ -72,15 +155,71 @@ export type MenuItem = {
   accentLabel?: string | null;
   imageUrl?: string | null;
   price: number;
+  startingPrice?: number | null;
   displayOrder: number;
   isActive: boolean;
+  maxAdditionalSelections?: number | null;
+  hasAdditionalOptions?: boolean;
+  additionalGroups: MenuItemAdditionalGroup[];
+};
+
+export type MenuItemAdditionalGroup = {
+  id: string;
+  sourceMenuAdditionalCatalogGroupId?: string | null;
+  name: string;
+  allowMultiple: boolean;
+  displayOrder: number;
+  maxAdditionalSelections?: number | null;
+  options: MenuItemAdditionalOption[];
+};
+
+export type MenuItemAdditionalOption = {
+  id: string;
+  groupId: string;
+  sourceMenuAdditionalCatalogOptionId?: string | null;
+  name: string;
+  price: number;
+  displayOrder: number;
+};
+
+export type MenuAdditionalCatalogGroup = {
+  id: string;
+  name: string;
+  allowMultiple: boolean;
+  displayOrder: number;
+  maxAdditionalSelections?: number | null;
+  linkedItemCount?: number;
+  linkedItemNames?: string[];
+  options: MenuAdditionalCatalogOption[];
+};
+
+export type MenuAdditionalCatalogOption = {
+  id: string;
+  groupId: string;
+  name: string;
+  price: number;
+  displayOrder: number;
 };
 
 export type MenuCategory = {
   id: string;
   name: string;
+  imageUrl?: string | null;
   displayOrder: number;
   items: MenuItem[];
+};
+
+export type MenuCategorySummary = {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  displayOrder: number;
+  totalItems: number;
+  activeItems: number;
+  hiddenItems: number;
+  itemsWithoutImage: number;
+  itemsWithAdditionals: number;
+  startingPrice?: number | null;
 };
 
 export type OrderItemInput = {
@@ -94,17 +233,81 @@ export type MenuOrderSelectionInput = {
   menuItemId: string;
   quantity: number;
   notes?: string;
+  additionalOptionIds?: string[];
+};
+
+export type OrderItemAdditionalSelection = {
+  sourceMenuItemAdditionalOptionId?: string | null;
+  groupName: string;
+  optionName: string;
+  unitPrice: number;
 };
 
 export type OrderItem = {
   id: string;
+  menuItemId?: string | null;
   name: string;
   categoryName?: string | null;
   imageUrl?: string | null;
   quantity: number;
+  baseUnitPrice: number;
   unitPrice: number;
   totalPrice: number;
   notes?: string | null;
+  additionalSelections: OrderItemAdditionalSelection[];
+};
+
+export type UpdateOrderItemPayload = {
+  id?: string | null;
+  name?: string;
+  quantity: number;
+  unitPrice?: number;
+  notes?: string | null;
+};
+
+export type UpdateOrderPayload = {
+  customerName?: string | null;
+  notes?: string | null;
+  deliveryPhone?: string | null;
+  deliveryAddress?: string | null;
+  deliveryNumber?: string | null;
+  deliveryComplement?: string | null;
+  deliveryPostalCode?: string | null;
+  fulfillmentType?: string | null;
+  paymentMethod?: string | null;
+  items: UpdateOrderItemPayload[];
+  menuSelections?: MenuOrderSelectionInput[];
+};
+
+export type AdjustOrderValuePayload = {
+  finalAmount?: number;
+  discountAmount: number;
+  surchargeAmount: number;
+  note?: string | null;
+};
+
+export type OrderPaymentInput = {
+  method: string;
+  amount: number;
+};
+
+export type MarkOrderPaidInput = {
+  orderId: string;
+  paymentMethod?: string;
+  payments?: OrderPaymentInput[];
+};
+
+export type MarkAllOrdersPaidResult = {
+  markedCount: number;
+  ignoredCount: number;
+  ignoredReasons: string[];
+};
+
+export type OrderPayment = {
+  id: string;
+  method: string;
+  amount: number;
+  createdAtUtc: string;
 };
 
 export type CustomerOrder = {
@@ -112,6 +315,7 @@ export type CustomerOrder = {
   number: number;
   tableId: string;
   tableName: string;
+  publicCode?: string | null;
   status: string;
   paymentMethod: string;
   requestedPaymentMethod: string;
@@ -119,7 +323,38 @@ export type CustomerOrder = {
   printStatus: string;
   customerName?: string | null;
   notes?: string | null;
+  isDeliveryOrder: boolean;
+  fulfillmentType: string;
+  deliveryPhone?: string | null;
+  deliveryAddress?: string | null;
+  deliveryNumber?: string | null;
+  deliveryComplement?: string | null;
+  deliveryPostalCode?: string | null;
+  deliveryFreightAmount: number;
+  deliveryDistanceKm?: number | null;
+  deliveryFreightProvider?: string | null;
+  deliveryFreightCalculatedAtUtc?: string | null;
+  canEditPublicly: boolean;
+  publicEditAllowedUntilUtc?: string | null;
+  publicEditUrl?: string | null;
+  publicDeliveryCustomerUrl?: string | null;
+  deliveryAssistantMessage?: string | null;
+  originalTotalAmount: number;
   totalAmount: number;
+  totalItemQuantity: number;
+  isEdited: boolean;
+  editedAtUtc?: string | null;
+  discountAmount: number;
+  surchargeAmount: number;
+  couponId?: string | null;
+  couponCode?: string | null;
+  couponDiscountAmount?: number;
+  couponAppliedAtUtc?: string | null;
+  priceAdjustmentNote?: string | null;
+  priceAdjustedAtUtc?: string | null;
+  hasPriceAdjustment: boolean;
+  paymentTotalAmount: number;
+  remainingPaymentAmount: number;
   submittedAtUtc: string;
   paidAtUtc?: string | null;
   printedAtUtc?: string | null;
@@ -127,7 +362,32 @@ export type CustomerOrder = {
   printLastError?: string | null;
   printAgentName?: string | null;
   printPrinterName?: string | null;
+  salesAgentId?: string | null;
+  salesAgentName?: string | null;
+  salesOrigin?: string | null;
+  payments: OrderPayment[];
   items: OrderItem[];
+};
+
+export type CouponValidation = {
+  isValid: boolean;
+  code: string;
+  message?: string | null;
+  discountAmount: number;
+  finalSubtotal: number;
+  coupon?: {
+    id: string;
+    code: string;
+    description?: string | null;
+    discountType: string;
+    discountValue: number;
+    minimumOrderAmount: number;
+    startsAtUtc?: string | null;
+    endsAtUtc?: string | null;
+    isActive: boolean;
+    usageLimit?: number | null;
+    usageCount: number;
+  } | null;
 };
 
 export type StockItem = {
@@ -157,6 +417,8 @@ export type PrintOrderSummary = {
   id: string;
   number: number;
   tableName: string;
+  customerName?: string | null;
+  isDeliveryOrder: boolean;
   status: string;
   printStatus: string;
   totalAmount: number;
@@ -168,23 +430,109 @@ export type PrintOrderSummary = {
 
 export type PrintingSettings = {
   enableAutomaticPrinting: boolean;
+  autoPrintEnabled?: boolean;
   paperProfile: string;
   ordersPerPage: number;
   hasAgentKey: boolean;
+  hasAgentToken?: boolean;
+  agentId?: string | null;
   agentOnline: boolean;
   agentName?: string | null;
   printerName?: string | null;
+  appVersion?: string | null;
+  registeredAtUtc?: string | null;
   lastSeenAtUtc?: string | null;
+  lastError?: string | null;
+  lastErrorAtUtc?: string | null;
   pendingJobs: number;
   failedJobs: number;
   printedJobs: number;
   downloadUrl: string;
+  downloadUrlX86: string;
+  downloadUrlX64: string;
+  legacyDownloadUrl: string;
   recentOrders: PrintOrderSummary[];
 };
 
 export type RotatePrintingAgentKeyResult = {
   agentKey: string;
+  agentToken?: string;
   printing: PrintingSettings;
+};
+
+export type AiAssistantSettings = {
+  unitDisplayName: string;
+  apiConfigured: boolean;
+  whatsAppServerConfigured: boolean;
+  isEnabled: boolean;
+  model: string;
+  systemPrompt: string;
+  greetingMessage: string;
+  redirectMessage: string;
+  fallbackMessage: string;
+  orderingLink?: string | null;
+  pixReceiverName?: string | null;
+  pixKey?: string | null;
+  pixMessage?: string | null;
+  serviceDays?: number[] | null;
+  serviceStartTime?: string | null;
+  serviceEndTime?: string | null;
+  maxOutputTokens: number;
+  whatsAppEnabled: boolean;
+  whatsAppConfigured: boolean;
+  whatsAppInstanceId?: string | null;
+  whatsAppInstanceTokenMasked?: string | null;
+  hasWhatsAppAccountSecurityToken: boolean;
+  isWhatsAppConnected: boolean;
+  whatsAppConnectedPhone?: string | null;
+  whatsAppConnectedAtUtc?: string | null;
+  whatsAppDisconnectedAtUtc?: string | null;
+  whatsAppLastIncomingAtUtc?: string | null;
+  whatsAppLastOutgoingAtUtc?: string | null;
+  whatsAppWebhookReceiveUrl?: string | null;
+  whatsAppWebhookMessageStatusUrl?: string | null;
+  whatsAppWebhookConnectedUrl?: string | null;
+  whatsAppWebhookDisconnectedUrl?: string | null;
+  recentWhatsAppConversations: {
+    id: string;
+    externalPhone: string;
+    customerName?: string | null;
+    lastMessagePreview: string;
+    lastDirection: string;
+    lastIncomingAtUtc?: string | null;
+    lastOutgoingAtUtc?: string | null;
+    lastInteractionAtUtc?: string | null;
+    messageCount: number;
+  }[];
+};
+
+export type AiAssistantTestResult = {
+  reply: string;
+  model: string;
+  generatedAtUtc: string;
+};
+
+export type AiAssistantQuickStatus = {
+  isEnabled: boolean;
+  isConfigured: boolean;
+};
+
+export type WhatsAppConnectionSnapshot = {
+  serverConfigured: boolean;
+  instanceConfigured: boolean;
+  instanceName: string;
+  state?: string | null;
+  isConnected: boolean;
+  connectedPhone?: string | null;
+  qrCodeBase64?: string | null;
+  qrCodeText?: string | null;
+  pairingCode?: string | null;
+  message?: string | null;
+};
+
+export type PrepareWhatsAppConnectionPayload = {
+  phoneNumber?: string;
+  forceNewSession?: boolean;
 };
 
 export type UploadAlertSoundResult = {
@@ -198,16 +546,133 @@ export type UploadTableAlertSoundResult = {
 export type CompanySettings = {
   legalName: string;
   tradeName: string;
+  logoUrl?: string | null;
   accessSlug: string;
   contactEmail?: string | null;
   contactPhone?: string | null;
   alerts: AlertSettings;
+  shortcutAccess: OwnerShortcutAccess;
+};
+
+export type OwnerShortcutAccess = {
+  isEnabled: boolean;
+  createdAtUtc?: string | null;
+  expiresAtUtc?: string | null;
+  lastUsedAtUtc?: string | null;
+};
+
+export type GenerateOwnerShortcutAccessResult = {
+  shortcutAccess: OwnerShortcutAccess;
+  rawToken: string;
+  shortcutUrl: string;
+};
+
+export type OwnerProfile = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+};
+
+export type DeliveryFreightSettings = {
+  isEnabled: boolean;
+  originPostalCode?: string | null;
+  pricePerKm: number;
+  baseFee: number;
+  baseDistanceKm: number;
+  provider: string;
+  providerConfigured: boolean;
+  isTestMode: boolean;
+  cacheDays: number;
+  pickupEstimatedMinutes?: number | null;
+  deliveryEstimatedMinutes?: number | null;
+};
+
+export type DeliveryFreightQuote = {
+  isEnabled: boolean;
+  isConfigured: boolean;
+  isAvailable: boolean;
+  isTestMode: boolean;
+  provider: string;
+  originPostalCode?: string | null;
+  destinationPostalCode?: string | null;
+  distanceKm?: number | null;
+  baseFee: number;
+  baseDistanceKm: number;
+  chargedDistanceKm: number;
+  pricePerKm: number;
+  freightAmount: number;
+  totalWithFreight: number;
+  fromCache: boolean;
+  message?: string | null;
+};
+
+export type PublicDeliveryCustomerProfile = {
+  found: boolean;
+  customerName?: string | null;
+  deliveryPhone?: string | null;
+  deliveryAddress?: string | null;
+  deliveryNumber?: string | null;
+  deliveryComplement?: string | null;
+  deliveryPostalCode?: string | null;
+  lastOrderAtUtc?: string | null;
+  message?: string | null;
+};
+
+export type PublicCustomerProfile = {
+  found: boolean;
+  message?: string | null;
+  customerName?: string | null;
+  maskedPhone?: string | null;
+  primaryAddress?: PublicCustomerPrimaryAddress | null;
+  businessName?: string | null;
+  businessSlug?: string | null;
+  canEditProfile: boolean;
+  canReorder: boolean;
+  hasActiveOrder: boolean;
+  recentOrders: PublicCustomerRecentOrder[];
+};
+
+export type PublicCustomerPrimaryAddress = {
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  complement?: string | null;
+  zipCode?: string | null;
+};
+
+export type PublicCustomerRecentOrder = {
+  orderNumber?: number | null;
+  displayCode?: string | null;
+  createdAt: string;
+  status: string;
+  total: number;
+  fulfillmentType: string;
+  items: PublicCustomerRecentOrderItem[];
+};
+
+export type PublicCustomerRecentOrderItem = {
+  name: string;
+  quantity: number;
+  unitPrice?: number | null;
+  total?: number | null;
 };
 
 export type PublicTableView = {
   restaurantName: string;
+  restaurantLogoUrl?: string | null;
   tableName: string;
   accessCode: string;
+  isDeliveryChannel: boolean;
+  isOnlinePaymentAvailable: boolean;
+  deliveryEditWindowMinutes: number;
+  isOrderingAvailable: boolean;
+  orderingUnavailableMessage?: string | null;
+  serviceDays?: number[] | null;
+  serviceStartTime?: string | null;
+  serviceEndTime?: string | null;
+  pickupEstimatedMinutes?: number | null;
+  deliveryEstimatedMinutes?: number | null;
   menu: MenuCategory[];
 };
 
@@ -233,9 +698,8 @@ export type RestaurantSignupPayload = {
   legalName: string;
   ownerName: string;
   ownerEmail: string;
-  accessCode: string;
   ownerPassword: string;
-  contactPhone?: string;
+  contactPhone: string;
   planName: string;
   monthlyPrice: number;
   maxUsers: number;
@@ -247,6 +711,8 @@ export type RestaurantSignupResult = {
   accessUrl: string;
   ownerEmail: string;
   planName: string;
+  requiresApproval: boolean;
+  message: string;
 };
 
 export type SignupCode = {
@@ -260,6 +726,7 @@ export type SignupCode = {
   usedCount: number;
   isActive: boolean;
   createdAtUtc: string;
+  lastUsedAtUtc?: string | null;
 };
 
 export type CreateSignupCodePayload = {
@@ -286,6 +753,187 @@ export type AdminUser = {
   activeSessionCount: number;
   lastLoginAtUtc?: string | null;
   lastSeenAtUtc?: string | null;
+};
+
+export type AdminOwner = {
+  id: string;
+  companyId: string;
+  companyName: string;
+  accessSlug: string;
+  fullName: string;
+  email: string;
+  contactPhone?: string | null;
+  isActive: boolean;
+  isCompanyActive: boolean;
+  hasActiveSession: boolean;
+  activeSessionCount: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  lastLoginAtUtc?: string | null;
+  lastSeenAtUtc?: string | null;
+};
+
+export type AdminDashboardSummary = {
+  totalCompanies: number;
+  activeCompanies: number;
+  totalUsers: number;
+  onlineUsers: number;
+  availableSignupCodes: number;
+  usedSignupCodes: number;
+  expiredSignupCodes: number;
+  ordersToday: number;
+  openOrders: number;
+  pendingPayments: number;
+  failedPrints: number;
+  aiInteractionsToday: number;
+};
+
+export type AdminCompanyFlow = {
+  companyId: string;
+  restaurantName: string;
+  accessSlug: string;
+  ownerName: string;
+  ownerEmail: string;
+  contactPhone?: string | null;
+  planName: string;
+  planTier?: string;
+  monthlyPrice: number;
+  maxUsers: number;
+  includesMenuModule: boolean;
+  includesTablesModule: boolean;
+  includesKitchenModule: boolean;
+  includesCashModule: boolean;
+  includesStockModule: boolean;
+  includesDeliveryModule: boolean;
+  includesPrintingModule: boolean;
+  includesWaiterCallModule: boolean;
+  includesAiAssistantModule: boolean;
+  hasWhatsAppAI?: boolean;
+  hasDelivery?: boolean;
+  hasAutoPrint?: boolean;
+  hasBasicReports?: boolean;
+  hasManagementDashboard?: boolean;
+  hasAdvancedReports?: boolean;
+  hasCoupons?: boolean;
+  hasRecurringCustomers?: boolean;
+  isCompanyActive: boolean;
+  ordersToday: number;
+  deliveryOrdersToday: number;
+  paidOrdersToday: number;
+  deletedOrdersToday: number;
+  openOrders: number;
+  pendingPayments: number;
+  failedPrints: number;
+  printedToday: number;
+  tablesCount: number;
+  menuItemsCount: number;
+  stockItemsCount: number;
+  teamMembersCount: number;
+  deliveryEnabled: boolean;
+  aiEnabled: boolean;
+  aiConfigured: boolean;
+  aiModel: string;
+  aiInteractionsToday: number;
+  successfulAiInteractionsToday: number;
+  lastOrderAtUtc?: string | null;
+  hasMasterPassword: boolean;
+  masterPasswordRotatedAtUtc?: string | null;
+};
+
+export type AdminDashboard = {
+  summary: AdminDashboardSummary;
+  codes: SignupCode[];
+  users: AdminUser[];
+  companies: AdminCompanyFlow[];
+};
+
+export type AdminSensitiveActionPayload = {
+  password: string;
+};
+
+export type CreateAdminOwnerPayload = {
+  companyId: string;
+  fullName: string;
+  email: string;
+  ownerPassword: string;
+  rootPassword: string;
+};
+
+export type UpdateAdminOwnerPayload = {
+  fullName: string;
+  email: string;
+  rootPassword: string;
+};
+
+export type ResetAdminOwnerPasswordPayload = {
+  newPassword: string;
+  rootPassword: string;
+};
+
+export type AdminOwnerSensitivePayload = {
+  rootPassword: string;
+};
+
+export type HardDeleteAdminOwnerPayload = AdminOwnerSensitivePayload & {
+  confirmationText: string;
+};
+
+export type UpdateAdminCompanyPlanPayload = AdminSensitiveActionPayload & {
+  planName?: string | null;
+  includesMenuModule: boolean;
+  includesTablesModule: boolean;
+  includesKitchenModule: boolean;
+  includesCashModule: boolean;
+  includesStockModule: boolean;
+  includesDeliveryModule: boolean;
+  includesPrintingModule: boolean;
+  includesWaiterCallModule: boolean;
+  includesAiAssistantModule: boolean;
+  maxUsers: number;
+};
+
+export type DeleteAdminCompanyPayload = AdminSensitiveActionPayload & {
+  confirmationText: string;
+};
+
+export type AdminCompanyPlanUpdate = {
+  companyId: string;
+  restaurantName: string;
+  planName: string;
+  planTier?: string;
+  monthlyPrice: number;
+  maxUsers: number;
+  includesMenuModule: boolean;
+  includesTablesModule: boolean;
+  includesKitchenModule: boolean;
+  includesCashModule: boolean;
+  includesStockModule: boolean;
+  includesDeliveryModule: boolean;
+  includesPrintingModule: boolean;
+  includesWaiterCallModule: boolean;
+  includesAiAssistantModule: boolean;
+  hasWhatsAppAI?: boolean;
+  hasDelivery?: boolean;
+  hasAutoPrint?: boolean;
+  hasBasicReports?: boolean;
+  hasManagementDashboard?: boolean;
+  hasAdvancedReports?: boolean;
+  hasCoupons?: boolean;
+  hasRecurringCustomers?: boolean;
+};
+
+export type CleanupSignupCodesResult = {
+  deletedCount: number;
+  remainingCount: number;
+};
+
+export type AdminCompanyMasterPasswordReveal = {
+  companyId: string;
+  restaurantName: string;
+  hasMasterPassword: boolean;
+  maskedPassword: string;
+  rotatedAtUtc?: string | null;
+  rawPassword: string;
 };
 
 export type AccessRequestPayload = {
@@ -350,8 +998,8 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
     let message = "Nao foi possivel concluir a requisicao.";
 
     try {
-      const errorBody = (await response.json()) as { detail?: string; title?: string };
-      message = errorBody.detail || errorBody.title || message;
+      const errorBody = (await response.json()) as { detail?: string; title?: string; message?: string };
+      message = errorBody.detail || errorBody.message || errorBody.title || message;
     } catch {
       message = response.statusText || message;
     }
@@ -387,8 +1035,8 @@ async function apiFormRequest<T>(path: string, body: FormData, token?: string): 
     let message = "Nao foi possivel concluir a requisicao.";
 
     try {
-      const errorBody = (await response.json()) as { detail?: string; title?: string };
-      message = errorBody.detail || errorBody.title || message;
+      const errorBody = (await response.json()) as { detail?: string; title?: string; message?: string };
+      message = errorBody.detail || errorBody.message || errorBody.title || message;
     } catch {
       message = response.statusText || message;
     }
@@ -475,6 +1123,18 @@ function appendAssetVersion(url: string) {
 
 function getApiBaseUrl() {
   if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      try {
+        const configuredUrl = new URL(CONFIGURED_API_BASE_URL);
+
+        return configuredUrl.origin;
+      } catch {
+        return CONFIGURED_API_BASE_URL;
+      }
+    }
+
     return "";
   }
 
@@ -491,7 +1151,29 @@ function normalizeMenuItem(item: MenuItem): MenuItem {
   return {
     ...item,
     imageUrl: resolveApiAssetUrl(item.imageUrl),
+    startingPrice: item.startingPrice ?? item.price,
+    maxAdditionalSelections: item.maxAdditionalSelections ?? null,
+    hasAdditionalOptions: item.hasAdditionalOptions ?? (item.additionalGroups?.length ?? 0) > 0,
+    additionalGroups: (item.additionalGroups ?? []).map((group) => ({
+      ...group,
+      maxAdditionalSelections: group.maxAdditionalSelections ?? null,
+      options: group.options.map((option) => ({
+        ...option,
+      })),
+    })),
   };
+}
+
+function normalizeMenuAdditionalCatalogGroups(groups: MenuAdditionalCatalogGroup[]) {
+  return groups.map((group) => ({
+    ...group,
+    maxAdditionalSelections: group.maxAdditionalSelections ?? null,
+    linkedItemCount: group.linkedItemCount ?? 0,
+    linkedItemNames: group.linkedItemNames ?? [],
+    options: group.options.map((option) => ({
+      ...option,
+    })),
+  }));
 }
 
 function normalizeOrderItem(item: OrderItem): OrderItem {
@@ -504,7 +1186,47 @@ function normalizeOrderItem(item: OrderItem): OrderItem {
 function normalizeCustomerOrder(order: CustomerOrder): CustomerOrder {
   return {
     ...order,
-    items: order.items.map(normalizeOrderItem),
+    fulfillmentType: order.fulfillmentType || (order.isDeliveryOrder ? "Delivery" : "Local"),
+    originalTotalAmount: Number(order.originalTotalAmount ?? order.totalAmount ?? 0),
+    totalAmount: Number(order.totalAmount ?? 0),
+    totalItemQuantity: Number(order.totalItemQuantity ?? order.items?.reduce((total, item) => total + Number(item.quantity ?? 0), 0) ?? 0),
+    isEdited: Boolean(order.isEdited),
+    discountAmount: Number(order.discountAmount ?? 0),
+    surchargeAmount: Number(order.surchargeAmount ?? 0),
+    couponDiscountAmount: Number(order.couponDiscountAmount ?? 0),
+    couponId: order.couponId ?? null,
+    couponCode: order.couponCode ?? null,
+    couponAppliedAtUtc: order.couponAppliedAtUtc ?? null,
+    hasPriceAdjustment: Boolean(
+      order.hasPriceAdjustment ||
+        Number(order.discountAmount ?? 0) > 0 ||
+        Number(order.surchargeAmount ?? 0) > 0 ||
+        order.priceAdjustedAtUtc,
+    ),
+    paymentTotalAmount: Number(order.paymentTotalAmount ?? 0),
+    remainingPaymentAmount: Number(order.remainingPaymentAmount ?? 0),
+    payments: order.payments ?? [],
+    items: (order.items ?? []).map(normalizeOrderItem),
+  };
+}
+
+function decoratePublicDeliveryOrder(order: CustomerOrder, _publicCode: string): CustomerOrder {
+  const normalized = normalizeCustomerOrder(order);
+
+  if (!normalized.isDeliveryOrder) {
+    return normalized;
+  }
+
+  const fallbackAssistantMessage =
+    normalized.deliveryAssistantMessage ??
+    `Recebemos seu delivery com os dados informados.\n\nA unidade acompanha a entrega e confirma qualquer detalhe de pagamento pelo atendimento. Se precisar corrigir algo, fale com a unidade por esse atendimento.`;
+
+  return {
+    ...normalized,
+    canEditPublicly: false,
+    publicEditAllowedUntilUtc: null,
+    publicEditUrl: null,
+    deliveryAssistantMessage: fallbackAssistantMessage,
   };
 }
 
@@ -529,11 +1251,24 @@ function normalizeWorkspaceAlertsSignal(signal: WorkspaceAlertsSignal): Workspac
   };
 }
 
-function normalizeMenuCategories(categories: MenuCategory[]) {
-  return categories.map((category) => ({
+function normalizeMenuCategory(category: MenuCategory) {
+  return {
     ...category,
+    imageUrl: resolveApiAssetUrl(category.imageUrl),
     items: category.items.map(normalizeMenuItem),
-  }));
+  };
+}
+
+function normalizeMenuCategorySummary(category: MenuCategorySummary): MenuCategorySummary {
+  return {
+    ...category,
+    imageUrl: resolveApiAssetUrl(category.imageUrl),
+    startingPrice: category.startingPrice ?? null,
+  };
+}
+
+function normalizeMenuCategories(categories: MenuCategory[]) {
+  return categories.map(normalizeMenuCategory);
 }
 
 function normalizeAlertSettings(alerts: AlertSettings): AlertSettings {
@@ -545,8 +1280,33 @@ function normalizeAlertSettings(alerts: AlertSettings): AlertSettings {
   };
 }
 
+function normalizeCompanySettings(settings: CompanySettings): CompanySettings {
+  return {
+    ...settings,
+    logoUrl: resolveApiAssetUrl(settings.logoUrl),
+    alerts: normalizeAlertSettings(settings.alerts),
+    shortcutAccess: normalizeOwnerShortcutAccess(settings.shortcutAccess),
+  };
+}
+
+function normalizeOwnerShortcutAccess(shortcutAccess?: OwnerShortcutAccess | null): OwnerShortcutAccess {
+  return {
+    isEnabled: Boolean(shortcutAccess?.isEnabled),
+    createdAtUtc: shortcutAccess?.createdAtUtc ?? null,
+    expiresAtUtc: shortcutAccess?.expiresAtUtc ?? null,
+    lastUsedAtUtc: shortcutAccess?.lastUsedAtUtc ?? null,
+  };
+}
+
 export function loginPortal(payload: LoginPayload) {
   return apiRequest<LoginResult>("/api/auth/login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function loginWithShortcut(payload: ShortcutLoginPayload) {
+  return apiRequest<LoginResult>("/api/auth/shortcut-login", {
     method: "POST",
     body: payload,
   });
@@ -557,6 +1317,10 @@ export function createRestaurantSignup(payload: RestaurantSignupPayload) {
     method: "POST",
     body: payload,
   });
+}
+
+export function getAdminDashboard(token: string) {
+  return apiRequest<AdminDashboard>("/api/admin/dashboard", { token });
 }
 
 export function getSignupCodes(token: string) {
@@ -571,28 +1335,129 @@ export function createSignupCode(token: string, payload: CreateSignupCodePayload
   });
 }
 
+export function deleteSignupCode(token: string, codeId: string) {
+  return apiRequest<void>(`/api/admin/signup-codes/${codeId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function cleanupSignupCodes(token: string) {
+  return apiRequest<CleanupSignupCodesResult>("/api/admin/signup-codes/cleanup", {
+    method: "POST",
+    token,
+  });
+}
+
 export function getAdminUsers(token: string) {
   return apiRequest<AdminUser[]>("/api/admin/users", { token });
 }
 
-export function reactivateAdminUser(token: string, userId: string) {
+export function getAdminOwners(token: string) {
+  return apiRequest<AdminOwner[]>("/api/admin/owners", { token });
+}
+
+export function createAdminOwner(token: string, payload: CreateAdminOwnerPayload) {
+  return apiRequest<AdminOwner>("/api/admin/owners", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateAdminOwner(token: string, ownerId: string, payload: UpdateAdminOwnerPayload) {
+  return apiRequest<AdminOwner>(`/api/admin/owners/${ownerId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function resetAdminOwnerPassword(token: string, ownerId: string, payload: ResetAdminOwnerPasswordPayload) {
+  return apiRequest<void>(`/api/admin/owners/${ownerId}/reset-password`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function deactivateAdminOwner(token: string, ownerId: string, payload: AdminOwnerSensitivePayload) {
+  return apiRequest<AdminOwner>(`/api/admin/owners/${ownerId}/deactivate`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function reactivateAdminOwner(token: string, ownerId: string, payload: AdminOwnerSensitivePayload) {
+  return apiRequest<AdminOwner>(`/api/admin/owners/${ownerId}/reactivate`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function hardDeleteAdminOwner(token: string, ownerId: string, payload: HardDeleteAdminOwnerPayload) {
+  return apiRequest<void>(`/api/admin/owners/${ownerId}`, {
+    method: "DELETE",
+    token,
+    body: payload,
+  });
+}
+
+export function reactivateAdminUser(token: string, userId: string, payload: AdminSensitiveActionPayload) {
   return apiRequest<AdminUser>(`/api/admin/users/${userId}/reactivate`, {
     method: "PATCH",
     token,
+    body: payload,
   });
 }
 
-export function deactivateAdminUser(token: string, userId: string) {
+export function deactivateAdminUser(token: string, userId: string, payload: AdminSensitiveActionPayload) {
   return apiRequest<AdminUser>(`/api/admin/users/${userId}/deactivate`, {
     method: "PATCH",
     token,
+    body: payload,
   });
 }
 
-export function deleteAdminUser(token: string, userId: string) {
+export function deleteAdminUser(token: string, userId: string, payload: AdminSensitiveActionPayload) {
   return apiRequest<void>(`/api/admin/users/${userId}`, {
     method: "DELETE",
     token,
+    body: payload,
+  });
+}
+
+export function revealAdminMasterPassword(token: string, companyId: string, payload: AdminSensitiveActionPayload) {
+  return apiRequest<AdminCompanyMasterPasswordReveal>(`/api/admin/companies/${companyId}/master-password/reveal`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function rotateAdminMasterPassword(token: string, companyId: string, payload: AdminSensitiveActionPayload) {
+  return apiRequest<AdminCompanyMasterPasswordReveal>(`/api/admin/companies/${companyId}/master-password/rotate`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateAdminCompanyPlan(token: string, companyId: string, payload: UpdateAdminCompanyPlanPayload) {
+  return apiRequest<AdminCompanyPlanUpdate>(`/api/admin/companies/${companyId}/plan`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function deleteAdminCompany(token: string, companyId: string, payload: DeleteAdminCompanyPayload) {
+  return apiRequest<void>(`/api/admin/companies/${companyId}`, {
+    method: "DELETE",
+    token,
+    body: payload,
   });
 }
 
@@ -640,23 +1505,94 @@ export function getTables(token: string) {
   return apiRequest<DiningTable[]>("/api/workspace/tables", { token }).then((response) => response.map(normalizeDiningTable));
 }
 
+export function ensureCashOrderTable(token: string) {
+  return apiRequest<DiningTable>("/api/workspace/tables/cash-order", {
+    method: "POST",
+    token,
+  }).then(normalizeDiningTable);
+}
+
 export function getMenu(token: string) {
   return apiRequest<MenuCategory[]>("/api/workspace/menu", { token }).then(normalizeMenuCategories);
 }
 
-export function createMenuCategory(token: string, payload: { name: string }) {
+export function getMenuCategorySummaries(token: string) {
+  return apiRequest<MenuCategorySummary[]>("/api/workspace/menu/categories", { token })
+    .then((response) => response.map(normalizeMenuCategorySummary));
+}
+
+export function getMenuCategoryItems(token: string, categoryId: string) {
+  return apiRequest<MenuCategory>(`/api/workspace/menu/categories/${categoryId}/items`, { token })
+    .then(normalizeMenuCategory);
+}
+
+export function getMenuItem(token: string, menuItemId: string) {
+  return apiRequest<MenuItem>(`/api/workspace/menu/items/${menuItemId}`, { token }).then(normalizeMenuItem);
+}
+
+export function getMenuAdditionals(token: string) {
+  return apiRequest<MenuAdditionalCatalogGroup[]>("/api/workspace/menu/additionals", { token })
+    .then(normalizeMenuAdditionalCatalogGroups);
+}
+
+export function createMenuCategory(token: string, payload: { name: string; imageUrl?: string | null }) {
   return apiRequest<MenuCategory>("/api/workspace/menu/categories", {
+    method: "POST",
+    token,
+    body: payload,
+  }).then(normalizeMenuCategory);
+}
+
+export function updateMenuCategory(token: string, categoryId: string, payload: { name: string; imageUrl?: string | null }) {
+  return apiRequest<MenuCategory>(`/api/workspace/menu/categories/${categoryId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  }).then(normalizeMenuCategory);
+}
+
+type MenuItemAdditionalGroupPayload = Array<{
+  catalogGroupId?: string | null;
+  name: string;
+  allowMultiple: boolean;
+  maxAdditionalSelections?: number | null;
+  options: Array<{
+    catalogOptionId?: string | null;
+    name: string;
+    price: number;
+  }>;
+}>;
+
+type MenuAdditionalCatalogGroupPayload = {
+  name: string;
+  allowMultiple: boolean;
+  maxAdditionalSelections?: number | null;
+  options: Array<{
+    name: string;
+    price: number;
+  }>;
+};
+
+export function createMenuAdditionalGroup(token: string, payload: MenuAdditionalCatalogGroupPayload) {
+  return apiRequest<MenuAdditionalCatalogGroup>("/api/workspace/menu/additionals", {
     method: "POST",
     token,
     body: payload,
   });
 }
 
-export function updateMenuCategory(token: string, categoryId: string, payload: { name: string }) {
-  return apiRequest<MenuCategory>(`/api/workspace/menu/categories/${categoryId}`, {
+export function updateMenuAdditionalGroup(token: string, groupId: string, payload: MenuAdditionalCatalogGroupPayload) {
+  return apiRequest<MenuAdditionalCatalogGroup>(`/api/workspace/menu/additionals/${groupId}`, {
     method: "PUT",
     token,
     body: payload,
+  });
+}
+
+export function deleteMenuAdditionalGroup(token: string, groupId: string) {
+  return apiRequest<void>(`/api/workspace/menu/additionals/${groupId}`, {
+    method: "DELETE",
+    token,
   });
 }
 
@@ -669,6 +1605,8 @@ export function createMenuItem(
     accentLabel?: string;
     imageUrl?: string;
     price: number;
+    maxAdditionalSelections?: number | null;
+    additionalGroups?: MenuItemAdditionalGroupPayload;
   },
 ) {
   return apiRequest<MenuItem>("/api/workspace/menu/items", {
@@ -688,6 +1626,8 @@ export function updateMenuItem(
     accentLabel?: string;
     imageUrl?: string;
     price: number;
+    maxAdditionalSelections?: number | null;
+    additionalGroups?: MenuItemAdditionalGroupPayload;
   },
 ) {
   return apiRequest<MenuItem>(`/api/workspace/menu/items/${menuItemId}`, {
@@ -716,6 +1656,17 @@ export function uploadMenuItemImage(token: string, file: File) {
     }));
 }
 
+export function uploadMenuCategoryImage(token: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFormRequest<UploadMenuItemImageResult>("/api/workspace/menu/categories/images", formData, token)
+    .then((response) => ({
+      ...response,
+      imageUrl: resolveApiAssetUrl(response.imageUrl) ?? "",
+    }));
+}
+
 export function deleteMenuCategory(token: string, categoryId: string) {
   return apiRequest<void>(`/api/workspace/menu/categories/${categoryId}`, {
     method: "DELETE",
@@ -730,7 +1681,7 @@ export function deleteMenuItem(token: string, menuItemId: string) {
   });
 }
 
-export function createTable(token: string, payload: { name: string; seats: number }) {
+export function createTable(token: string, payload: { name: string; seats: number; comandaLabel?: string | null }) {
   return apiRequest<DiningTable>("/api/workspace/tables", {
     method: "POST",
     token,
@@ -738,7 +1689,14 @@ export function createTable(token: string, payload: { name: string; seats: numbe
   }).then(normalizeDiningTable);
 }
 
-export function updateTable(token: string, tableId: string, payload: { name: string; seats: number }) {
+export function ensureDeliveryTable(token: string) {
+  return apiRequest<DiningTable>("/api/workspace/tables/delivery", {
+    method: "POST",
+    token,
+  }).then(normalizeDiningTable);
+}
+
+export function updateTable(token: string, tableId: string, payload: { name: string; seats: number; comandaLabel?: string | null }) {
   return apiRequest<DiningTable>(`/api/workspace/tables/${tableId}`, {
     method: "PUT",
     token,
@@ -763,10 +1721,14 @@ export function deleteTableAlertSound(token: string, tableId: string) {
   }).then(normalizeDiningTable);
 }
 
-export function getOrders(token: string, kitchenOnly = false) {
-  return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}`, { token }).then((response) =>
+export function getOrders(token: string, kitchenOnly = false, summaryOnly = false) {
+  return apiRequest<CustomerOrder[]>(`/api/workspace/orders?kitchenOnly=${kitchenOnly}&summaryOnly=${summaryOnly}`, { token }).then((response) =>
     response.map(normalizeCustomerOrder),
   );
+}
+
+export function getOrder(token: string, orderId: string) {
+  return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}`, { token }).then(normalizeCustomerOrder);
 }
 
 export function updateOrderStatus(token: string, orderId: string, status: string, password?: string) {
@@ -774,6 +1736,22 @@ export function updateOrderStatus(token: string, orderId: string, status: string
     method: "PATCH",
     token,
     body: { status, password },
+  }).then(normalizeCustomerOrder);
+}
+
+export function updateOrder(token: string, orderId: string, payload: UpdateOrderPayload) {
+  return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  }).then(normalizeCustomerOrder);
+}
+
+export function adjustOrderValue(token: string, orderId: string, payload: AdjustOrderValuePayload) {
+  return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}/adjustment`, {
+    method: "PATCH",
+    token,
+    body: payload,
   }).then(normalizeCustomerOrder);
 }
 
@@ -785,12 +1763,26 @@ export function updateOrdersStatusBatch(token: string, orderIds: string[], statu
   });
 }
 
-export function updateOrderPayment(token: string, orderId: string, paymentStatus: string, paymentMethod?: string) {
+export function updateOrderPayment(
+  token: string,
+  orderId: string,
+  paymentStatus: string,
+  paymentMethod?: string,
+  payments?: OrderPaymentInput[],
+) {
   return apiRequest<CustomerOrder>(`/api/workspace/orders/${orderId}/payment`, {
     method: "PATCH",
     token,
-    body: { paymentStatus, paymentMethod },
+    body: { paymentStatus, paymentMethod, payments },
   }).then(normalizeCustomerOrder);
+}
+
+export function markAllOrdersPaid(token: string, orders: MarkOrderPaidInput[]) {
+  return apiRequest<MarkAllOrdersPaidResult>("/api/workspace/orders/mark-all-paid", {
+    method: "PATCH",
+    token,
+    body: { orders },
+  });
 }
 
 export function deleteOrder(token: string, orderId: string) {
@@ -876,10 +1868,7 @@ export function updateStockItem(
 }
 
 export function getCompanySettings(token: string) {
-  return apiRequest<CompanySettings>("/api/workspace/settings", { token }).then((response) => ({
-    ...response,
-    alerts: normalizeAlertSettings(response.alerts),
-  }));
+  return apiRequest<CompanySettings>("/api/workspace/settings", { token }).then(normalizeCompanySettings);
 }
 
 export function updateCompanySettings(
@@ -895,10 +1884,68 @@ export function updateCompanySettings(
     method: "PUT",
     token,
     body: payload,
+  }).then(normalizeCompanySettings);
+}
+
+export function uploadCompanyLogo(token: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFormRequest<CompanySettings>("/api/workspace/settings/logo", formData, token)
+    .then(normalizeCompanySettings);
+}
+
+export function deleteCompanyLogo(token: string) {
+  return apiRequest<CompanySettings>("/api/workspace/settings/logo", {
+    method: "DELETE",
+    token,
+  }).then(normalizeCompanySettings);
+}
+
+export function generateOwnerShortcutAccess(token: string, password: string) {
+  return apiRequest<GenerateOwnerShortcutAccessResult>("/api/workspace/settings/shortcut-access", {
+    method: "POST",
+    token,
+    body: { password },
   }).then((response) => ({
     ...response,
-    alerts: normalizeAlertSettings(response.alerts),
+    shortcutAccess: normalizeOwnerShortcutAccess(response.shortcutAccess),
   }));
+}
+
+export function revokeOwnerShortcutAccess(token: string, password: string) {
+  return apiRequest<OwnerShortcutAccess>("/api/workspace/settings/shortcut-access", {
+    method: "DELETE",
+    token,
+    body: { password },
+  }).then(normalizeOwnerShortcutAccess);
+}
+
+export function getOwnerProfile(token: string) {
+  return apiRequest<OwnerProfile>("/api/workspace/profile", { token });
+}
+
+export function updateOwnerProfile(token: string, payload: { fullName: string; email: string }) {
+  return apiRequest<OwnerProfile>("/api/workspace/profile", {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function changeOwnerPassword(
+  token: string,
+  payload: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  },
+) {
+  return apiRequest<void>("/api/workspace/profile/password", {
+    method: "PUT",
+    token,
+    body: payload,
+  });
 }
 
 export function updateAlertSettings(
@@ -934,6 +1981,30 @@ export function deleteAlertSound(token: string) {
   }).then(normalizeAlertSettings);
 }
 
+export function getDeliveryFreightSettings(token: string) {
+  return apiRequest<DeliveryFreightSettings>("/api/workspace/delivery/freight", { token });
+}
+
+export function updateDeliveryFreightSettings(
+  token: string,
+  payload: {
+    isEnabled: boolean;
+    originPostalCode?: string;
+    pricePerKm: number;
+    baseFee: number;
+    baseDistanceKm: number;
+    pickupEstimatedMinutes?: number | null;
+    deliveryEstimatedMinutes?: number | null;
+    password: string;
+  },
+) {
+  return apiRequest<DeliveryFreightSettings>("/api/workspace/delivery/freight", {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
 export function getPrintingSettings(token: string) {
   return apiRequest<PrintingSettings>("/api/workspace/printing", { token });
 }
@@ -963,12 +2034,161 @@ export function requeuePrintOrder(token: string, orderId: string) {
   });
 }
 
+export type PrintingTestJobResult = {
+  jobId: string;
+  status: string;
+  queuedAtUtc: string;
+  printing: PrintingSettings;
+};
+
+export function createPrintingTestJob(token: string, notes?: string) {
+  return apiRequest<PrintingTestJobResult>("/api/workspace/printing/test-job", {
+    method: "POST",
+    token,
+    body: { notes: notes?.trim() ? notes.trim() : undefined },
+  });
+}
+
+export function getCoupons(token: string) {
+  return apiRequest<Coupon[]>("/api/workspace/coupons", { token });
+}
+
+export function createCoupon(token: string, payload: SaveCouponPayload) {
+  return apiRequest<Coupon>("/api/workspace/coupons", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateCoupon(token: string, couponId: string, payload: SaveCouponPayload) {
+  return apiRequest<Coupon>(`/api/workspace/coupons/${couponId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function updateCouponStatus(token: string, couponId: string, isActive: boolean) {
+  return apiRequest<Coupon>(`/api/workspace/coupons/${couponId}/status`, {
+    method: "PATCH",
+    token,
+    body: { isActive },
+  });
+}
+
+export function getCashClosing(token: string, date: string) {
+  return apiRequest<CashClosingReport>(`/api/workspace/cash-closing/${date}`, { token });
+}
+
+export function getMercadoPagoStatus(token: string) {
+  return apiRequest<MercadoPagoStatus>("/api/workspace/payments/mercadopago/status", { token });
+}
+
+export function startMercadoPagoConnection(token: string) {
+  return apiRequest<MercadoPagoConnectResponse>("/api/workspace/payments/mercadopago/connect", {
+    method: "POST",
+    token,
+  });
+}
+
+export function disconnectMercadoPago(token: string) {
+  return apiRequest<void>("/api/workspace/payments/mercadopago/disconnect", {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function createPublicMercadoPagoCheckout(publicCode: string, orderId: string) {
+  return apiRequest<MercadoPagoCheckoutResponse>(
+    `/api/public/tables/${publicCode}/orders/${orderId}/mercadopago/checkout`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function getAiAssistantSettings(token: string) {
+  return apiRequest<AiAssistantSettings>("/api/workspace/ai", { token });
+}
+
+export function getAiAssistantQuickStatus(token: string) {
+  return apiRequest<AiAssistantQuickStatus>("/api/workspace/ai/status", { token });
+}
+
+export function updateAiAssistantQuickStatus(token: string, isEnabled: boolean) {
+  return apiRequest<AiAssistantQuickStatus>("/api/workspace/ai/status", {
+    method: "PATCH",
+    token,
+    body: { isEnabled },
+  });
+}
+
+export function updateAiAssistantSettings(
+  token: string,
+  payload: {
+    isEnabled: boolean;
+    model: string;
+    systemPrompt: string;
+    greetingMessage: string;
+    redirectMessage: string;
+    fallbackMessage: string;
+    orderingLink?: string;
+    pixReceiverName?: string;
+    pixKey?: string;
+    pixMessage?: string;
+    serviceDays?: number[];
+    serviceStartTime?: string;
+    serviceEndTime?: string;
+    maxOutputTokens: number;
+    whatsAppEnabled: boolean;
+    whatsAppInstanceId?: string;
+    newWhatsAppInstanceToken?: string;
+    newWhatsAppAccountSecurityToken?: string;
+  },
+) {
+  return apiRequest<AiAssistantSettings>("/api/workspace/ai", {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function generateAiAssistantTemplate(token: string) {
+  return apiRequest<AiAssistantSettings>("/api/workspace/ai/generate-template", {
+    method: "POST",
+    token,
+  });
+}
+
+export function testAiAssistant(token: string, message: string) {
+  return apiRequest<AiAssistantTestResult>("/api/workspace/ai/test", {
+    method: "POST",
+    token,
+    body: { message },
+  });
+}
+
+export function prepareWhatsAppConnection(token: string, payload?: PrepareWhatsAppConnectionPayload) {
+  return apiRequest<WhatsAppConnectionSnapshot>("/api/workspace/ai/whatsapp/prepare", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
 export function getPublicTable(publicCode: string) {
   return apiRequest<PublicTableView>(`/api/public/tables/${publicCode}`)
     .then((response) => ({
       ...response,
+      restaurantLogoUrl: resolveApiAssetUrl(response.restaurantLogoUrl),
       menu: normalizeMenuCategories(response.menu),
     }));
+}
+
+export function getPublicMenuItem(publicCode: string, menuItemId: string) {
+  return apiRequest<MenuItem>(`/api/public/tables/${publicCode}/menu/items/${menuItemId}`)
+    .then(normalizeMenuItem);
 }
 
 export function createPublicWaiterCall(publicCode: string) {
@@ -982,7 +2202,14 @@ export function createPublicOrder(
   payload: {
     customerName?: string;
     notes?: string;
+    deliveryPhone?: string;
+    deliveryAddress?: string;
+    deliveryNumber?: string;
+    deliveryComplement?: string;
+    deliveryPostalCode?: string;
+    fulfillmentType?: string;
     paymentMethod?: string;
+    couponCode?: string;
     items?: OrderItemInput[];
     menuSelections?: MenuOrderSelectionInput[];
   },
@@ -990,7 +2217,54 @@ export function createPublicOrder(
   return apiRequest<CustomerOrder>(`/api/public/tables/${publicCode}/orders`, {
     method: "POST",
     body: payload,
-  }).then(normalizeCustomerOrder);
+  }).then((response) => decoratePublicDeliveryOrder(response, publicCode));
+}
+
+export function createPublicSellerLinkOrder(
+  sellerCode: string,
+  publicCode: string,
+  payload: Parameters<typeof createPublicOrder>[1],
+) {
+  return apiRequest<CustomerOrder>(`/api/public/seller-link/${sellerCode}/orders`, {
+    method: "POST",
+    body: payload,
+  }).then((response) => decoratePublicDeliveryOrder(response, publicCode));
+}
+
+export function validatePublicCoupon(
+  publicCode: string,
+  payload: {
+    code: string;
+    subtotal: number;
+  },
+) {
+  return apiRequest<CouponValidation>(`/api/public/tables/${publicCode}/coupons/validate`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function quotePublicDeliveryFreight(
+  publicCode: string,
+  payload: {
+    destinationPostalCode?: string;
+    subtotal: number;
+  },
+) {
+  return apiRequest<DeliveryFreightQuote>(`/api/public/tables/${publicCode}/freight/quote`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function getPublicDeliveryCustomerProfile(publicCode: string, token: string) {
+  return apiRequest<PublicDeliveryCustomerProfile>(
+    `/api/public/tables/${publicCode}/delivery/customer?token=${encodeURIComponent(token)}`,
+  );
+}
+
+export function getPublicCustomerProfile(code: string) {
+  return apiRequest<PublicCustomerProfile>(`/api/public/customer-profile/${encodeURIComponent(code)}`);
 }
 
 export function getWaiterCalls(token: string) {
@@ -1006,4 +2280,122 @@ export function resolveWaiterCall(token: string, waiterCallId: string) {
     method: "PATCH",
     token,
   }).then(normalizeWaiterCall);
+}
+
+export type CustomerProfile = {
+  id: string;
+  phoneNumber: string;
+  name?: string | null;
+  zipCode?: string | null;
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  complement?: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  lastOrderAtUtc?: string | null;
+};
+
+export type CustomerHistoryItem = {
+  itemName: string;
+  quantity: number;
+};
+
+export type CustomerHistoryEntry = {
+  orderId: string;
+  createdAtUtc: string;
+  totalAmount: number;
+  items: CustomerHistoryItem[];
+};
+
+export type SaveCustomerProfilePayload = {
+  name?: string | null;
+  zipCode?: string | null;
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  complement?: string | null;
+};
+
+export function getCustomerProfile(token: string, phoneNumber: string) {
+  return apiRequest<CustomerProfile>(`/api/workspace/customers/${encodeURIComponent(phoneNumber)}/profile`, { token });
+}
+
+export function getCustomerHistory(token: string, phoneNumber: string) {
+  return apiRequest<CustomerHistoryEntry[]>(`/api/workspace/customers/${encodeURIComponent(phoneNumber)}/history`, { token });
+}
+
+export function updateCustomerProfile(token: string, phoneNumber: string, payload: SaveCustomerProfilePayload) {
+  return apiRequest<CustomerProfile>(`/api/workspace/customers/${encodeURIComponent(phoneNumber)}/profile`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export type SalesAgent = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  code: string;
+  commissionPercent?: number | null;
+  isActive: boolean;
+  createdAtUtc: string;
+};
+
+export type CreateSalesAgentPayload = {
+  name: string;
+  phone?: string | null;
+  commissionPercent?: number | null;
+};
+
+export type UpdateSalesAgentPayload = {
+  name: string;
+  phone?: string | null;
+  commissionPercent?: number | null;
+};
+
+export type PublicSellerLink = {
+  sellerName: string;
+  companyName: string;
+  companyLogoUrl?: string | null;
+  cashTablePublicCode: string;
+};
+
+export function getSalesAgents(token: string) {
+  return apiRequest<SalesAgent[]>("/api/workspace/sellers", { token });
+}
+
+export function createSalesAgent(token: string, payload: CreateSalesAgentPayload) {
+  return apiRequest<SalesAgent>("/api/workspace/sellers", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateSalesAgent(token: string, agentId: string, payload: UpdateSalesAgentPayload) {
+  return apiRequest<SalesAgent>(`/api/workspace/sellers/${agentId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function updateSalesAgentStatus(token: string, agentId: string, isActive: boolean) {
+  return apiRequest<SalesAgent>(`/api/workspace/sellers/${agentId}/status`, {
+    method: "PATCH",
+    token,
+    body: { isActive },
+  });
+}
+
+export function getPublicSellerLink(code: string) {
+  return apiRequest<PublicSellerLink>(`/api/public/seller-link/${code}`, {});
+}
+
+export function getSellerOrders(token: string, agentId: string) {
+  return apiRequest<CustomerOrder[]>(`/api/workspace/sellers/${agentId}/orders`, { token }).then(
+    (res) => res.map(normalizeCustomerOrder),
+  );
 }

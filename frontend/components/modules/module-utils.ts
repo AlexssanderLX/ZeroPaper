@@ -92,7 +92,7 @@ export function formatDateTime(value: string) {
 export function formatPaymentMethod(value: string) {
   switch (value) {
     case "Undefined":
-      return "A definir";
+      return "Escolher no caixa";
     case "Pix":
       return "Pix";
     case "Credit":

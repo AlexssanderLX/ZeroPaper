@@ -15,7 +15,7 @@ export default function StockPage() {
   }
 
   return (
-    <WorkspaceModulePage module={moduleData}>
+    <WorkspaceModulePage module={moduleData} token={session.token} onUnauthorized={clearSession}>
       <StockModule token={session.token} onUnauthorized={clearSession} />
     </WorkspaceModulePage>
   );

@@ -1030,6 +1030,7 @@ public class WorkspaceService : IWorkspaceService
             .Include(item => item.DiningTable)
                 .ThenInclude(item => item.QrCodeAccess)
             .Include(item => item.Payments)
+            .Include(item => item.SalesAgent)
             .Where(item => item.CompanyId == session.CompanyId && item.IsActive);
 
         query = summaryOnly
@@ -1050,6 +1051,28 @@ public class WorkspaceService : IWorkspaceService
             .ToListAsync(cancellationToken);
 
         return orders.Select(order => MapOrder(order, includeItems: !summaryOnly)).ToList();
+    }
+
+    public async Task<IReadOnlyList<CustomerOrderDto>> GetOrdersByAgentAsync(
+        WorkspaceSessionContext session,
+        Guid agentId,
+        CancellationToken cancellationToken = default)
+    {
+        var orders = await _context.CustomerOrders
+            .AsNoTracking()
+            .Include(item => item.DiningTable)
+                .ThenInclude(item => item.QrCodeAccess)
+            .Include(item => item.Items)
+            .Include(item => item.Payments)
+            .Where(item =>
+                item.CompanyId == session.CompanyId &&
+                item.IsActive &&
+                item.SalesAgentId == agentId)
+            .OrderByDescending(item => item.SubmittedAtUtc)
+            .Take(200)
+            .ToListAsync(cancellationToken);
+
+        return orders.Select(order => MapOrder(order)).ToList();
     }
 
     public async Task<CustomerOrderDto> GetOrderAsync(
@@ -4795,6 +4818,9 @@ public class WorkspaceService : IWorkspaceService
             PrintLastError = order.PrintLastError,
             PrintAgentName = order.PrintAgentName,
             PrintPrinterName = order.PrintPrinterName,
+            SalesAgentId = order.SalesAgentId,
+            SalesAgentName = order.SalesAgent?.Name,
+            SalesOrigin = order.SalesOrigin?.ToString(),
             Payments = order.Payments
                 .OrderBy(item => item.CreatedAtUtc)
                 .Select(item => new OrderPaymentDto

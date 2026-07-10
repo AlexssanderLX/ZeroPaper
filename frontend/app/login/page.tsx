@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { LoginAccessForm } from "@/components/login-access-form";
+import { ElectricBg } from "@/components/electric-bg";
 
 const loginMarks = ["Unidade", "Root", "Recuperacao"];
 const loginEntries = ["Identificacao", "Sessao", "Painel"];
 
 export default function LoginPage() {
   return (
-    <main className="page-shell">
+    <main className="page-shell zp-auth-neon-page">
+      <ElectricBg />
       <section className="top-link-row">
         <Link className="ghost-link" href="/">
           ZeroPaper

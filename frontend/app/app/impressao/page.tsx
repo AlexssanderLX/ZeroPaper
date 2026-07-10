@@ -15,7 +15,7 @@ export default function PrintingPage() {
   }
 
   return (
-    <WorkspaceModulePage module={moduleData}>
+    <WorkspaceModulePage module={moduleData} token={session.token} onUnauthorized={clearSession}>
       <PrintingModule token={session.token} onUnauthorized={clearSession} />
     </WorkspaceModulePage>
   );

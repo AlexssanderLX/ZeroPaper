@@ -12,7 +12,8 @@ public sealed record CommercialPlanFeatures(
     bool HasManagementDashboard,
     bool HasAdvancedReports,
     bool HasCoupons,
-    bool HasRecurringCustomers);
+    bool HasRecurringCustomers,
+    bool HasSalesAgents);
 
 public sealed record CommercialPlanDefinition(
     CommercialPlanTier Tier,
@@ -61,7 +62,8 @@ public static class CommercialPlanCatalog
             HasManagementDashboard: false,
             HasAdvancedReports: false,
             HasCoupons: false,
-            HasRecurringCustomers: false));
+            HasRecurringCustomers: false,
+            HasSalesAgents: false));
 
     public static readonly CommercialPlanDefinition Operation = new(
         CommercialPlanTier.Operation,
@@ -86,7 +88,8 @@ public static class CommercialPlanCatalog
             HasManagementDashboard: false,
             HasAdvancedReports: false,
             HasCoupons: false,
-            HasRecurringCustomers: false));
+            HasRecurringCustomers: false,
+            HasSalesAgents: true));
 
     public static readonly CommercialPlanDefinition Management = new(
         CommercialPlanTier.Management,
@@ -111,7 +114,8 @@ public static class CommercialPlanCatalog
             HasManagementDashboard: true,
             HasAdvancedReports: true,
             HasCoupons: true,
-            HasRecurringCustomers: true));
+            HasRecurringCustomers: true,
+            HasSalesAgents: true));
 
     public static readonly IReadOnlyList<CommercialPlanDefinition> StandardPlans =
     [
@@ -174,7 +178,8 @@ public static class CommercialPlanCatalog
                 HasManagementDashboard: false,
                 HasAdvancedReports: false,
                 HasCoupons: false,
-                HasRecurringCustomers: false);
+                HasRecurringCustomers: false,
+                HasSalesAgents: false);
     }
 
     public static CommercialPlanTier ResolveTier(string? planName)

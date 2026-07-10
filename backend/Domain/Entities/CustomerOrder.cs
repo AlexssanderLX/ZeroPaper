@@ -103,13 +103,23 @@ public class CustomerOrder : TenantOwnedEntity
     public string? PrintLastError { get; private set; }
     public string? PrintAgentName { get; private set; }
     public string? PrintPrinterName { get; private set; }
+    public Guid? SalesAgentId { get; private set; }
+    public SalesOrigin? SalesOrigin { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
     public DiningTable DiningTable { get; private set; } = null!;
     public Coupon? Coupon { get; private set; }
+    public SalesAgent? SalesAgent { get; private set; }
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
     public IReadOnlyCollection<CustomerOrderPayment> Payments => _payments.AsReadOnly();
+
+    public void SetSalesAgent(Guid salesAgentId, SalesOrigin origin)
+    {
+        SalesAgentId = salesAgentId;
+        SalesOrigin = origin;
+        Touch();
+    }
 
     public void MoveToKitchen()
     {

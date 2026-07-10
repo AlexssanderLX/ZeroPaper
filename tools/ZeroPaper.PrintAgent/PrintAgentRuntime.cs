@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using Microsoft.Win32;
 
 namespace ZeroPaper.PrintAgent;
@@ -23,7 +29,7 @@ internal sealed class PrintAgentRuntime
             return;
         }
 
-        if (!PrinterCatalog.IsPhysicalPrinter(config.PrinterName))
+        if (!config.UseFilePreview && !PrinterCatalog.IsPhysicalPrinter(config.PrinterName))
         {
             throw new InvalidOperationException("Selecione uma impressora fisica. Impressoras PDF/XPS exigem salvar arquivo e nao servem para impressao automatica.");
         }
@@ -116,16 +122,33 @@ internal sealed class PrintAgentRuntime
 
                 try
                 {
-                    await PrintSlipRenderer.PrintAsync(config.PrinterName, jobsToPrint, cancellationToken);
-                    await _apiClient.CompleteBatchAsync(config, jobsToPrint.Select(item => item.OrderId).ToList(), cancellationToken);
-                    LogReceived?.Invoke($"Impressao concluida para {batchLabel}.");
-                    StatusChanged?.Invoke("Pedido enviado para a impressora.");
+                    if (config.UseFilePreview)
+                    {
+                        var previewFolder = config.ResolvePreviewFolder();
+                        var savedPaths = new List<string>();
+
+                        foreach (var jobToSave in jobsToPrint)
+                        {
+                            savedPaths.Add(PrintSlipRenderer.SavePreviewImage(jobToSave, previewFolder));
+                        }
+
+                        await _apiClient.CompleteBatchAsync(config, jobsToPrint.Select(item => item.OrderId).ToList(), cancellationToken);
+                        LogReceived?.Invoke($"Previa salva para {batchLabel}: {string.Join(", ", savedPaths)}");
+                        StatusChanged?.Invoke("Previa salva em arquivo.");
+                    }
+                    else
+                    {
+                        await PrintSlipRenderer.PrintAsync(config.PrinterName, jobsToPrint, cancellationToken);
+                        await _apiClient.CompleteBatchAsync(config, jobsToPrint.Select(item => item.OrderId).ToList(), cancellationToken);
+                        LogReceived?.Invoke($"Impressao concluida para {batchLabel}.");
+                        StatusChanged?.Invoke("Pedido enviado para a impressora.");
+                    }
                 }
                 catch (Exception printError)
                 {
                     await _apiClient.FailBatchAsync(config, jobsToPrint.Select(item => item.OrderId).ToList(), printError.Message, cancellationToken);
-                    LogReceived?.Invoke($"Falha ao imprimir {batchLabel}: {printError.Message}");
-                    StatusChanged?.Invoke("Falha ao imprimir. Verifique a impressora.");
+                    LogReceived?.Invoke($"Falha ao processar {batchLabel}: {printError.Message}");
+                    StatusChanged?.Invoke(config.UseFilePreview ? "Falha ao salvar previa." : "Falha ao imprimir. Verifique a impressora.");
                 }
             }
             catch (OperationCanceledException)

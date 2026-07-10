@@ -1,0 +1,449 @@
+Quero evoluir o ZeroPaper de um sistema focado em restaurantes para uma plataforma de automação de vendas, pedidos, atendimento e cobrança para pequenos negócios.
+
+Contexto atual:
+O ZeroPaper hoje já tem:
+- cardápio/catálogo digital
+- pedidos por link/QR
+- painel operacional
+- caixa
+- cozinha/preparo
+- delivery/retirada
+- impressão
+- WhatsApp/IA
+- pagamentos
+- cupons
+- relatórios
+- perfil do cliente
+- planos por módulos
+
+Ideia:
+Manter restaurantes como primeiro nicho forte, mas criar uma base mais genérica para vender o ZeroPaper também para outros segmentos.
+
+Nichos candidatos:
+1. Pet shop / banho e tosa
+2. Farmácia / drogaria de bairro
+3. Mercearia / conveniência / hortifruti / loja de açaí
+4. Assistência técnica / conserto de celular
+5. Oficina mecânica / estética automotiva
+
+Quero que você analise como transformar o ZeroPaper em uma plataforma modular por segmento.
+
+Entregue:
+
+1. Posicionamento comercial
+- Como explicar o ZeroPaper de forma ampla sem perder clareza.
+- Frase principal de venda.
+- Como manter “restaurante” como vertical principal, mas abrir espaço para outros nichos.
+
+2. Modelo de arquitetura de produto
+- O que deve ser genérico no sistema.
+- O que deve ser específico por nicho.
+- Quais termos deveriam virar configuráveis.
+Exemplo:
+  - cardápio → catálogo / serviços / produtos
+  - cozinha → preparo / produção / execução
+  - mesa → origem do pedido / ponto de venda / atendimento
+  - pedido → pedido / ordem de serviço / atendimento
+
+3. BusinessSegment
+Proponha uma estrutura para segmentos:
+- Restaurant
+- PetShop
+- Pharmacy
+- Retail
+- TechnicalAssistance
+- AutoService
+- Custom
+
+Para cada segmento, diga:
+- nome dos módulos
+- textos principais
+- campos extras necessários
+- módulos ativos por padrão
+- quais funcionalidades atuais já servem
+- quais funcionalidades precisam adaptação
+
+4. Planos e módulos
+Proponha planos personalizáveis:
+- Essencial
+- Operação
+- Gestão
+
+E também módulos extras:
+- WhatsApp IA
+- Pagamento online
+- Impressão
+- Relatórios
+- Cupons
+- Perfil do cliente
+- Agenda
+- Ordem de serviço
+- Delivery
+- Fidelidade
+
+Explique como combinar plano + segmento + módulos.
+
+5. Primeiros nichos para atacar
+Analise os 5 nichos candidatos e classifique por:
+- facilidade de adaptação
+- valor percebido
+- urgência da dor
+- chance de venda rápida
+- esforço técnico
+- risco de suporte
+
+Depois recomende a ordem ideal de ataque.
+
+6. MVP por nicho
+Para cada nicho, descreva:
+- fluxo principal do cliente
+- fluxo principal do dono
+- quais telas existentes podem ser reaproveitadas
+- quais novas telas seriam necessárias
+- campos extras necessários
+- exemplos de uso real
+
+7. Estratégia técnica incremental
+Quero evitar refatoração gigante.
+Proponha um plano em fases:
+Fase 1: ajustes de linguagem e configuração
+Fase 2: BusinessSegment no backend
+Fase 3: presets de módulos por segmento
+Fase 4: campos extras por nicho
+Fase 5: landing pages e venda segmentada
+
+8. Riscos
+Liste riscos técnicos e comerciais:
+- produto ficar genérico demais
+- excesso de suporte
+- confusão nos planos
+- refatoração grande
+- nichos com regras específicas demais
+
+9. Recomendação final
+Diga se devo começar por Pet Shop, Farmácia ou outro nicho, e por quê.
+Seja direto, prático e pense como produto SaaS para pequenos negócios no Brasil.
+
+Você é consultor de produto SaaS, pricing e arquitetura para o ZeroPaper.
+
+Contexto:
+O ZeroPaper começou como sistema para restaurantes, mas queremos evoluir para uma plataforma de automação de pedidos, atendimento, cobrança e operação para pequenos negócios em vários ramos.
+
+Hoje o ZeroPaper já tem ou está implementando:
+- catálogo/cardápio digital
+- pedidos por link/QR
+- painel operacional
+- caixa
+- delivery/retirada
+- impressão
+- WhatsApp/IA via Evolution API
+- pagamentos online via gateway
+- cupons/descontos
+- perfil do cliente
+- relatórios
+- planos por módulos
+
+Nova visão:
+O ZeroPaper deve ser vendido como uma plataforma modular por segmento, não somente restaurantes.
+
+Segmentos futuros:
+- Restaurant
+- PetShop
+- Pharmacy
+- Retail
+- TechnicalAssistance
+- AutoService
+- Custom
+
+Planos desejados:
+1. Essencial — R$ 80
+2. Operação — R$ 120
+3. Gestão — até R$ 199 ou R$ 200
+
+Objetivo do plano Gestão:
+Ser o plano mais seguro, completo e profissional.
+
+O plano Gestão deve incluir:
+- gateway/pagamento online oficial
+- WhatsApp oficial Meta / WhatsApp Business Platform
+- automação de atendimento com IA
+- perfil do cliente
+- cupons/descontos
+- relatórios avançados
+- dashboard de gestão
+- clientes recorrentes
+- suporte prioritário
+- setup assistido
+
+Importante:
+Não quero prometer custo variável ilimitado.
+Custos externos como:
+- mensagens Meta/WhatsApp
+- taxas do gateway
+- uso de IA/tokens
+- provedores terceiros
+devem ser tratados como custo externo, repasse ou franquia limitada.
+
+Quero que você estruture uma proposta completa para esse novo modelo.
+
+Entregue:
+
+1. Posicionamento comercial
+- Como explicar o ZeroPaper como automatizador de vendas, pedidos, atendimento e cobrança.
+- Como manter restaurantes como primeiro vertical sem limitar o produto.
+- Como vender segurança no plano Gestão.
+- Frases comerciais claras para site, proposta e WhatsApp.
+
+2. Nova estrutura de planos
+Monte os planos:
+- Essencial — R$ 80
+- Operação — R$ 120
+- Gestão — R$ 199/R$ 200
+
+Para cada plano, descreva:
+- público ideal
+- módulos inclusos
+- limites sugeridos
+- o que não está incluso
+- mensagem comercial
+- objeções prováveis
+- como responder objeções
+
+3. Gestão como plano profissional
+Detalhe o plano Gestão com foco em:
+- integração oficial Meta
+- gateway oficial
+- menor risco operacional
+- rastreabilidade
+- suporte prioritário
+- automação mais estável
+
+Explique como comunicar:
+- “menor risco” sem prometer “risco zero”
+- custos externos de Meta/gateway/IA
+- diferença entre WhatsApp econômico e WhatsApp oficial
+
+4. WhatsApp: Evolution vs Meta Oficial
+Compare:
+- Evolution API
+- WhatsApp Business Platform / Cloud API oficial
+
+Para cada uma, detalhe:
+- custo
+- risco
+- estabilidade
+- dificuldade técnica
+- público indicado
+- plano onde faz sentido
+- como explicar para o cliente sem assustar
+
+Sugestão inicial:
+- Operação usa WhatsApp IA econômico via Evolution
+- Gestão usa WhatsApp oficial Meta
+Mas avalie se isso é o melhor.
+
+5. Gateway/pagamento online
+Explique o melhor modelo para o ZeroPaper:
+- restaurante/empresa conecta a própria conta Mercado Pago ou gateway
+- dinheiro cai direto na conta do cliente
+- ZeroPaper não vira intermediador financeiro
+- taxas do gateway são do provedor
+- ZeroPaper cobra software/setup/suporte
+
+Defina como isso entra no plano Gestão.
+
+6. Modelo modular por segmento
+Explique como os planos funcionam em diferentes nichos:
+- restaurante
+- pet shop
+- farmácia
+- varejo
+- assistência técnica
+- oficina/auto service
+
+Para cada segmento, diga:
+- como chamar os módulos
+- quais recursos do Gestão fazem mais sentido
+- exemplos de automação com Meta oficial e gateway
+- quais campos extras seriam necessários
+
+7. Feature flags e arquitetura
+Proponha flags como:
+- hasOnlinePayments
+- hasOfficialWhatsApp
+- hasEconomicWhatsApp
+- hasCoupons
+- hasCustomerProfiles
+- hasAdvancedReports
+- hasManagementDashboard
+- hasRecurringCustomers
+- hasBusinessSegmentPresets
+
+Proponha também enums/configurações:
+- PlanTier = Essential | Operation | Management
+- WhatsAppProvider = None | Evolution | MetaCloud
+- PaymentProvider = None | ManualPix | MercadoPago
+- BusinessSegment = Restaurant | PetShop | Pharmacy | Retail | TechnicalAssistance | AutoService | Custom
+
+8. Estratégia de implementação
+Monte um plano técnico incremental:
+Fase 1:
+- ajustar feature flags e planos
+- preparar provider de WhatsApp
+- preparar provider de pagamento
+
+Fase 2:
+- implementar Meta Cloud API como provider separado
+- manter Evolution como provider econômico
+- logs unificados
+
+Fase 3:
+- melhorar gateway/pagamentos
+- painel de conexão por empresa
+
+Fase 4:
+- BusinessSegment e labels por nicho
+- presets por segmento
+
+Fase 5:
+- Gestão completo por segmento
+
+9. Precificação e margem
+Analise se R$ 199/R$ 200 no Gestão faz sentido.
+Considere:
+- pequenos negócios no Brasil
+- custo de Meta
+- custo de IA
+- custo de suporte
+- taxa de setup
+- repasse de custos externos
+- risco de margem negativa
+
+Sugira:
+- preço mensal
+- setup opcional
+- franquia de mensagens se fizer sentido
+- política de repasse
+
+10. Texto pronto para proposta comercial
+Crie uma versão curta para vender o plano Gestão:
+- para restaurante
+- para pet shop
+- para farmácia
+- para assistência técnica
+
+Tom:
+Direto, simples, comercial, sem parecer técnico demais.
+Você está trabalhando no projeto ZeroPaper.
+
+Projeto:
+- SaaS multi-tenant para pequenos negócios, começando por restaurantes.
+- Backend: ASP.NET Core / C# / EF Core / MySQL.
+- Frontend: Next.js.
+- Produção: VPS Ubuntu 22.04.
+- Multi-tenant por TenantId/CompanyId.
+- Workspace deve usar sessão/autenticação existente, não confiar em CompanyId vindo do frontend.
+
+Diretório local:
+C:\Users\Alexssander\Desktop\Programação\ZeroPaper
+
+VPS:
+- Host/IP: 216.238.105.103
+- Serviço backend: zeropaper-backend
+- Serviço frontend: zeropaper-frontend
+- Base app: /opt/zeropaper
+- Backups: /opt/zeropaper/backups
+- Env backend: /etc/zeropaper/backend.env
+- Env frontend: /etc/zeropaper/frontend.env
+
+IMPORTANTE:
+- Não colocar secrets no chat.
+- Não commitar env, logs, banco, uploads, publish local, backups ou arquivos sensíveis.
+- Não sobrescrever /etc/zeropaper/backend.env nem /etc/zeropaper/frontend.env.
+- Antes de deploy: fazer backup de banco/app.
+- Só fazer deploy se eu pedir explicitamente.
+- Se eu pedir “não publicar”, não executar comandos de VPS/produção.
+
+Deploy conhecido:
+- Backend deve ser publicado self-contained linux-x64.
+- Frontend deve usar Next standalone.
+- Usar docs/ZEROPAPER_VPS_RUNTIME_MAP.md como referência principal quando existir.
+- Depois de trocar arquivos:
+  - reiniciar zeropaper-backend ou zeropaper-frontend conforme escopo
+  - verificar systemctl status
+  - verificar journalctl
+  - fazer smoke test HTTP
+
+Comandos úteis locais:
+- Backend build:
+  dotnet build backend/ZeroPaper.csproj
+
+- Criar migration:
+  dotnet ef migrations add NomeDaMigration --project backend/ZeroPaper.csproj --startup-project backend/ZeroPaper.csproj
+
+- Script migration idempotente:
+  dotnet ef migrations script --idempotent --project backend/ZeroPaper.csproj --startup-project backend/ZeroPaper.csproj --output backend/Migrations/nome.sql
+
+- Frontend build:
+  npm run build
+
+Regras de trabalho:
+- Antes de editar, inspecionar só os arquivos relacionados.
+- Não fazer varredura ampla sem necessidade.
+- Alterar o menor número possível de arquivos.
+- Preservar arquitetura existente.
+- Não mexer em frontend quando a tarefa for backend, e vice-versa, salvo pedido explícito.
+- Rodar build antes de finalizar.
+- Se criar branch:
+  usar prefixo codex/
+- Se fizer commit/push:
+  relatar branch, commit e arquivos principais.
+
+Padrão de resposta final:
+- Resumo do que foi alterado.
+- Arquivos modificados.
+- Migration criada, se houver.
+- Endpoints/contratos criados, se houver.
+- Comandos executados.
+- Resultado do build/testes.
+- Se teve deploy: backup path, comandos, smoke test e rollback.
+- Riscos pendentes.
+
+Estado conceitual atual:
+- Planos comerciais:
+  - Essencial
+  - Operação
+  - Gestão
+- Futuro multi-segmento:
+  - Restaurant
+  - PetShop
+  - Pharmacy
+  - Retail
+  - TechnicalAssistance
+  - AutoService
+  - Custom
+- Integrações futuras:
+  - WhatsAppProvider = None | Evolution | MetaCloud
+  - PaymentProvider = None | ManualPix | MercadoPago
+- Gestão deve ser plano mais seguro/completo:
+  - gateway oficial
+  - WhatsApp oficial Meta
+  - perfil do cliente
+  - cupons
+  - relatórios
+  - suporte prioritário
+  - custos externos não devem ser prometidos como ilimitados
+
+Entrar na vps sem expor credenciais:
+ssh zeropaper-vps
+
+Executar todo o projeto localmente:
+start-dev.bat
+docker start zeropaper-evolution-postgres zeropaper-evolution
+
+User locais Credenciais: 
+root@zeropaper.local
+owner.essencial@zeropaper.local
+owner.operacao@zeropaper.local
+owner.gestao@zeropaper.local
+Senha:Teste@123456

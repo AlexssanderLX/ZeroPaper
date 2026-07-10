@@ -70,12 +70,9 @@ public class SmtpAccessRequestNotificationService : IAccessRequestNotificationSe
         var builder = new StringBuilder();
         builder.AppendLine("Nova solicitacao de liberacao ZeroPaper");
         builder.AppendLine();
-        builder.AppendLine($"Restaurante: {request.RestaurantName.Trim()}");
-        builder.AppendLine($"Razao social: {NormalizeOptional(request.LegalName)}");
-        builder.AppendLine($"Responsavel: {request.OwnerName.Trim()}");
+        builder.AppendLine($"Nome: {request.OwnerName.Trim()}");
         builder.AppendLine($"Email: {request.OwnerEmail.Trim().ToLowerInvariant()}");
         builder.AppendLine($"Telefone: {NormalizeOptional(request.ContactPhone)}");
-        builder.AppendLine($"Cidade/Bairro: {NormalizeOptional(request.CityRegion)}");
         builder.AppendLine($"Observacoes: {NormalizeOptional(request.Notes)}");
         builder.AppendLine();
         builder.AppendLine($"Enviado em UTC: {DateTime.UtcNow:O}");

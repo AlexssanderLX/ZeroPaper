@@ -1,4 +1,9 @@
+using System;
+using System.Drawing;
 using System.Drawing.Printing;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace ZeroPaper.PrintAgent;
 
@@ -8,9 +13,13 @@ public sealed class MainForm : Form
     private readonly TextBox _agentKeyInput = new();
     private readonly TextBox _agentNameInput = new();
     private readonly ComboBox _printerSelector = new();
+    private readonly ComboBox _outputModeSelector = new();
+    private readonly TextBox _previewFolderInput = new();
+    private readonly Button _browsePreviewButton = new();
     private readonly NumericUpDown _pollIntervalInput = new();
     private readonly CheckBox _autoStartToggle = new();
     private readonly Label _statusValue = new();
+    private readonly Panel _statusDot = new();
     private readonly TextBox _logBox = new();
     private readonly Button _saveButton = new();
     private readonly Button _startButton = new();
@@ -114,18 +123,36 @@ public sealed class MainForm : Form
             ForeColor = Color.FromArgb(95, 74, 62)
         };
 
-        var statusBadge = new Panel
+        var statusBadge = new FlowLayoutPanel
         {
             AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
             BackColor = Color.FromArgb(244, 236, 228),
-            Padding = new Padding(14, 10, 14, 10),
+            Padding = new Padding(14, 10, 16, 10),
             Margin = new Padding(12, 0, 0, 0)
         };
+
+        _statusDot.Size = new Size(12, 12);
+        _statusDot.Margin = new Padding(0, 5, 9, 0);
+        _statusDot.BackColor = Color.FromArgb(176, 142, 120);
+        _statusDot.Paint += (sender, paintArgs) =>
+        {
+            if (sender is Panel dot)
+            {
+                paintArgs.Graphics.Clear(dot.Parent?.BackColor ?? Color.FromArgb(244, 236, 228));
+                paintArgs.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using var brush = new SolidBrush(dot.BackColor);
+                paintArgs.Graphics.FillEllipse(brush, 0, 0, dot.Width - 1, dot.Height - 1);
+            }
+        };
+
+        statusBadge.Controls.Add(_statusDot);
         statusBadge.Controls.Add(_statusValue);
         _statusValue.AutoSize = true;
-        _statusValue.Text = "Agente parado.";
+        _statusValue.Text = "Agente parado";
         _statusValue.ForeColor = Color.FromArgb(61, 47, 38);
-        _statusValue.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        _statusValue.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
 
         panel.Controls.Add(eyebrow, 0, 0);
         panel.Controls.Add(statusBadge, 1, 0);
@@ -139,33 +166,27 @@ public sealed class MainForm : Form
 
     private Control BuildConfigPanel()
     {
-        var grid = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            AutoSize = true
-        };
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
-
-        var left = new TableLayoutPanel
+        var column = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             AutoSize = true
         };
+        column.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        left.Controls.Add(CreateField("URL do ZeroPaper", _apiBaseUrlInput));
-        left.Controls.Add(CreateField("Chave do agente", _agentKeyInput));
-        left.Controls.Add(CreateField("Nome do agente", _agentNameInput));
+        // 1. Codigo da unidade
+        column.Controls.Add(CreateSectionTitle("1. Codigo da unidade"));
+        column.Controls.Add(CreateField("Cole o codigo gerado no painel", _agentKeyInput));
+        column.Controls.Add(CreateHint("No site: Impressao -> Gerar codigo -> Copiar. Depois cole aqui."));
 
+        // 2. Impressora
+        column.Controls.Add(CreateSectionTitle("2. Impressora"));
         var printerRow = new TableLayoutPanel
         {
             Dock = DockStyle.Top,
             ColumnCount = 2,
             AutoSize = true,
-            Margin = new Padding(0, 0, 0, 12)
+            Margin = new Padding(0, 0, 0, 6)
         };
         printerRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         printerRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -173,69 +194,86 @@ public sealed class MainForm : Form
         _printerSelector.DropDownStyle = ComboBoxStyle.DropDownList;
         _printerSelector.Height = 38;
         ConfigureSecondaryButton(_refreshPrintersButton, "Atualizar");
-        printerRow.Controls.Add(CreateField("Impressora", _printerSelector), 0, 0);
+        printerRow.Controls.Add(CreateField("Impressora da cozinha", _printerSelector), 0, 0);
         printerRow.Controls.Add(_refreshPrintersButton, 1, 0);
-
-        left.Controls.Add(printerRow);
+        column.Controls.Add(printerRow);
 
         _printerHint.AutoSize = true;
-        _printerHint.MaximumSize = new Size(620, 0);
+        _printerHint.MaximumSize = new Size(760, 0);
         _printerHint.ForeColor = Color.FromArgb(125, 83, 63);
-        _printerHint.Margin = new Padding(0, -2, 0, 12);
-        left.Controls.Add(_printerHint);
+        _printerHint.Margin = new Padding(2, -2, 0, 10);
+        column.Controls.Add(_printerHint);
 
-        var right = new TableLayoutPanel
+        _outputModeSelector.DropDownStyle = ComboBoxStyle.DropDownList;
+        _outputModeSelector.Height = 38;
+        _outputModeSelector.Items.Add("Impressora real");
+        _outputModeSelector.Items.Add("Salvar previa em arquivo");
+        _outputModeSelector.SelectedIndex = 0;
+        column.Controls.Add(CreateField("Modo de saida", _outputModeSelector));
+
+        var previewRow = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
+            Dock = DockStyle.Top,
+            ColumnCount = 2,
             AutoSize = true,
-            Padding = new Padding(12, 0, 0, 0)
+            Margin = new Padding(0, 0, 0, 4)
         };
+        previewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        previewRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        ConfigureSecondaryButton(_browsePreviewButton, "Escolher pasta");
+        previewRow.Controls.Add(CreateField("Pasta da previa", _previewFolderInput), 0, 0);
+        previewRow.Controls.Add(_browsePreviewButton, 1, 0);
+        column.Controls.Add(previewRow);
+        column.Controls.Add(CreateHint("No modo previa o agente nao usa impressora: salva o cupom como imagem PNG na pasta escolhida."));
 
-        _pollIntervalInput.Minimum = 1;
-        _pollIntervalInput.Maximum = 10;
-        _pollIntervalInput.Value = 1;
-        _pollIntervalInput.Width = 120;
-        right.Controls.Add(CreateField("Intervalo de consulta (segundos)", _pollIntervalInput));
-
-        _autoStartToggle.Text = "Iniciar com o Windows";
-        _autoStartToggle.AutoSize = true;
-        _autoStartToggle.ForeColor = Color.FromArgb(63, 46, 37);
-        _autoStartToggle.Margin = new Padding(4, 8, 0, 16);
-        right.Controls.Add(_autoStartToggle);
-
+        // Acoes principais
         var actions = new FlowLayoutPanel
         {
             Dock = DockStyle.Top,
             AutoSize = true,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true
+            WrapContents = true,
+            Margin = new Padding(0, 10, 0, 0)
         };
-
-        ConfigurePrimaryButton(_saveButton, "Salvar configuracao");
-        ConfigurePrimaryButton(_startButton, "Iniciar agente");
-        ConfigureSecondaryButton(_stopButton, "Parar agente");
+        ConfigureHeroButton(_startButton, "Conectar agente");
+        ConfigureSecondaryButton(_stopButton, "Parar");
         ConfigureSecondaryButton(_testPrintButton, "Testar impressao");
-
-        actions.Controls.Add(_saveButton);
         actions.Controls.Add(_startButton);
         actions.Controls.Add(_stopButton);
         actions.Controls.Add(_testPrintButton);
-        right.Controls.Add(actions);
+        column.Controls.Add(actions);
+        column.Controls.Add(CreateHint("Ao conectar, o agente salva tudo, fica online e imprime os pedidos novos sozinho. Pode minimizar esta janela."));
 
-        var hint = new Label
+        // Avancado
+        column.Controls.Add(CreateSectionTitle("Avancado"));
+        var advRow = new TableLayoutPanel
         {
-            AutoSize = true,
-            MaximumSize = new Size(320, 0),
-            Text = "Depois de salvo, o agente consulta a fila automaticamente e imprime sem precisar apertar botao no pedido.",
-            ForeColor = Color.FromArgb(95, 74, 62),
-            Margin = new Padding(4, 14, 0, 0)
+            Dock = DockStyle.Top,
+            ColumnCount = 2,
+            AutoSize = true
         };
-        right.Controls.Add(hint);
+        advRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+        advRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+        advRow.Controls.Add(CreateField("URL do ZeroPaper", _apiBaseUrlInput), 0, 0);
+        advRow.Controls.Add(CreateField("Nome do agente", _agentNameInput), 1, 0);
+        column.Controls.Add(advRow);
 
-        grid.Controls.Add(left, 0, 0);
-        grid.Controls.Add(right, 1, 0);
-        return grid;
+        _pollIntervalInput.Minimum = 1;
+        _pollIntervalInput.Maximum = 10;
+        _pollIntervalInput.Value = 1;
+        _pollIntervalInput.Width = 120;
+        column.Controls.Add(CreateField("Intervalo de consulta (segundos)", _pollIntervalInput));
+
+        _autoStartToggle.Text = "Iniciar com o Windows";
+        _autoStartToggle.AutoSize = true;
+        _autoStartToggle.ForeColor = Color.FromArgb(63, 46, 37);
+        _autoStartToggle.Margin = new Padding(4, 4, 0, 12);
+        column.Controls.Add(_autoStartToggle);
+
+        ConfigureSecondaryButton(_saveButton, "Salvar sem conectar");
+        column.Controls.Add(_saveButton);
+
+        return column;
     }
 
     private Control BuildLogPanel()
@@ -337,9 +375,48 @@ public sealed class MainForm : Form
         button.Margin = new Padding(0, 0, 10, 10);
     }
 
+    private static void ConfigureHeroButton(Button button, string text)
+    {
+        button.Text = text;
+        button.AutoSize = true;
+        button.FlatStyle = FlatStyle.Flat;
+        button.FlatAppearance.BorderSize = 0;
+        button.Padding = new Padding(24, 12, 24, 12);
+        button.BackColor = Color.FromArgb(63, 158, 106);
+        button.ForeColor = Color.White;
+        button.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+        button.Margin = new Padding(0, 0, 10, 10);
+    }
+
+    private static Control CreateSectionTitle(string text)
+    {
+        return new Label
+        {
+            AutoSize = true,
+            Text = text,
+            ForeColor = Color.FromArgb(40, 29, 23),
+            Font = new Font("Georgia", 13F, FontStyle.Bold),
+            Margin = new Padding(0, 16, 0, 8)
+        };
+    }
+
+    private static Control CreateHint(string text)
+    {
+        return new Label
+        {
+            AutoSize = true,
+            MaximumSize = new Size(760, 0),
+            Text = text,
+            ForeColor = Color.FromArgb(95, 74, 62),
+            Margin = new Padding(2, -2, 0, 10)
+        };
+    }
+
     private void BindEvents()
     {
         _refreshPrintersButton.Click += (_, _) => RefreshPrinters();
+        _browsePreviewButton.Click += (_, _) => BrowsePreviewFolder();
+        _outputModeSelector.SelectedIndexChanged += (_, _) => UpdateOutputModeUi();
         _saveButton.Click += async (_, _) => await SaveConfigAsync(startAfterSave: false);
         _startButton.Click += async (_, _) => await SaveConfigAsync(startAfterSave: true);
         _stopButton.Click += async (_, _) => await StopRuntimeAsync();
@@ -356,6 +433,34 @@ public sealed class MainForm : Form
         _agentNameInput.Text = string.IsNullOrWhiteSpace(_config.AgentName) ? Environment.MachineName : _config.AgentName;
         _pollIntervalInput.Value = Math.Max(_pollIntervalInput.Minimum, Math.Min(_pollIntervalInput.Maximum, _config.PollIntervalSeconds));
         _autoStartToggle.Checked = _config.StartWithWindows;
+        _outputModeSelector.SelectedIndex = _config.UseFilePreview ? 1 : 0;
+        _previewFolderInput.Text = string.IsNullOrWhiteSpace(_config.PreviewFolder)
+            ? AgentConfig.DefaultPreviewFolder
+            : _config.PreviewFolder;
+        UpdateOutputModeUi();
+    }
+
+    private void UpdateOutputModeUi()
+    {
+        var usePreview = _outputModeSelector.SelectedIndex == 1;
+        _previewFolderInput.Enabled = usePreview;
+        _browsePreviewButton.Enabled = usePreview;
+        _printerSelector.Enabled = !usePreview;
+    }
+
+    private void BrowsePreviewFolder()
+    {
+        using var dialog = new FolderBrowserDialog();
+
+        if (!string.IsNullOrWhiteSpace(_previewFolderInput.Text))
+        {
+            dialog.SelectedPath = _previewFolderInput.Text;
+        }
+
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            _previewFolderInput.Text = dialog.SelectedPath;
+        }
     }
 
     private void RefreshPrinters()
@@ -392,7 +497,9 @@ public sealed class MainForm : Form
             AgentName = _agentNameInput.Text.Trim(),
             PrinterName = _printerSelector.SelectedItem?.ToString() ?? string.Empty,
             PollIntervalSeconds = (int)_pollIntervalInput.Value,
-            StartWithWindows = _autoStartToggle.Checked
+            StartWithWindows = _autoStartToggle.Checked,
+            OutputMode = _outputModeSelector.SelectedIndex == 1 ? "FilePreview" : "RealPrinter",
+            PreviewFolder = _previewFolderInput.Text.Trim()
         };
     }
 
@@ -438,9 +545,19 @@ public sealed class MainForm : Form
         {
             var config = ReadConfigFromForm();
             ValidateConfig(config, requireAgentKey: false);
-            await PrintSlipRenderer.PrintTestAsync(config.PrinterName, "ZeroPaper", CancellationToken.None);
-            AppendLog("Teste de impressao enviado.");
-            UpdateStatus("Teste enviado para a impressora.");
+
+            if (config.UseFilePreview)
+            {
+                var savedPath = PrintSlipRenderer.SavePreviewTestImage("ZeroPaper", config.ResolvePreviewFolder());
+                AppendLog($"Previa de teste salva: {savedPath}");
+                UpdateStatus("Previa de teste salva em arquivo.");
+            }
+            else
+            {
+                await PrintSlipRenderer.PrintTestAsync(config.PrinterName, "ZeroPaper", CancellationToken.None);
+                AppendLog("Teste de impressao enviado.");
+                UpdateStatus("Teste enviado para a impressora.");
+            }
         }
         catch (Exception error)
         {
@@ -471,9 +588,9 @@ public sealed class MainForm : Form
             throw new InvalidOperationException("Informe um nome para o agente.");
         }
 
-        if (string.IsNullOrWhiteSpace(config.PrinterName))
+        if (!config.UseFilePreview && string.IsNullOrWhiteSpace(config.PrinterName))
         {
-            throw new InvalidOperationException("Selecione a impressora da unidade.");
+            throw new InvalidOperationException("Selecione a impressora da unidade ou troque para o modo Salvar previa em arquivo.");
         }
     }
 
@@ -497,6 +614,17 @@ public sealed class MainForm : Form
         }
 
         _statusValue.Text = status;
+
+        var isError =
+            status.IndexOf("Falha", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            status.IndexOf("Sem comunic", StringComparison.OrdinalIgnoreCase) >= 0;
+        _statusDot.BackColor = _runtime.IsRunning
+            ? Color.FromArgb(63, 158, 106)
+            : isError
+                ? Color.FromArgb(200, 86, 74)
+                : Color.FromArgb(176, 142, 120);
+        _statusDot.Invalidate();
+
         UpdateRuntimeButtons();
     }
 }

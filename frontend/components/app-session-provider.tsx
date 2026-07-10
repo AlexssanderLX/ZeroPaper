@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logoutPortal } from "@/lib/api";
 import type { PortalSession } from "@/lib/owner-portal";
-import { clearPortalSession, loadPortalSession } from "@/lib/owner-portal";
+import { clearPortalSession, loadPortalSession, savePortalSession } from "@/lib/owner-portal";
 
 type SessionContextValue = {
   session: PortalSession;
   clearSession: () => Promise<void>;
+  updateSession: (updates: Partial<PortalSession>) => void;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -51,6 +52,17 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
   const value: SessionContextValue = {
     session,
+    updateSession: (updates) => {
+      setSession((currentSession) => {
+        if (!currentSession) {
+          return currentSession;
+        }
+
+        const updatedSession = { ...currentSession, ...updates };
+        savePortalSession(updatedSession);
+        return updatedSession;
+      });
+    },
     clearSession: async () => {
       try {
         await logoutPortal(session.token);

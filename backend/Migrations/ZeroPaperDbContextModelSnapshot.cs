@@ -667,6 +667,12 @@ namespace ZeroPaper.Migrations
                     b.Property<int>("RequestedPaymentMethod")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("SalesAgentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("SalesOrigin")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("SentToKitchenAtUtc")
                         .HasColumnType("datetime(6)");
 
@@ -698,6 +704,8 @@ namespace ZeroPaper.Migrations
 
                     b.HasIndex("PublicEditCode")
                         .IsUnique();
+
+                    b.HasIndex("SalesAgentId");
 
                     b.HasIndex("TenantId");
 
@@ -1947,6 +1955,55 @@ namespace ZeroPaper.Migrations
                     b.ToTable("qrcodeaccesses", (string)null);
                 });
 
+            modelBuilder.Entity("ZeroPaper.Domain.Entities.SalesAgent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<decimal?>("CommissionPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "IsActive");
+
+                    b.ToTable("salesagents", (string)null);
+                });
+
             modelBuilder.Entity("ZeroPaper.Domain.Entities.SignupCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2440,6 +2497,11 @@ namespace ZeroPaper.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ZeroPaper.Domain.Entities.SalesAgent", "SalesAgent")
+                        .WithMany()
+                        .HasForeignKey("SalesAgentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ZeroPaper.Domain.Entities.Tenant", "Tenant")
                         .WithMany("Orders")
                         .HasForeignKey("TenantId")
@@ -2451,6 +2513,8 @@ namespace ZeroPaper.Migrations
                     b.Navigation("Coupon");
 
                     b.Navigation("DiningTable");
+
+                    b.Navigation("SalesAgent");
 
                     b.Navigation("Tenant");
                 });
@@ -2786,6 +2850,17 @@ namespace ZeroPaper.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("ZeroPaper.Domain.Entities.SalesAgent", b =>
+                {
+                    b.HasOne("ZeroPaper.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("ZeroPaper.Domain.Entities.StockItem", b =>

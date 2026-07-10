@@ -28,4 +28,5 @@ public class WorkspaceSessionContext
     public bool HasAdvancedReports { get; init; }
     public bool HasCoupons { get; init; }
     public bool HasRecurringCustomers { get; init; }
+    public bool HasSalesAgents { get; init; }
 }

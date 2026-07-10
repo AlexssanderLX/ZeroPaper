@@ -15,8 +15,14 @@ export default function CashPage() {
   }
 
   return (
-    <WorkspaceModulePage module={moduleData}>
-      <CashModule token={session.token} onUnauthorized={clearSession} />
+    <WorkspaceModulePage
+      module={moduleData}
+      token={session.token}
+      onUnauthorized={clearSession}
+      heading="Caixa"
+      description="Veja a cobrar e pagos na mesma tela para fechar o caixa sem ficar entrando em varias paginas."
+    >
+      <CashModule token={session.token} onUnauthorized={clearSession} section="overview" />
     </WorkspaceModulePage>
   );
 }

@@ -9,6 +9,8 @@ backend/bin/
 backend/obj/
 backend/.vs/
 backend/publish-net8*/
+backend/publish*/
+backend/.dataprotection/
 tools/**/bin/
 tools/**/obj/
 tools/**/publish*/
@@ -20,6 +22,7 @@ frontend/dist/
 frontend/coverage/
 frontend/tsconfig.tsbuildinfo
 frontend/publish-standalone*/
+frontend/publish*/
 frontend/source-deploy-*.tar.gz
 frontend/public/downloads/*.exe
 frontend/.env.local
@@ -30,8 +33,17 @@ frontend/.env.*.local
 *.suo
 *.tar.gz
 *.zip
+.env
+.env.*
+.dataprotection/
 .codex-tools/
 .codex-tools/**
+.codex-deploy/
+.codex-deploy/**
+.codex-screenshots/
+.codex-screenshots/**
+.codex-deploy/.secrets/
+.codex-deploy/*.local.*
 .build/
 .codex-tmp/
 backend-production.env
@@ -40,3 +52,10 @@ backend-test-out.log
 backend-test-err.log
 backend/wwwroot/uploads/
 ChatGPT Image *.png
+
+.codex-dev/
+login-*.json
+*-test.json
+public-order-test.json
+publish/
+publish/**

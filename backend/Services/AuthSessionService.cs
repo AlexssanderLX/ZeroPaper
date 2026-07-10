@@ -283,7 +283,8 @@ public class AuthSessionService : IAuthSessionService
             HasManagementDashboard = planFeatures.HasManagementDashboard,
             HasAdvancedReports = planFeatures.HasAdvancedReports,
             HasCoupons = planFeatures.HasCoupons,
-            HasRecurringCustomers = planFeatures.HasRecurringCustomers
+            HasRecurringCustomers = planFeatures.HasRecurringCustomers,
+            HasSalesAgents = planFeatures.HasSalesAgents
         };
     }
 

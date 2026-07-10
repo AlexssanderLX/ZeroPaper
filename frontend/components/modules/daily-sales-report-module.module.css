@@ -1,0 +1,372 @@
+/* Daily sales report module — scoped styles */
+
+.workspace {
+  display: grid;
+  gap: 16px;
+}
+
+/* ── Date toolbar ──────────────────────────────────────────── */
+.dateBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  flex-wrap: wrap;
+}
+
+.dateBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.presetBtn {
+  padding: 7px 16px;
+  border: 1px solid rgba(255, 248, 238, 0.15);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--system-muted);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.presetBtn:hover {
+  border-color: rgba(255, 248, 238, 0.35);
+  color: var(--system-text);
+}
+
+.presetActive {
+  border-color: var(--system-gold);
+  background: rgba(216, 155, 88, 0.12);
+  color: var(--system-gold-bright);
+}
+
+.dateDivider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 248, 238, 0.12);
+  margin: 0 4px;
+}
+
+.dateField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateField label {
+  color: var(--system-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.dateField input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 248, 238, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 248, 238, 0.05);
+  color: var(--system-text);
+  font-size: 0.9rem;
+  color-scheme: dark;
+}
+
+.dateField input:focus {
+  outline: none;
+  border-color: var(--system-gold-bright);
+}
+
+/* ── Summary card ──────────────────────────────────────────── */
+.summaryCard {
+  display: grid;
+  gap: 18px;
+  padding: 24px 26px;
+}
+
+.summaryTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.summaryHero {
+  display: grid;
+  gap: 4px;
+}
+
+.summaryHero p {
+  margin: 0;
+  color: var(--system-muted);
+  font-size: 0.86rem;
+}
+
+.heroValue {
+  display: block;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--system-text);
+  letter-spacing: -0.01em;
+}
+
+.kpiRow {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.kpiItem {
+  display: grid;
+  gap: 4px;
+}
+
+.kpiItem span {
+  color: var(--system-muted);
+  font-size: 0.8rem;
+}
+
+.kpiItem strong {
+  color: var(--system-text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* Order counters strip */
+.counterRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 248, 238, 0.08);
+}
+
+.counterRow span {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 248, 238, 0.06);
+  border: 1px solid rgba(255, 248, 238, 0.1);
+  color: var(--system-muted);
+  font-size: 0.82rem;
+}
+
+.counterPaid {
+  background: rgba(109, 223, 157, 0.1) !important;
+  border-color: rgba(109, 223, 157, 0.25) !important;
+  color: #6ddf9d !important;
+}
+
+.counterCancelled {
+  background: rgba(240, 161, 138, 0.1) !important;
+  border-color: rgba(240, 161, 138, 0.25) !important;
+  color: #f0a18a !important;
+}
+
+/* ── Detail grid (payments + breakdown) ────────────────────── */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.detailCard {
+  display: grid;
+  gap: 14px;
+  padding: 22px 24px;
+}
+
+.detailCard h3 {
+  margin: 0;
+  color: var(--system-text);
+  font-size: 1.05rem;
+}
+
+/* Payment methods */
+.paymentList {
+  display: grid;
+  gap: 10px;
+}
+
+.paymentRow {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.55fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.paymentLabel {
+  display: grid;
+  gap: 1px;
+}
+
+.paymentLabel strong {
+  color: var(--system-text);
+  font-size: 0.9rem;
+}
+
+.paymentLabel span {
+  color: var(--system-muted);
+  font-size: 0.76rem;
+}
+
+.paymentTrack {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 248, 238, 0.08);
+  overflow: hidden;
+}
+
+.paymentTrack span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--system-gold), var(--system-gold-bright));
+}
+
+.paymentAmount {
+  color: var(--system-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Financial breakdown */
+.breakdownList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.breakdownRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 248, 238, 0.06);
+}
+
+.breakdownRow:last-child {
+  border-bottom: none;
+}
+
+.breakdownRow dt {
+  margin: 0;
+  color: var(--system-muted);
+  font-size: 0.86rem;
+}
+
+.breakdownRow dd {
+  margin: 0;
+  color: var(--system-text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.rowPositive dd {
+  color: #6ddf9d;
+}
+
+.rowNegative dd {
+  color: #f0a18a;
+}
+
+/* ── Status banners ────────────────────────────────────────── */
+.banner {
+  display: grid;
+  gap: 8px;
+  padding: 20px 22px;
+}
+
+.banner h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.banner p {
+  margin: 0;
+  color: var(--system-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.bannerError {
+  border-color: rgba(240, 161, 138, 0.3);
+}
+.bannerError h3 { color: #f0a18a; }
+
+.bannerWarning {
+  border-color: rgba(255, 192, 120, 0.28);
+}
+.bannerWarning h3 { color: var(--system-gold-bright); }
+
+/* ── Loading skeleton ──────────────────────────────────────── */
+.skeletonCard {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+}
+
+.skeletonBar {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 248, 238, 0.05),
+    rgba(255, 248, 238, 0.12),
+    rgba(255, 248, 238, 0.05)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Meta note ─────────────────────────────────────────────── */
+.metaNote {
+  color: var(--system-muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryTop {
+    flex-direction: column;
+  }
+
+  .kpiRow {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 540px) {
+  .paymentRow {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+
+  .paymentTrack {
+    grid-column: 1 / -1;
+  }
+
+  .dateBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

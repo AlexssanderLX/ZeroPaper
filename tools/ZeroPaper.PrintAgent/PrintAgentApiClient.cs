@@ -1,18 +1,31 @@
+using System;
+using System.Collections.Generic;
 using System.Net;
-using System.Net.Http.Json;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ZeroPaper.PrintAgent;
 
 internal sealed class PrintAgentApiClient
 {
+    private const string AgentBuildVersion = "2026.05.03-compat-paper";
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly HttpClient _httpClient = new();
 
     public async Task<PrintOrderJob?> ClaimNextAsync(AgentConfig config, CancellationToken cancellationToken)
     {
         using var request = BuildRequest(HttpMethod.Post, config, "/api/print-agent/orders/claim-next");
-        request.Content = JsonContent.Create(new
+        request.Content = CreateJsonContent(new
         {
-            agentName = config.AgentName,
+            agentName = BuildAgentName(config),
             printerName = config.PrinterName
         });
 
@@ -24,15 +37,15 @@ internal sealed class PrintAgentApiClient
         }
 
         await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<PrintOrderJob>(cancellationToken: cancellationToken);
+        return await ReadJsonAsync<PrintOrderJob>(response, cancellationToken);
     }
 
     public async Task CompleteAsync(AgentConfig config, Guid orderId, CancellationToken cancellationToken)
     {
         using var request = BuildRequest(HttpMethod.Post, config, $"/api/print-agent/orders/{orderId}/complete");
-        request.Content = JsonContent.Create(new
+        request.Content = CreateJsonContent(new
         {
-            agentName = config.AgentName,
+            agentName = BuildAgentName(config),
             printerName = config.PrinterName
         });
 
@@ -43,9 +56,9 @@ internal sealed class PrintAgentApiClient
     public async Task CompleteBatchAsync(AgentConfig config, IReadOnlyList<Guid> orderIds, CancellationToken cancellationToken)
     {
         using var request = BuildRequest(HttpMethod.Post, config, "/api/print-agent/orders/complete-batch");
-        request.Content = JsonContent.Create(new
+        request.Content = CreateJsonContent(new
         {
-            agentName = config.AgentName,
+            agentName = BuildAgentName(config),
             printerName = config.PrinterName,
             orderIds
         });
@@ -57,9 +70,9 @@ internal sealed class PrintAgentApiClient
     public async Task FailAsync(AgentConfig config, Guid orderId, string errorMessage, CancellationToken cancellationToken)
     {
         using var request = BuildRequest(HttpMethod.Post, config, $"/api/print-agent/orders/{orderId}/fail");
-        request.Content = JsonContent.Create(new
+        request.Content = CreateJsonContent(new
         {
-            agentName = config.AgentName,
+            agentName = BuildAgentName(config),
             printerName = config.PrinterName,
             errorMessage
         });
@@ -71,9 +84,9 @@ internal sealed class PrintAgentApiClient
     public async Task FailBatchAsync(AgentConfig config, IReadOnlyList<Guid> orderIds, string errorMessage, CancellationToken cancellationToken)
     {
         using var request = BuildRequest(HttpMethod.Post, config, "/api/print-agent/orders/fail-batch");
-        request.Content = JsonContent.Create(new
+        request.Content = CreateJsonContent(new
         {
-            agentName = config.AgentName,
+            agentName = BuildAgentName(config),
             printerName = config.PrinterName,
             errorMessage,
             orderIds
@@ -86,11 +99,11 @@ internal sealed class PrintAgentApiClient
     public async Task HeartbeatAsync(AgentConfig config, CancellationToken cancellationToken)
     {
         using var request = BuildRequest(HttpMethod.Post, config, "/api/print-agent/heartbeat");
-        request.Content = JsonContent.Create(new
+        request.Content = CreateJsonContent(new
         {
-            agentName = config.AgentName,
+            agentName = BuildAgentName(config),
             printerName = config.PrinterName,
-            appVersion = typeof(PrintAgentApiClient).Assembly.GetName().Version?.ToString()
+            appVersion = AgentBuildVersion
         });
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -112,6 +125,33 @@ internal sealed class PrintAgentApiClient
         return request;
     }
 
+    private static string BuildAgentName(AgentConfig config)
+    {
+        var baseName = string.IsNullOrWhiteSpace(config.AgentName)
+            ? Environment.MachineName
+            : config.AgentName.Trim();
+
+        return $"{baseName} / {AgentBuildVersion}";
+    }
+
+    private static StringContent CreateJsonContent(object payload)
+    {
+        return new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+    }
+
+    private static async Task<T?> ReadJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+#if NETFRAMEWORK
+        var body = await response.Content.ReadAsStringAsync();
+#else
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+#endif
+        cancellationToken.ThrowIfCancellationRequested();
+        return string.IsNullOrWhiteSpace(body)
+            ? default
+            : JsonSerializer.Deserialize<T>(body, JsonOptions);
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)
@@ -119,7 +159,11 @@ internal sealed class PrintAgentApiClient
             return;
         }
 
+#if NETFRAMEWORK
+        var body = await response.Content.ReadAsStringAsync();
+#else
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
+#endif
         var detail = string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body;
         throw new InvalidOperationException(detail ?? "Falha na comunicacao com o ZeroPaper.");
     }
@@ -134,6 +178,13 @@ internal sealed class PrintOrderJob
     public string RestaurantName { get; set; } = string.Empty;
     public string TableName { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
+    public string? DeliveryPhone { get; set; }
+    public string? DeliveryAddress { get; set; }
+    public string? DeliveryNumber { get; set; }
+    public string? DeliveryComplement { get; set; }
+    public string? DeliveryPostalCode { get; set; }
+    public decimal DeliveryFreightAmount { get; set; }
+    public decimal? DeliveryDistanceKm { get; set; }
     public string? Notes { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public string? ContactPhone { get; set; }
@@ -147,7 +198,16 @@ internal sealed class PrintOrderItem
     public string Name { get; set; } = string.Empty;
     public string? CategoryName { get; set; }
     public decimal Quantity { get; set; }
+    public decimal BaseUnitPrice { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice { get; set; }
     public string? Notes { get; set; }
+    public List<PrintOrderAdditional> Additionals { get; set; } = [];
+}
+
+internal sealed class PrintOrderAdditional
+{
+    public string GroupName { get; set; } = string.Empty;
+    public string OptionName { get; set; } = string.Empty;
+    public decimal UnitPrice { get; set; }
 }

@@ -6,6 +6,7 @@ import {
   ApiError,
   createPublicMercadoPagoCheckout,
   createPublicOrder,
+  createPublicSellerLinkOrder,
   createPublicWaiterCall,
   getPublicDeliveryCustomerProfile,
   getPublicMenuItem,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/api";
 import { formatCurrency, formatDateTime, formatPaymentMethod, handleApiError } from "@/components/modules/module-utils";
 import type { AsyncVoid } from "@/components/modules/module-utils";
+import { Banknote, Check, CheckCircle2, CreditCard, MapPin, Menu, MessageSquare, Phone, Plus, QrCode, Search, ShoppingCart, Smartphone, Store, Tag, Truck, User } from "lucide-react";
 
 type PublicCartLine = {
   id: string;
@@ -53,14 +55,16 @@ type ResolvedCartLine = {
 };
 
 type FulfillmentChoice = "delivery" | "pickup";
-type OrderStage = "menu" | "cart" | "checkout";
+type OrderStage = "menu" | "cart" | "checkout" | "profile";
 
 type PublicTableOrderProps = {
   publicCode: string;
+  sellerCode?: string;
   editOrder?: CustomerOrder | null;
   editToken?: string;
   editBackHref?: string;
   onEditUnauthorized?: AsyncVoid;
+  sellerName?: string;
 };
 
 function createLocalId() {
@@ -329,10 +333,12 @@ function formatCartComplement(selection: ResolvedCartLine["selectedAdditionals"]
 
 export function PublicTableOrder({
   publicCode,
+  sellerCode,
   editOrder = null,
   editToken,
   editBackHref,
   onEditUnauthorized,
+  sellerName,
 }: PublicTableOrderProps) {
   const [table, setTable] = useState<PublicTableView | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -364,7 +370,6 @@ export function PublicTableOrder({
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
   const [isStartingOnlinePayment, setIsStartingOnlinePayment] = useState(false);
   const [deliveryCustomerToken, setDeliveryCustomerToken] = useState<string | null>(null);
-  const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(false);
   const [deliveryCustomerMessage, setDeliveryCustomerMessage] = useState("");
   const [isLoadingDeliveryCustomer, setIsLoadingDeliveryCustomer] = useState(false);
   const [orderStage, setOrderStage] = useState<OrderStage>("menu");
@@ -385,6 +390,7 @@ export function PublicTableOrder({
   const isOrderingClosed = isOwnerEditMode ? false : table ? !table.isOrderingAvailable : false;
   const isCartStage = orderStage === "cart";
   const isCheckoutStage = orderStage === "checkout";
+  const isProfileStage = orderStage === "profile";
   const activeCategory = visibleCategories.find((category) => category.id === activeCategoryId) ?? visibleCategories[0] ?? null;
   const activeCategoryIndex = activeCategory ? visibleCategories.findIndex((category) => category.id === activeCategory.id) : -1;
   const restaurantLogoUrl = table?.restaurantLogoUrl ?? null;
@@ -765,7 +771,7 @@ export function PublicTableOrder({
   }, [isPickupFlow]);
 
   useEffect(() => {
-    if (totalUnits === 0 && orderStage !== "menu") {
+    if (totalUnits === 0 && orderStage !== "menu" && orderStage !== "profile") {
       setOrderStage("menu");
     }
   }, [orderStage, totalUnits]);
@@ -1205,7 +1211,7 @@ export function PublicTableOrder({
         deliveryComplement: isDeliveryFlow ? deliveryComplement.trim() || undefined : undefined,
         deliveryPostalCode: isDeliveryFlow ? deliveryPostalCode.replace(/\D/g, "") : undefined,
         fulfillmentType: isPickupFlow ? "Pickup" : isDeliveryFlow ? "Delivery" : "Local",
-        paymentMethod: wantsOnlinePayment ? "Pix" : paymentMethod,
+        paymentMethod: wantsOnlinePayment ? "Undefined" : paymentMethod,
         couponCode: !isOwnerEditMode && couponValidation?.isValid ? couponValidation.code : undefined,
         menuSelections,
       };
@@ -1214,7 +1220,9 @@ export function PublicTableOrder({
             ...orderPayload,
             items: [],
           })
-        : await createPublicOrder(publicCode, orderPayload);
+        : sellerCode
+          ? await createPublicSellerLinkOrder(sellerCode, publicCode, orderPayload)
+          : await createPublicOrder(publicCode, orderPayload);
 
       setCreatedOrder(response);
 
@@ -1307,7 +1315,7 @@ export function PublicTableOrder({
             </div>
             <div className="public-store-copy">
               <strong className="public-restaurant-name">{table?.restaurantName || "Carregando..."}</strong>
-              <span>{isDeliveryChannel ? "Delivery e retirada" : table?.tableName || "Mesa"}</span>
+              <span>{isDeliveryChannel ? "Delivery e retirada" : sellerName ? `Vendedor · ${sellerName}` : table?.tableName || "Mesa"}</span>
             </div>
           </div>
 
@@ -1431,16 +1439,6 @@ export function PublicTableOrder({
                 ) : null}
 
                 <div className="toolbar-actions public-success-actions">
-                  {canUseOnlinePayment && createdOrder.paymentStatus !== "Paid" ? (
-                    <button
-                      className="primary-link button-link"
-                      type="button"
-                      onClick={() => void handleStartOnlinePayment()}
-                      disabled={isStartingOnlinePayment}
-                    >
-                      {isStartingOnlinePayment ? "Abrindo pagamento..." : "Pagar online"}
-                    </button>
-                  ) : null}
                   {!isDeliveryChannel ? (
                     <button className="ghost-link button-link" type="button" onClick={() => void handleCallWaiter()} disabled={isCallingWaiter}>
                       {isCallingWaiter ? "Chamando..." : "Chamar atendente"}
@@ -1467,69 +1465,67 @@ export function PublicTableOrder({
                 className={`${orderStage === "menu" ? "public-menu-stage-layout" : "public-checkout-layout"} public-order-stage public-order-stage-${orderStage}`}
                 onSubmit={handleSubmit}
               >
-                <div className="public-order-floating-bar">
-                  <div className="public-order-floating-copy">
-                    <button
-                      className={`public-footer-tab ${orderStage === "menu" ? "is-active" : ""}`}
-                      type="button"
-                      aria-current={orderStage === "menu" ? "page" : undefined}
-                      onClick={goBackToMenu}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <line x1="3" y1="6" x2="21" y2="6" />
-                        <line x1="3" y1="12" x2="21" y2="12" />
-                        <line x1="3" y1="18" x2="15" y2="18" />
-                      </svg>
-                      <span>Cardapio</span>
-                    </button>
-                    <button
-                      className={`public-footer-tab ${isCartStage ? "is-active" : ""}`}
-                      type="button"
-                      aria-current={isCartStage ? "page" : undefined}
-                      onClick={goToCart}
-                      disabled={totalUnits === 0}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="9" cy="21" r="1" />
-                        <circle cx="20" cy="21" r="1" />
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                      </svg>
-                      <span>Carrinho {totalUnits > 0 ? <strong>{totalUnits}</strong> : null}</span>
-                    </button>
-                    <button
-                      className={`public-footer-tab ${isCheckoutStage ? "is-active" : ""}`}
-                      type="button"
-                      aria-current={isCheckoutStage ? "page" : undefined}
-                      onClick={goToCheckout}
-                      disabled={totalUnits === 0 || isOrderingClosed}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>Finalizar</span>
-                    </button>
-                    {canOpenCustomerProfile ? (
-                      <button
-                        className={`public-footer-tab ${isCustomerProfileOpen ? "is-active" : ""}`}
-                        type="button"
-                        aria-current={isCustomerProfileOpen ? "page" : undefined}
-                        onClick={() => setIsCustomerProfileOpen(true)}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
-                        </svg>
-                        <span>Perfil</span>
-                      </button>
-                    ) : null}
-                  </div>
+                <nav className="pnf-bar" aria-label="Navegacao do pedido">
+                  <button
+                    className={`pnf-tab ${orderStage === "menu" ? "is-active" : ""}`}
+                    type="button"
+                    aria-current={orderStage === "menu" ? "page" : undefined}
+                    onClick={goBackToMenu}
+                  >
+                    <Menu size={20} strokeWidth={1.75} />
+                    <span>Cardapio</span>
+                  </button>
 
-                  <div className="public-order-floating-total">
+                  <button
+                    className={`pnf-tab ${isCartStage ? "is-active" : ""}`}
+                    type="button"
+                    aria-current={isCartStage ? "page" : undefined}
+                    onClick={goToCart}
+                    disabled={totalUnits === 0}
+                  >
+                    <ShoppingCart size={20} strokeWidth={1.75} />
+                    <span>Carrinho</span>
+                    {totalUnits > 0 ? <strong className="pnf-badge">{totalUnits}</strong> : null}
+                  </button>
+
+                  <button
+                    className={`pnf-tab ${isCheckoutStage ? "is-active" : ""}`}
+                    type="button"
+                    aria-current={isCheckoutStage ? "page" : undefined}
+                    onClick={goToCheckout}
+                    disabled={totalUnits === 0 || isOrderingClosed}
+                  >
+                    <CheckCircle2 size={20} strokeWidth={1.75} />
+                    <span>Finalizar</span>
+                  </button>
+
+                  {canOpenCustomerProfile ? (
+                    <button
+                      className={`pnf-tab ${isProfileStage ? "is-active" : ""}`}
+                      type="button"
+                      aria-current={isProfileStage ? "page" : undefined}
+                      onClick={() => setOrderStage("profile")}
+                    >
+                      <User size={20} strokeWidth={1.75} />
+                      <span>Perfil</span>
+                    </button>
+                  ) : null}
+
+                  <div className="pnf-total">
                     <span>Total</span>
                     <strong>{formatCurrency(isCheckoutStage ? (isDeliveryChannel ? checkoutTotalAmount : discountedItemsTotal) : totalAmount)}</strong>
                   </div>
-                </div>
+
+                  {sellerName ? (
+                    <div className="pnf-seller-chip" aria-label={`Pedido via ${sellerName}`}>
+                      <span className="pnf-seller-label">via</span>
+                      <span className="pnf-seller-name">{sellerName}</span>
+                    </div>
+                  ) : null}
+                </nav>
 
                 <div className="public-menu-main">
+                  {!isProfileStage ? (
                   <section className="surface-card public-delivery-stage-card">
                     <div className="public-delivery-stage-head">
                       <div>
@@ -1563,85 +1559,90 @@ export function PublicTableOrder({
                       </div>
                     </div>
                   </section>
+                  ) : null}
 
-                  {isCartStage ? (
+                  {isProfileStage && canOpenCustomerProfile ? (
+                    <PublicCustomerProfilePanel code={deliveryCustomerToken!} onClose={() => setOrderStage("menu")} asPage />
+                  ) : isCartStage ? (
                     <section className="surface-card public-delivery-review-card">
-                      <button className="ghost-link button-link public-checkout-back-button" type="button" onClick={goBackToMenu}>
-                        Voltar ao cardapio
-                      </button>
-
-                      <div className="public-delivery-review-head">
+                      <div className="pcc-header">
                         <div>
                           <span className="eyebrow">Seu pedido</span>
-                          <h2>Confira e edite os itens</h2>
+                          <h2>Revise os itens</h2>
                         </div>
-
-                        <div className="public-delivery-review-total">
-                          <span>{totalUnits} itens</span>
+                        <div className="pcc-header-count">
+                          <span>{totalUnits} {totalUnits === 1 ? "item" : "itens"}</span>
                           <strong>{formatCurrency(totalAmount)}</strong>
                         </div>
                       </div>
 
                       {cartItems.length === 0 ? (
                         <div className="module-empty-state compact-empty-state">
+                          <ShoppingCart size={28} strokeWidth={1.5} />
                           <p>Nenhum item no pedido.</p>
                         </div>
                       ) : (
-                        <div className="public-cart-stack public-delivery-review-stack">
+                        <div className="pcc-items">
                           {cartItems.map((entry) => (
-                            <div key={entry.id} className="public-cart-row public-cart-line-row">
+                            <div key={entry.id} className="pcc-item">
                               {entry.item.imageUrl && !brokenImageIds[entry.item.id] ? (
                                 <img
-                                  className="public-cart-row-image"
+                                  className="pcc-thumb"
                                   src={entry.item.imageUrl}
                                   alt=""
                                   loading="lazy"
                                   onError={() =>
-                                    setBrokenImageIds((currentValue) => ({
-                                      ...currentValue,
-                                      [entry.item.id]: true,
-                                    }))
+                                    setBrokenImageIds((v) => ({ ...v, [entry.item.id]: true }))
                                   }
                                 />
                               ) : (
-                                <div className="public-cart-row-image public-cart-row-image-placeholder" aria-hidden="true">
-                                  <span>{entry.item.name.slice(0, 1)}</span>
+                                <div className="pcc-thumb-placeholder" aria-hidden="true">
+                                  {entry.item.name.slice(0, 1)}
                                 </div>
                               )}
 
-                              <div className="public-cart-row-main">
-                                <strong>{entry.line.quantity}x {entry.item.name}</strong>
-                                <p>{entry.item.description || `${formatCurrency(entry.item.price)} por unidade`}</p>
-                                {entry.selectedAdditionals.length ? (
-                                  <div className="public-cart-row-additions">
-                                    {entry.selectedAdditionals.map((selection) => (
-                                      <span key={`${entry.id}-${selection.id}`}>
-                                        {formatCartComplement(selection, entry.line.quantity)}
+                              <div className="pcc-body">
+                                <div className="pcc-name-row">
+                                  <strong>{entry.item.name}</strong>
+                                  <span className="pcc-item-total">{formatCurrency(entry.totalPrice)}</span>
+                                </div>
+
+                                <p className="pcc-unit-price">{entry.line.quantity}x &middot; {formatCurrency(entry.item.price)} un.</p>
+
+                                {entry.selectedAdditionals.length > 0 ? (
+                                  <div className="pcc-chips">
+                                    {entry.selectedAdditionals.map((sel) => (
+                                      <span key={`${entry.id}-${sel.id}`} className="pcc-chip">
+                                        {formatComplementLabel(sel)}
+                                        {sel.price > 0 ? (
+                                          <span className="pcc-chip-price">+{formatCurrency(sel.price * entry.line.quantity)}</span>
+                                        ) : null}
                                       </span>
                                     ))}
                                   </div>
                                 ) : null}
-                                {entry.line.notes.trim() ? <p className="public-cart-row-note">Obs: {entry.line.notes.trim()}</p> : null}
-                              </div>
 
-                              <div className="public-cart-row-meta">
-                                <strong>{formatCurrency(entry.totalPrice)}</strong>
-                                <div className="public-cart-quantity-stepper" aria-label={`Quantidade de ${entry.item.name}`}>
-                                  <button className="ghost-link button-link" type="button" onClick={() => changeCartLineQuantity(entry.id, -1)}>
-                                    -
-                                  </button>
-                                  <span>{entry.line.quantity}</span>
-                                  <button className="ghost-link button-link" type="button" onClick={() => changeCartLineQuantity(entry.id, 1)}>
-                                    +
-                                  </button>
-                                </div>
-                                <div className="public-cart-row-actions">
-                                  <button className="ghost-link button-link" type="button" onClick={() => openComposerForExistingLine(entry.id)}>
-                                    Editar
-                                  </button>
-                                  <button className="ghost-link button-link destructive-link" type="button" onClick={() => removeCartLine(entry.id)}>
-                                    Remover
-                                  </button>
+                                {entry.line.notes.trim() ? (
+                                  <p className="pcc-note">
+                                    <MessageSquare size={11} strokeWidth={2} />
+                                    {entry.line.notes.trim()}
+                                  </p>
+                                ) : null}
+
+                                <div className="pcc-foot">
+                                  <div className="pcc-stepper" aria-label={`Quantidade de ${entry.item.name}`}>
+                                    <button type="button" onClick={() => changeCartLineQuantity(entry.id, -1)}>−</button>
+                                    <span className="pcc-stepper-qty">{entry.line.quantity}</span>
+                                    <button type="button" onClick={() => changeCartLineQuantity(entry.id, 1)}>+</button>
+                                  </div>
+                                  <div className="pcc-actions">
+                                    <button className="pcc-action-btn" type="button" onClick={() => openComposerForExistingLine(entry.id)}>
+                                      Editar
+                                    </button>
+                                    <button className="pcc-action-btn is-remove" type="button" onClick={() => removeCartLine(entry.id)}>
+                                      Remover
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1650,42 +1651,44 @@ export function PublicTableOrder({
                       )}
 
                       {cartItems.length > 0 ? (
-                        <div className="public-cart-stage-summary">
-                          <div>
-                            <span>Subtotal dos itens</span>
+                        <div className="pcc-summary">
+                          <div className="pcc-subtotal">
+                            <span>Subtotal</span>
                             <strong>{formatCurrency(totalAmount)}</strong>
                           </div>
-                          <button className="primary-link button-link" type="button" onClick={goToCheckout} disabled={isOrderingClosed}>
-                            <span>Seguir para finalizar</span>
-                            <strong>{formatCurrency(totalAmount)}</strong>
+                          <button className="pcc-checkout-btn" type="button" onClick={goToCheckout} disabled={isOrderingClosed}>
+                            <span>Finalizar pedido</span>
+                            <div className="pcc-checkout-btn-right">
+                              <strong>{formatCurrency(totalAmount)}</strong>
+                              <CheckCircle2 size={18} strokeWidth={2} />
+                            </div>
                           </button>
                         </div>
                       ) : null}
                     </section>
                   ) : !isCheckoutStage ? (
                     <div className="public-category-browser">
-                      <section className="public-menu-search-card" aria-label="Buscar no cardapio">
-                        <label htmlFor="publicMenuSearch">Buscar no cardapio</label>
-                        <div className="public-menu-search-field">
-                          <span aria-hidden="true">Busca</span>
+                      <section className="pmc-search-bar" aria-label="Buscar no cardapio">
+                        <div className="pmc-search-field">
+                          <Search size={16} strokeWidth={2.2} aria-hidden="true" className="pmc-search-icon" />
                           <input
                             id="publicMenuSearch"
                             value={menuSearchTerm}
                             onChange={(event) => setMenuSearchTerm(event.target.value)}
-                            placeholder="O que voce quer comer hoje?"
+                            placeholder="Buscar no cardapio..."
                             type="search"
+                            aria-label="Buscar no cardapio"
                           />
                         </div>
                       </section>
 
                       <section className="surface-card public-category-selector">
-                        <div className="public-category-selector-head">
+                        <div className="pmc-selector-head">
                           <div>
-                            <span className="eyebrow">Categorias</span>
-                            <h2>Escolha uma parte do cardapio</h2>
-                            <p>Veja uma categoria por vez para encontrar os pratos com calma, sem misturar tudo na mesma lista.</p>
+                            <span className="eyebrow">Cardapio</span>
+                            <h2>Categorias</h2>
                           </div>
-                          <strong>{visibleCategories.length} categorias</strong>
+                          <span className="pmc-category-count">{visibleCategories.length}</span>
                         </div>
 
                         <div
@@ -1722,28 +1725,8 @@ export function PublicTableOrder({
 
                       {activeCategory ? (
                         <section id="public-category-view" className="public-category-details is-open public-category-focus-card">
-                          <div className="public-category-focus-head">
-                            <div>
-                              <span className="eyebrow">Categoria atual</span>
-                              <h2>{activeCategory.name}</h2>
-                              <p>
-                                {activeCategory.items.length} itens nesta categoria
-                                {getCategorySelectedQuantity(activeCategory) > 0
-                                  ? `, ${getCategorySelectedQuantity(activeCategory)} ja no pedido.`
-                                  : "."}
-                              </p>
-                            </div>
-
-                            <div className="public-category-focus-meta">
-                              <span>
-                                {activeCategoryIndex + 1} de {visibleCategories.length}
-                              </span>
-                              <strong>{activeCategory.items.length} itens</strong>
-                            </div>
-                          </div>
-
                           <div className="public-category-content">
-                              <div className="public-product-grid compact-public-product-grid">
+                            <div className="public-product-grid compact-public-product-grid">
                               {displayedMenuEntries.length === 0 ? (
                                 <div className="module-empty-state compact-empty-state public-menu-search-empty">
                                   <strong>Nenhum item encontrado.</strong>
@@ -1771,30 +1754,19 @@ export function PublicTableOrder({
                                       }
                                     }}
                                   >
-                                    {visualImageUrl ? (
-                                      !brokenImageIds[item.id] ? (
-                                        <img
-                                          className="public-product-image compact-public-product-image"
-                                          src={visualImageUrl}
-                                          alt={item.name}
-                                          loading="lazy"
-                                          onError={() =>
-                                            setBrokenImageIds((currentValue) => ({
-                                              ...currentValue,
-                                              [item.id]: true,
-                                            }))
-                                          }
-                                        />
-                                      ) : (
-                                        <div className="public-product-image compact-public-product-image public-product-image-placeholder" aria-hidden="true">
-                                          <span>{item.name.slice(0, 1)}</span>
-                                          <small>Sem foto</small>
-                                        </div>
-                                      )
+                                    {visualImageUrl && !brokenImageIds[item.id] ? (
+                                      <img
+                                        className="public-product-image compact-public-product-image"
+                                        src={visualImageUrl}
+                                        alt={item.name}
+                                        loading="lazy"
+                                        onError={() =>
+                                          setBrokenImageIds((v) => ({ ...v, [item.id]: true }))
+                                        }
+                                      />
                                     ) : (
-                                      <div className="public-product-image compact-public-product-image public-product-image-placeholder" aria-hidden="true">
+                                      <div className="public-product-image compact-public-product-image public-product-image-placeholder pmc-item-placeholder" aria-hidden="true">
                                         <span>{item.name.slice(0, 1)}</span>
-                                        <small>Sem foto</small>
                                       </div>
                                     )}
 
@@ -1804,62 +1776,23 @@ export function PublicTableOrder({
                                           {item.accentLabel ? <span className="eyebrow compact-product-eyebrow">{item.accentLabel}</span> : null}
                                           <h2>{item.name}</h2>
                                           {item.description ? <p>{item.description}</p> : null}
-                                          {canChooseAdditionals ? (
-                                            <p className="public-product-additional-hint">
-                                              {additionalLimit === null
-                                                ? item.additionalGroups.length === 1
-                                                  ? "Tem 1 adicional opcional"
-                                                  : item.additionalGroups.length > 1
-                                                    ? `Tem ${item.additionalGroups.length} grupos de adicionais`
-                                                    : "Tem adicionais opcionais"
-                                                : `Ate ${additionalLimit} ${additionalLimit === 1 ? "adicional" : "adicionais"}`}
-                                            </p>
-                                          ) : null}
                                         </div>
                                         <strong>{formatMenuItemPrice(item)}</strong>
                                       </div>
 
-                                      <div className="compact-public-product-footer">
-                                        <button
-                                          className="ghost-link button-link compact-public-add-button"
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            void openComposerForNewItem(item.id);
-                                          }}
-                                          disabled={loadingMenuItemId === item.id}
-                                        >
-                                          {loadingMenuItemId === item.id
-                                            ? "Abrindo..."
-                                            : quantity > 0
-                                              ? `Adicionar mais (${quantity})`
-                                              : "Escolher item"}
-                                        </button>
-                                      </div>
+                                      {quantity > 0 ? (
+                                        <div className="pmc-product-footer">
+                                          <span className="pmc-qty-badge">
+                                            <Plus size={11} strokeWidth={2.5} />
+                                            {quantity} no pedido
+                                          </span>
+                                        </div>
+                                      ) : null}
                                     </div>
                                   </article>
                                 );
                               })}
                             </div>
-                          </div>
-
-                          <div className="public-category-stepper">
-                            <button
-                              className="ghost-link button-link"
-                              type="button"
-                              disabled={activeCategoryIndex <= 0}
-                              onClick={() => moveCategory("previous")}
-                            >
-                              Categoria anterior
-                            </button>
-                            <button
-                              className="ghost-link button-link"
-                              type="button"
-                              disabled={activeCategoryIndex < 0 || activeCategoryIndex >= visibleCategories.length - 1}
-                              onClick={() => moveCategory("next")}
-                            >
-                              Proxima categoria
-                            </button>
                           </div>
                         </section>
                       ) : null}
@@ -1868,223 +1801,176 @@ export function PublicTableOrder({
                 </div>
 
                 {isCheckoutStage ? (
-                <aside className="surface-card public-cart-card public-checkout-card">
-                  <div className="module-section-head">
-                    <span className="eyebrow">{isDeliveryChannel ? "Finalizacao" : "Confirmacao"}</span>
-                    <strong>
-                      {isDeliveryChannel
-                        ? isDeliveryFlow
-                          ? "Entrega"
-                          : "Retirada"
-                        : table?.tableName || "Pedido no caixa"}
-                    </strong>
-                  </div>
+                <aside className="public-checkout-v2">
+                  {isDeliveryChannel ? (
+                    <div className="pco-fulfillment-strip">
+                      <button
+                        type="button"
+                        className={`pco-fulfillment-btn${isDeliveryFlow ? " is-active" : ""}`}
+                        onClick={() => setFulfillmentType("delivery")}
+                      >
+                        <Truck size={22} strokeWidth={1.75} />
+                        <span>Entrega</span>
+                        {deliveryEstimateLabel ? <small>{deliveryEstimateLabel}</small> : null}
+                      </button>
+                      <button
+                        type="button"
+                        className={`pco-fulfillment-btn${isPickupFlow ? " is-active" : ""}`}
+                        onClick={() => setFulfillmentType("pickup")}
+                      >
+                        <Store size={22} strokeWidth={1.75} />
+                        <span>Retirada</span>
+                        {pickupEstimateLabel ? <small>{pickupEstimateLabel}</small> : null}
+                      </button>
+                    </div>
+                  ) : null}
 
                   {isDeliveryChannel ? (
-                    <>
-                      <div className="field-group">
-                        <label>Como voce quer receber?</label>
-                        <div className="choice-pill-row public-fulfillment-row">
-                          <button
-                            className={`ghost-link button-link choice-pill ${isDeliveryFlow ? "is-selected-filter" : ""}`}
-                            type="button"
-                            onClick={() => setFulfillmentType("delivery")}
-                          >
-                            Entrega
-                          </button>
-                          <button
-                            className={`ghost-link button-link choice-pill ${isPickupFlow ? "is-selected-filter" : ""}`}
-                            type="button"
-                            onClick={() => setFulfillmentType("pickup")}
-                          >
-                            Retirar no local
-                          </button>
-                        </div>
-                        {activeFulfillmentEstimate ? (
-                          <p className="field-hint public-estimated-time">{activeFulfillmentEstimate}</p>
-                        ) : null}
-                      </div>
-
+                    <div className="pco-fields-group">
                       {isLoadingDeliveryCustomer ? (
-                        <p className="module-feedback success compact-feedback">Buscando seus dados do ultimo pedido...</p>
+                        <p className="module-feedback success compact-feedback">Buscando seus dados...</p>
                       ) : deliveryCustomerMessage ? (
                         <p className="module-feedback success compact-feedback">{deliveryCustomerMessage}</p>
                       ) : null}
-
-                      <div className="field-group">
-                        <label htmlFor="deliveryCustomerName">{isPickupFlow ? "Nome para retirada" : "Nome para a entrega"}</label>
+                      <div className="pco-field-row">
+                        <User size={16} strokeWidth={1.75} className="pco-field-icon" />
                         <input
                           id="deliveryCustomerName"
                           value={customerName}
                           onChange={(event) => setCustomerName(event.target.value)}
-                          placeholder={isPickupFlow ? "Quem vai retirar o pedido" : "Quem vai receber o pedido"}
+                          placeholder={isPickupFlow ? "Nome para retirada" : "Nome para entrega"}
+                          className="pco-input"
                         />
                       </div>
-
                       {hasPhoneFromDeliveryLink ? (
-                        <div className="public-locked-field">
-                          <span>WhatsApp confirmado pelo link</span>
-                          <strong>Final {deliveryPhone.replace(/\D/g, "").slice(-4)}</strong>
+                        <div className="pco-field-row pco-locked-row">
+                          <Phone size={16} strokeWidth={1.75} className="pco-field-icon" />
+                          <span>WhatsApp ···· {deliveryPhone.replace(/\D/g, "").slice(-4)}</span>
                         </div>
                       ) : (
-                        <div className="field-group">
-                          <label htmlFor="deliveryPhone">Telefone</label>
+                        <div className="pco-field-row">
+                          <Phone size={16} strokeWidth={1.75} className="pco-field-icon" />
                           <input
                             id="deliveryPhone"
                             value={deliveryPhone}
                             onChange={(event) => setDeliveryPhone(event.target.value)}
                             placeholder="WhatsApp ou telefone"
                             inputMode="tel"
+                            className="pco-input"
                           />
                         </div>
                       )}
+                    </div>
+                  ) : null}
 
-                      {isDeliveryFlow ? (
-                        <>
-                      <div className="field-group">
-                        <label htmlFor="deliveryPostalCode">CEP da entrega</label>
+                  {isDeliveryFlow ? (
+                    <div className="pco-fields-group">
+                      <div className="pco-field-row">
+                        <MapPin size={16} strokeWidth={1.75} className="pco-field-icon" />
                         <input
                           id="deliveryPostalCode"
                           value={deliveryPostalCode}
                           onChange={(event) => setDeliveryPostalCode(normalizeDeliveryPostalCode(event.target.value))}
-                          placeholder="00000-000"
+                          placeholder="CEP 00000-000"
                           inputMode="numeric"
                           autoComplete="postal-code"
+                          className="pco-input pco-input-cep"
                         />
-                        <p className="field-hint">O frete so e calculado depois que o CEP estiver completo.</p>
                       </div>
-
-                      <div className="field-group">
-                        <label htmlFor="deliveryAddress">Endereco</label>
+                      <div className="pco-field-row pco-field-indent">
                         <input
                           id="deliveryAddress"
                           value={deliveryAddress}
                           onChange={(event) => setDeliveryAddress(event.target.value)}
-                          placeholder="Rua, bairro ou CEP"
+                          placeholder="Rua e bairro"
+                          className="pco-input"
                         />
                       </div>
-
-                      <div className="module-inline-grid">
-                        <div className="field-group">
-                          <label htmlFor="deliveryNumber">Numero</label>
-                          <input
-                            id="deliveryNumber"
-                            value={deliveryNumber}
-                            onChange={(event) => setDeliveryNumber(event.target.value)}
-                            placeholder="Numero"
-                          />
-                        </div>
-
-                        <div className="field-group">
-                          <label htmlFor="deliveryComplement">Complemento</label>
-                          <input
-                            id="deliveryComplement"
-                            value={deliveryComplement}
-                            onChange={(event) => setDeliveryComplement(event.target.value)}
-                            placeholder="Opcional"
-                          />
-                        </div>
+                      <div className="pco-field-row pco-field-indent pco-address-pair">
+                        <input
+                          id="deliveryNumber"
+                          value={deliveryNumber}
+                          onChange={(event) => setDeliveryNumber(event.target.value)}
+                          placeholder="Numero"
+                          className="pco-input"
+                        />
+                        <input
+                          id="deliveryComplement"
+                          value={deliveryComplement}
+                          onChange={(event) => setDeliveryComplement(event.target.value)}
+                          placeholder="Complemento"
+                          className="pco-input"
+                        />
                       </div>
-
-                      <div className={`public-freight-quote ${freightQuote?.isAvailable ? "is-available" : ""}`}>
-                        <div>
-                            <span className="eyebrow">Frete da entrega</span>
-                            <strong>
-                            {isQuotingFreight
-                              ? "Calculando..."
-                              : freightQuote?.isAvailable
-                                ? formatCurrency(freightQuote.freightAmount)
-                                : "Aguardando CEP"}
-                          </strong>
-                          <p>
-                            {formatFreightQuoteDetails(freightQuote)}
-                          </p>
-                          {deliveryEstimateLabel ? <p>{deliveryEstimateLabel}</p> : null}
-                        </div>
-
-                        <div className="public-freight-quote-total">
-                          <span>Total final</span>
-                          <strong>{formatCurrency(checkoutTotalAmount)}</strong>
-                        </div>
+                      <div className={`pco-freight-chip${freightQuote?.isAvailable ? " is-ready" : ""}`}>
+                        <Truck size={14} strokeWidth={1.75} />
+                        <span>
+                          {isQuotingFreight
+                            ? "Calculando frete..."
+                            : freightQuote?.isAvailable
+                              ? `Frete: ${formatCurrency(freightQuote.freightAmount)}`
+                              : "Frete calculado apos CEP completo"}
+                        </span>
+                        {freightQuote?.isAvailable ? (
+                          <strong>Total: {formatCurrency(checkoutTotalAmount)}</strong>
+                        ) : null}
                       </div>
-                        </>
-                      ) : (
-                        <div className="public-freight-quote is-available">
-                          <div>
-                            <span className="eyebrow">Retirada no local</span>
-                            <strong>Sem frete</strong>
-                            <p>{pickupEstimateLabel || "O pedido sera preparado para retirada na unidade."}</p>
-                          </div>
-
-                          <div className="public-freight-quote-total">
-                            <span>Total final</span>
-                            <strong>{formatCurrency(checkoutTotalAmount)}</strong>
-                          </div>
-                        </div>
-                      )}
-                    </>
+                    </div>
+                  ) : isPickupFlow ? (
+                    <div className="pco-freight-chip is-ready">
+                      <Store size={14} strokeWidth={1.75} />
+                      <span>{pickupEstimateLabel || "Sem frete — retirada no local"}</span>
+                    </div>
                   ) : null}
 
-                  <div className="field-group">
-                    <label htmlFor="orderNotes">
-                      {isPickupFlow ? "Observacoes gerais da retirada" : isDeliveryChannel ? "Observacoes gerais da entrega" : "Observacoes gerais do pedido"}
-                    </label>
+                  <div className="pco-field-row pco-field-row-standalone">
+                    <MessageSquare size={16} strokeWidth={1.75} className="pco-field-icon" />
                     <input
                       id="orderNotes"
                       value={orderNotes}
                       onChange={(event) => setOrderNotes(event.target.value)}
-                      placeholder={isPickupFlow ? "Algo importante para preparo ou retirada" : isDeliveryChannel ? "Algo importante para preparo ou entrega" : "Algo geral para a cozinha ou atendimento"}
+                      placeholder="Observacoes (opcional)"
+                      className="pco-input"
                     />
                   </div>
 
                   {!isOwnerEditMode ? (
-                    <section className="public-cash-change-panel" aria-label="Cupom de desconto">
-                      <div className="public-cash-change-head">
-                        <span>Cupom</span>
-                        {couponValidation?.isValid ? <strong>-{formatCurrency(couponDiscountAmount)}</strong> : null}
-                      </div>
-                      <div className="public-cash-change-fields">
-                        <div className="field-group">
-                          <label htmlFor="couponCode">Codigo do cupom</label>
-                          <input
-                            id="couponCode"
-                            value={couponCode}
-                            onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                            placeholder="Ex.: PIZZA10"
-                            autoComplete="off"
-                          />
-                        </div>
-                        <button
-                          className="ghost-link button-link choice-pill"
-                          type="button"
-                          disabled={isValidatingCoupon || totalAmount <= 0 || !couponCode.trim()}
-                          onClick={() => void handleValidateCoupon()}
-                        >
-                          {isValidatingCoupon ? "Validando..." : "Aplicar"}
-                        </button>
-                      </div>
+                    <div className="pco-coupon-row">
+                      <Tag size={16} strokeWidth={1.75} className="pco-field-icon" />
+                      <input
+                        id="couponCode"
+                        value={couponCode}
+                        onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                        placeholder="Cupom"
+                        autoComplete="off"
+                        className="pco-input"
+                      />
+                      <button
+                        className="pco-coupon-apply ghost-link button-link"
+                        type="button"
+                        disabled={isValidatingCoupon || totalAmount <= 0 || !couponCode.trim()}
+                        onClick={() => void handleValidateCoupon()}
+                      >
+                        {isValidatingCoupon ? "..." : couponValidation?.isValid ? <Check size={14} /> : "Aplicar"}
+                      </button>
                       {couponValidation?.message ? (
-                        <p className={`module-feedback ${couponValidation.isValid ? "success" : "error"} compact-feedback`}>
+                        <span className={`module-feedback ${couponValidation.isValid ? "success" : "error"} compact-feedback pco-coupon-msg`}>
                           {couponValidation.message}
-                        </p>
-                      ) : (
-                        <p className="field-hint">O desconto entra nos itens. Frete, quando houver, continua separado.</p>
-                      )}
-                    </section>
+                        </span>
+                      ) : null}
+                    </div>
                   ) : null}
 
-                  {canUseOnlinePayment ? (
-                    <section className={`public-cash-change-panel public-online-payment-panel ${wantsOnlinePayment ? "is-selected" : ""}`} aria-label="Pagamento online">
-                      <div className="public-cash-change-head">
-                        <span>Pagamento online</span>
-                        <strong>{wantsOnlinePayment ? "Selecionado" : "Mercado Pago"}</strong>
-                      </div>
-                      <p className="field-hint">
-                        Pague por Pix ou cartao no Mercado Pago logo depois de enviar o pedido.
-                      </p>
+                  <div className="pco-section-head">
+                    <CreditCard size={15} strokeWidth={1.75} />
+                    <span>Pagamento</span>
+                    {wantsOnlinePayment ? <span className="pco-online-badge">Online</span> : null}
+                  </div>
+                  <div className="pco-payment-grid">
+                    {canUseOnlinePayment ? (
                       <button
-                        className={`ghost-link button-link choice-pill ${wantsOnlinePayment ? "is-selected-filter" : ""}`}
                         type="button"
+                        className={`pco-payment-btn${wantsOnlinePayment ? " is-active" : ""}`}
                         onClick={() => {
                           setWantsOnlinePayment(true);
                           setPaymentMethod("Pix");
@@ -2092,78 +1978,69 @@ export function PublicTableOrder({
                           setCashChangeAmount("");
                         }}
                       >
-                        Pagar online
+                        <Smartphone size={20} strokeWidth={1.5} />
+                        <span>Online</span>
                       </button>
-                    </section>
-                  ) : null}
-
-                  <div className="field-group">
-                    <label>Forma de pagamento</label>
-                    <div className="choice-pill-row">
-                      {paymentOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          className={`ghost-link button-link choice-pill ${!wantsOnlinePayment && paymentMethod === option.value ? "is-selected-filter" : ""}`}
-                          type="button"
-                          onClick={() => {
-                            setWantsOnlinePayment(false);
-                            setPaymentMethod(option.value);
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
+                    ) : null}
+                    {paymentOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`pco-payment-btn${!wantsOnlinePayment && paymentMethod === option.value ? " is-active" : ""}`}
+                        onClick={() => {
+                          setWantsOnlinePayment(false);
+                          setPaymentMethod(option.value);
+                        }}
+                      >
+                        {option.value === "Cash" ? (
+                          <Banknote size={20} strokeWidth={1.5} />
+                        ) : option.value === "Pix" ? (
+                          <QrCode size={20} strokeWidth={1.5} />
+                        ) : (
+                          <CreditCard size={20} strokeWidth={1.5} />
+                        )}
+                        <span>{option.label}</span>
+                      </button>
+                    ))}
                   </div>
 
                   {isCashPayment ? (
-                    <section className="public-cash-change-panel" aria-label="Troco para pagamento em dinheiro">
-                      <div className="public-cash-change-head">
+                    <div className="pco-change-panel">
+                      <div className="pco-change-head">
+                        <Banknote size={15} strokeWidth={1.75} />
                         <span>Precisa de troco?</span>
-                        <div className="public-cash-change-toggle">
+                        <div className="pco-change-toggle">
                           <button
-                            className={`ghost-link button-link choice-pill ${!needsCashChange ? "is-selected-filter" : ""}`}
+                            className={`ghost-link button-link choice-pill${!needsCashChange ? " is-selected-filter" : ""}`}
                             type="button"
-                            onClick={() => {
-                              setNeedsCashChange(false);
-                              setCashChangeAmount("");
-                            }}
-                          >
-                            Nao
-                          </button>
+                            onClick={() => { setNeedsCashChange(false); setCashChangeAmount(""); }}
+                          >Nao</button>
                           <button
-                            className={`ghost-link button-link choice-pill ${needsCashChange ? "is-selected-filter" : ""}`}
+                            className={`ghost-link button-link choice-pill${needsCashChange ? " is-selected-filter" : ""}`}
                             type="button"
                             onClick={() => setNeedsCashChange(true)}
-                          >
-                            Sim
-                          </button>
+                          >Sim</button>
                         </div>
                       </div>
-
                       {needsCashChange ? (
-                        <div className="public-cash-change-fields">
-                          <div className="field-group">
-                            <label htmlFor="cashChangeAmount">Troco para quanto?</label>
-                            <input
-                              id="cashChangeAmount"
-                              value={cashChangeAmount}
-                              onChange={(event) => setCashChangeAmount(event.target.value)}
-                              onBlur={() => {
-                                const parsedAmount = parseCurrencyInput(cashChangeAmount);
-                                if (parsedAmount > 0) {
-                                  setCashChangeAmount(formatCurrency(parsedAmount));
-                                }
-                              }}
-                              placeholder="Ex.: R$ 50,00"
-                              inputMode="decimal"
-                            />
-                          </div>
-                          <div className="public-cash-note-chips" aria-label="Atalhos de notas">
+                        <div className="pco-change-body">
+                          <input
+                            id="cashChangeAmount"
+                            value={cashChangeAmount}
+                            onChange={(event) => setCashChangeAmount(event.target.value)}
+                            onBlur={() => {
+                              const parsedAmount = parseCurrencyInput(cashChangeAmount);
+                              if (parsedAmount > 0) setCashChangeAmount(formatCurrency(parsedAmount));
+                            }}
+                            placeholder="Troco para quanto?"
+                            inputMode="decimal"
+                            className="pco-input"
+                          />
+                          <div className="public-cash-note-chips">
                             {cashChangeQuickAmounts.map((amount) => (
                               <button
                                 key={amount}
-                                className={`ghost-link button-link choice-pill ${cashChangeAmount === amount ? "is-selected-filter" : ""}`}
+                                className={`ghost-link button-link choice-pill${cashChangeAmount === amount ? " is-selected-filter" : ""}`}
                                 type="button"
                                 onClick={() => setCashChangeAmount(amount)}
                               >
@@ -2173,52 +2050,30 @@ export function PublicTableOrder({
                           </div>
                         </div>
                       ) : null}
-
-                      <p className="field-hint public-cash-accepted-notes">
-                        Notas aceitas: R$ 2, R$ 5, R$ 10, R$ 20, R$ 50, R$ 100 e R$ 200
-                      </p>
-                    </section>
+                    </div>
                   ) : null}
 
                   {!isDeliveryChannel && waiterMessage ? <p className="module-feedback success">{waiterMessage}</p> : null}
 
-                  <div className="public-cart-submit-row">
-                    <div className="public-cart-total-box">
-                      <span>{isDeliveryChannel ? "Total final" : "Total"}</span>
+                  <div className="pco-submit-bar">
+                    <div className="pco-submit-total">
+                      <span>Total</span>
                       <strong>{formatCurrency(isDeliveryChannel ? checkoutTotalAmount : discountedItemsTotal)}</strong>
-                      {couponDiscountAmount > 0 ? <small>Desconto: {formatCurrency(couponDiscountAmount)}</small> : null}
+                      {couponDiscountAmount > 0 ? <small>-{formatCurrency(couponDiscountAmount)}</small> : null}
                     </div>
-
-                    <div className="public-cart-submit-actions">
+                    <div className="pco-submit-actions">
                       {!isDeliveryChannel ? (
                         <button className="ghost-link button-link" type="button" disabled={isCallingWaiter} onClick={() => void handleCallWaiter()}>
                           {isCallingWaiter ? "Chamando..." : "Chamar atendente"}
                         </button>
                       ) : null}
-
-                  {isDeliveryChannel ? (
-                    <>
                       <button className="primary-link button-link" type="submit" disabled={isSaving || totalUnits === 0 || isOrderingClosed}>
-                            {isSaving
-                              ? wantsOnlinePayment
-                                ? "Abrindo pagamento..."
-                                : "Salvando..."
-                              : isOrderingClosed
-                                ? "Fora do horario"
-                                : isOwnerEditMode
-                                  ? "Salvar alteracoes do pedido"
-                                  : wantsOnlinePayment
-                                    ? "Enviar e pagar online"
-                                    : "Enviar pedido"}
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                      <button className="primary-link button-link" type="submit" disabled={isSaving || totalUnits === 0 || isOrderingClosed}>
-                        {isSaving ? "Salvando..." : isOrderingClosed ? "Fora do horario" : isOwnerEditMode ? "Salvar alteracoes do pedido" : "Enviar pedido"}
+                        {isSaving
+                          ? wantsOnlinePayment ? "Abrindo pagamento..." : "Salvando..."
+                          : isOrderingClosed ? "Fora do horario"
+                          : isOwnerEditMode ? "Salvar alteracoes"
+                          : wantsOnlinePayment ? "Enviar e pagar" : "Enviar pedido"}
                       </button>
-                        </>
-                      )}
                     </div>
                   </div>
                 </aside>
@@ -2309,28 +2164,29 @@ export function PublicTableOrder({
                 />
               </div>
 
-              {/* Additionals as list rows */}
+              {/* Additionals */}
               {activeItemAcceptsAdditionals ? (
-                <div className="public-addon-group-stack">
+                <div className="pic-addon-stack">
                   {activeMenuItemEntry.item.additionalGroups
                     .filter((group) => getConfiguredGroupAdditionalLimit(group) !== 0 && group.options.length > 0)
                     .map((group) => {
                       const groupLimit = getConfiguredGroupAdditionalLimit(group);
 
                       return (
-                        <section key={group.id} className="public-addon-group">
-                          <div className="public-addon-group-head">
-                            <strong>{group.options.length > 1 ? group.name : "Adicional"}</strong>
-                            <span>
+                        <div key={group.id} className="pic-addon-group">
+                          {group.options.length > 1 ? (
+                            <p className="pic-addon-hint">
                               {groupLimit === null
                                 ? group.allowMultiple
-                                  ? "Escolha os adicionais da linha"
+                                  ? "Multipla escolha"
                                   : "Opcional"
-                                : `Ate ${groupLimit} na linha`}
-                            </span>
-                          </div>
+                                : groupLimit === 1
+                                  ? "Escolha 1 opcao"
+                                  : `Ate ${groupLimit} opcoes`}
+                            </p>
+                          ) : null}
 
-                          <div className="public-composer-addon-list">
+                          <div className="pic-addon-list">
                             {group.options.map((option) => {
                               const selectedCount = countSelectedOption(detailSelectedOptionIds, option.id);
                               const isSelected = selectedCount > 0;
@@ -2341,38 +2197,39 @@ export function PublicTableOrder({
                               );
 
                               return (
-                                <div key={option.id} className={`public-composer-addon-row${isSelected ? " is-applied" : ""}`}>
-                                  <div className="public-composer-addon-copy">
+                                <button
+                                  key={option.id}
+                                  className={`pic-addon-row${isSelected ? " is-on" : ""}${!isSelected && !canAdd ? " is-blocked" : ""}`}
+                                  type="button"
+                                  disabled={!isSelected && !canAdd}
+                                  onClick={() => changeAdditionalOptionCount(option.id, isSelected ? -1 : 1)}
+                                  aria-pressed={isSelected}
+                                >
+                                  <span className="pic-addon-check" aria-hidden="true">
+                                    {isSelected ? <Check size={14} strokeWidth={2.5} /> : null}
+                                  </span>
+                                  <span className="pic-addon-copy">
                                     <strong>{option.name}</strong>
                                     <span>
                                       {isSelected
                                         ? detailQuantity > 1
-                                          ? `Aplicado a linha inteira dos ${detailQuantity} itens`
-                                          : "Aplicado a linha"
+                                          ? `Nos ${detailQuantity} itens`
+                                          : "Adicionado"
                                         : option.price > 0
                                           ? `${formatCurrency(option.price)} por un.`
                                           : "Sem custo adicional"}
                                     </span>
-                                  </div>
+                                  </span>
                                   {option.price > 0 ? (
-                                    <em className="public-composer-addon-price">
+                                    <em className="pic-addon-price">
                                       {formatCurrency(option.price * (isSelected ? detailQuantity : 1))}
                                     </em>
                                   ) : null}
-                                  <button
-                                    className={`public-composer-addon-toggle${isSelected ? " is-applied" : ""}`}
-                                    type="button"
-                                    disabled={!isSelected && !canAdd}
-                                    onClick={() => changeAdditionalOptionCount(option.id, isSelected ? -1 : 1)}
-                                    aria-pressed={isSelected}
-                                  >
-                                    {isSelected ? "Remover" : "+"}
-                                  </button>
-                                </div>
+                                </button>
                               );
                             })}
                           </div>
-                        </section>
+                        </div>
                       );
                     })}
                 </div>
@@ -2394,9 +2251,6 @@ export function PublicTableOrder({
         </div>
       ) : null}
 
-      {canOpenCustomerProfile && isCustomerProfileOpen && deliveryCustomerToken ? (
-        <PublicCustomerProfilePanel code={deliveryCustomerToken} onClose={() => setIsCustomerProfileOpen(false)} />
-      ) : null}
     </main>
   );
 }

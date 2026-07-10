@@ -41,7 +41,7 @@ public interface IWorkspaceService
     Task<CustomerOrderDto> UpdateOrderPaymentAsync(WorkspaceSessionContext session, Guid orderId, UpdateOrderPaymentRequestDto request, CancellationToken cancellationToken = default);
     Task<MarkAllOrdersPaidResultDto> MarkAllOrdersPaidAsync(WorkspaceSessionContext session, MarkAllOrdersPaidRequestDto request, CancellationToken cancellationToken = default);
     Task<CustomerProfileDto> GetCustomerProfileAsync(WorkspaceSessionContext session, string phoneNumber, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<CustomerOrderHistoryDto>> GetCustomerOrderHistoryAsync(WorkspaceSessionContext session, string phoneNumber, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CustomerOrderHistoryDto>> GetCustomerOrderHistoryAsync(WorkspaceSessionContext session, string phoneNumber, int? limit = null, CancellationToken cancellationToken = default);
     Task<CustomerProfileDto> UpdateCustomerProfileAsync(WorkspaceSessionContext session, string phoneNumber, UpdateCustomerProfileRequestDto request, CancellationToken cancellationToken = default);
     Task DeletePaidOrderAsync(WorkspaceSessionContext session, Guid orderId, DeletePaidOrderRequestDto request, CancellationToken cancellationToken = default);
     Task DeleteAllPaidOrdersAsync(WorkspaceSessionContext session, DeletePaidOrderRequestDto request, CancellationToken cancellationToken = default);
@@ -74,8 +74,11 @@ public interface IWorkspaceService
     Task<PublicTableViewDto> GetPublicTableAsync(string publicCode, CancellationToken cancellationToken = default);
     Task<MenuItemDto> GetPublicMenuItemAsync(string publicCode, Guid menuItemId, CancellationToken cancellationToken = default);
     Task<CustomerOrderDto> CreatePublicOrderAsync(string publicCode, CreateCustomerOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task<CustomerOrderDto> CreateSellerLinkOrderAsync(Guid salesAgentId, Guid tenantId, Guid companyId, CreateCustomerOrderRequestDto request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CustomerOrderDto>> GetOrdersByAgentAsync(WorkspaceSessionContext session, Guid agentId, CancellationToken cancellationToken = default);
     Task<DeliveryFreightQuoteDto> QuotePublicDeliveryFreightAsync(string publicCode, DeliveryFreightQuoteRequestDto request, CancellationToken cancellationToken = default);
     Task<PublicDeliveryCustomerProfileDto> GetPublicDeliveryCustomerProfileAsync(string publicCode, string? token, CancellationToken cancellationToken = default);
+    Task<PublicCustomerProfileDto> GetPublicCustomerProfileAsync(string code, CancellationToken cancellationToken = default);
     Task<PublicDeliveryShortLinkDto> ResolvePublicDeliveryShortLinkAsync(string code, CancellationToken cancellationToken = default);
     Task<PublicOrderTrackingDto> GetPublicDeliveryTrackingAsync(string code, CancellationToken cancellationToken = default);
     Task<WaiterCallDto> CreatePublicWaiterCallAsync(string publicCode, CancellationToken cancellationToken = default);

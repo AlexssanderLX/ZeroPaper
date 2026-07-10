@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  createPrintingTestJob,
   getPrintingSettings,
+  getWorkspaceOverview,
   requeuePrintOrder,
   rotatePrintingAgentKey,
   updatePrintingSettings,
@@ -11,6 +12,22 @@ import {
   type PrintingSettings,
 } from "@/lib/api";
 import { formatCurrency, formatDateTime, handleApiError, type AsyncVoid } from "@/components/modules/module-utils";
+
+function renderPrintOrderTitle(order: PrintOrderSummary) {
+  if (!order.isDeliveryOrder) {
+    return `Pedido #${order.number}`;
+  }
+
+  return order.customerName ? `Delivery de ${order.customerName}` : "Delivery";
+}
+
+function renderPrintOrderSubtitle(order: PrintOrderSummary) {
+  if (order.isDeliveryOrder) {
+    return "Entrega";
+  }
+
+  return order.tableName;
+}
 
 function formatPrintStatus(value: string) {
   switch (value) {
@@ -50,65 +67,16 @@ function isVirtualPrinter(printerName?: string | null) {
   return /pdf|xps/i.test(printerName ?? "");
 }
 
-function formatPaperProfile(value: string) {
-  switch (value) {
-    case "A4":
-      return "Impressora comum A4";
-    case "Thermal80mm":
-      return "Termica 80mm";
-    default:
-      return value;
-  }
-}
-
-function formatOrdersPerPage(value: number) {
-  return value <= 1 ? "1 pedido por folha" : `${value} pedidos por folha`;
-}
-
-function buildPrintingWarnings(printing: PrintingSettings) {
-  const warnings: Array<{ id: string; title: string; copy: string }> = [];
-
-  if (!printing.hasAgentKey) {
-    warnings.push({
-      id: "key",
-      title: "Gere a chave da unidade",
-      copy: "A chave vincula o app Windows a esta unidade e impede impressao cruzada entre restaurantes.",
-    });
+function getPrinterState(printing: PrintingSettings, usesVirtualPrinter: boolean) {
+  if (!printing.printerName) {
+    return { label: "Sem impressora", detail: "Configure no app Windows", tone: "danger" };
   }
 
-  if (printing.enableAutomaticPrinting && !printing.agentOnline) {
-    warnings.push({
-      id: "agent",
-      title: "Agente offline",
-      copy: "Abra o app Windows na unidade para o backend entregar os pedidos automaticamente para a impressora.",
-    });
+  if (usesVirtualPrinter) {
+    return { label: "Modo previa", detail: printing.printerName, tone: "warning" };
   }
 
-  if (isVirtualPrinter(printing.printerName)) {
-    warnings.push({
-      id: "printer",
-      title: "Impressora virtual detectada",
-      copy: "Microsoft Print to PDF ou XPS pedem para salvar arquivo e nao servem para impressao automatica da cozinha.",
-    });
-  }
-
-  if (printing.failedJobs > 0) {
-    warnings.push({
-      id: "failed",
-      title: "Existem falhas recentes",
-      copy: "O sistema ja tentou imprimir novamente uma vez. Se ainda falhou, revise o erro do pedido e a impressora antes de reenviar.",
-    });
-  }
-
-  if (printing.paperProfile === "A4" && printing.ordersPerPage > 1) {
-    warnings.push({
-      id: "a4-batch",
-      title: "A4 com agrupamento rapido",
-      copy: "No modo A4, o agente segura os pedidos por um intervalo curtissimo para tentar completar a folha sem atrasar a cozinha.",
-    });
-  }
-
-  return warnings;
+  return { label: "Impressora pronta", detail: printing.printerName, tone: "good" };
 }
 
 function sortRecentOrders(orders: PrintOrderSummary[]) {
@@ -119,13 +87,14 @@ function sortRecentOrders(orders: PrintOrderSummary[]) {
 
 export function PrintingModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
   const [printing, setPrinting] = useState<PrintingSettings | null>(null);
+  const [hasAutoPrint, setHasAutoPrint] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isRotatingKey, setIsRotatingKey] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [generatedKey, setGeneratedKey] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -156,15 +125,18 @@ export function PrintingModule({ token, onUnauthorized }: { token: string; onUna
   useEffect(() => {
     let isMounted = true;
 
-    async function runInitialLoad() {
-      if (!isMounted) {
-        return;
+    void (async () => {
+      if (!isMounted) return;
+      const [, overview] = await Promise.allSettled([
+        loadPrinting(),
+        getWorkspaceOverview(token),
+      ]);
+      if (isMounted && overview.status === "fulfilled") {
+        setHasAutoPrint(overview.value.hasAutoPrint ?? true);
+      } else if (isMounted) {
+        setHasAutoPrint(true);
       }
-
-      await loadPrinting();
-    }
-
-    void runInitialLoad();
+    })();
 
     const intervalId = window.setInterval(() => {
       if (isMounted) {
@@ -201,39 +173,16 @@ export function PrintingModule({ token, onUnauthorized }: { token: string; onUna
     }
   }
 
-  async function handleUpdateProfile(nextPaperProfile: string, nextOrdersPerPage: number) {
-    if (!printing) {
-      return;
-    }
-
-    try {
-      setIsSavingProfile(true);
-      const response = await updatePrintingSettings(token, {
-        enableAutomaticPrinting: printing.enableAutomaticPrinting,
-        paperProfile: nextPaperProfile,
-        ordersPerPage: nextOrdersPerPage,
-      });
-
-      setPrinting(response);
-      setSuccessMessage("Perfil de impressao atualizado.");
-      setErrorMessage("");
-    } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel salvar o perfil de impressao.");
-    } finally {
-      setIsSavingProfile(false);
-    }
-  }
-
   async function handleRotateAgentKey() {
     try {
       setIsRotatingKey(true);
       const response = await rotatePrintingAgentKey(token);
       setPrinting(response.printing);
-      setGeneratedKey(response.agentKey);
-      setSuccessMessage("Nova chave criada. Cole essa chave no app Windows da unidade.");
+      setGeneratedKey(response.agentToken || response.agentKey);
+      setSuccessMessage("Codigo criado. Cole no app Windows da unidade.");
       setErrorMessage("");
     } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel gerar a chave do agente.");
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel gerar o codigo do agente.");
     } finally {
       setIsRotatingKey(false);
     }
@@ -246,10 +195,24 @@ export function PrintingModule({ token, onUnauthorized }: { token: string; onUna
 
     try {
       await navigator.clipboard.writeText(generatedKey);
-      setSuccessMessage("Chave copiada.");
+      setSuccessMessage("Codigo copiado.");
       setErrorMessage("");
     } catch {
-      setErrorMessage("Nao foi possivel copiar a chave agora.");
+      setErrorMessage("Nao foi possivel copiar o codigo agora.");
+    }
+  }
+
+  async function handleSendTest() {
+    try {
+      setIsSendingTest(true);
+      const response = await createPrintingTestJob(token, "Teste de impressao pelo painel");
+      setPrinting(response.printing);
+      setSuccessMessage("Teste enviado para a fila. O agente imprime ou salva a previa, conforme o modo configurado.");
+      setErrorMessage("");
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel enviar o teste de impressao.");
+    } finally {
+      setIsSendingTest(false);
     }
   }
 
@@ -267,267 +230,263 @@ export function PrintingModule({ token, onUnauthorized }: { token: string; onUna
     }
   }
 
-  const warnings = useMemo(() => (printing ? buildPrintingWarnings(printing) : []), [printing]);
   const recentOrders = useMemo(() => (printing ? sortRecentOrders(printing.recentOrders) : []), [printing]);
   const usesVirtualPrinter = isVirtualPrinter(printing?.printerName);
+  const printerState = printing ? getPrinterState(printing, usesVirtualPrinter) : null;
+  const automaticEnabled = Boolean(printing?.autoPrintEnabled ?? printing?.enableAutomaticPrinting);
+  const hasAgentToken = Boolean(printing?.hasAgentToken ?? printing?.hasAgentKey);
   const automaticReady = Boolean(
     printing &&
-      printing.enableAutomaticPrinting &&
-      printing.hasAgentKey &&
+      automaticEnabled &&
+      hasAgentToken &&
       printing.agentOnline &&
       printing.printerName &&
       !usesVirtualPrinter,
   );
+  const automationTone = automaticReady ? "good" : automaticEnabled ? "warning" : "muted";
+  const codeDone = hasAgentToken;
+  const connectDone = Boolean(printing?.agentOnline && printing?.printerName && !usesVirtualPrinter);
+  const recommendedAgentUrl = printing?.downloadUrlX86 || printing?.downloadUrl || "";
+  const windows64AgentUrl = printing?.downloadUrlX64 || printing?.downloadUrl || "";
+  const legacyAgentUrl = printing?.legacyDownloadUrl || "";
 
   return (
     <section className="module-body-grid single">
-      <section className="surface-card module-form-card print-module-shell">
-        <span className="eyebrow">Impressao</span>
-        <h2>Operacao automatica da cozinha</h2>
+      <section className="surface-card zpprint-shell">
+        <div className="zpprint-head">
+          <div className="zpprint-head-copy">
+            <span className="eyebrow">Impressao</span>
+            <h2>{hasAutoPrint === false ? "Impressao manual" : "Impressao automatica"}</h2>
+          </div>
+          {printing && hasAutoPrint !== false ? (
+            <span className={`zpprint-chip ${automaticReady ? "is-ready" : "is-pending"}`}>
+              {automaticReady ? "Pronta" : "Configurar"}
+            </span>
+          ) : null}
+        </div>
 
-        {loading || !printing ? (
+        {loading || !printing || hasAutoPrint === null ? (
           <p className="loading-state">Carregando impressao...</p>
+        ) : hasAutoPrint === false ? (
+          <div className="zpprint-manual-notice">
+            <p>
+              Seu plano inclui <strong>impressao manual</strong>. Para imprimir um pedido, abra o modulo
+              de Cozinha, selecione o pedido e use o botao de imprimir.
+            </p>
+            <p className="zpprint-manual-hint">
+              Impressao automatica via agente Windows esta disponivel no plano Operacao e Gestao.
+            </p>
+          </div>
         ) : (
           <>
-            <section className="print-module-grid">
-              <article className="surface-card print-summary-card print-summary-card-primary">
-                <div className="module-section-head compact-order-column-head">
-                  <div className="kitchen-column-copy">
-                    <span className="eyebrow">Estado atual</span>
-                    <strong>{automaticReady ? "Pronto para imprimir sozinho" : "Ainda precisa de configuracao"}</strong>
-                  </div>
-                  <span className={`status-chip ${automaticReady ? "ready" : "pending"}`}>
-                    {automaticReady ? "Operando" : "Ajustar"}
-                  </span>
-                </div>
-
-                <div className="print-summary-stack">
-                  <div className="print-summary-line">
-                    <strong>Agente</strong>
-                    <span>{printing.agentOnline ? printing.agentName || "Online" : "Offline"}</span>
-                  </div>
-                  <div className="print-summary-line">
-                    <strong>Impressora</strong>
-                    <span>{printing.printerName || "Escolha feita no Windows"}</span>
-                  </div>
-                  <div className="print-summary-line">
-                    <strong>Perfil</strong>
-                    <span>{formatPaperProfile(printing.paperProfile)}</span>
-                  </div>
-                  <div className="print-summary-line">
-                    <strong>Folha</strong>
-                    <span>{formatOrdersPerPage(printing.ordersPerPage)}</span>
-                  </div>
-                  <div className="print-summary-line">
-                    <strong>Ultimo contato</strong>
-                    <span>{printing.lastSeenAtUtc ? formatDateTime(printing.lastSeenAtUtc) : "Sem conexao ainda"}</span>
-                  </div>
-                </div>
-
-                <div className="print-metric-grid">
-                  <article className="print-metric-card">
-                    <small>Automatico</small>
-                    <strong>{printing.enableAutomaticPrinting ? "Ativo" : "Pausado"}</strong>
-                  </article>
-                  <article className="print-metric-card">
-                    <small>Aguardando</small>
-                    <strong>{printing.pendingJobs}</strong>
-                  </article>
-                  <article className="print-metric-card">
-                    <small>Falhas</small>
-                    <strong>{printing.failedJobs}</strong>
-                  </article>
-                  <article className="print-metric-card">
-                    <small>Impressos</small>
-                    <strong>{printing.printedJobs}</strong>
-                  </article>
-                </div>
-              </article>
-
-              <article className="surface-card print-summary-card">
-                <div className="module-section-head compact-order-column-head">
-                  <div className="kitchen-column-copy">
-                    <span className="eyebrow">Instalacao do agente</span>
-                    <strong>Windows da unidade</strong>
-                  </div>
-                  {refreshing ? <span className="mini-chip">Atualizando</span> : null}
-                </div>
-
-                <label className="settings-alert-toggle print-toggle">
+            {/* ── Estado atual (cada info uma vez) ───────────────── */}
+            <div className="zpprint-status-row">
+              <article className={`zpprint-stat is-${automationTone}`}>
+                <span className="zpprint-stat-label">Automacao</span>
+                <strong>{automaticEnabled ? "Ativa" : "Pausada"}</strong>
+                <label className="zpprint-switch">
                   <input
                     type="checkbox"
-                    checked={printing.enableAutomaticPrinting}
+                    checked={automaticEnabled}
                     disabled={isToggling}
                     onChange={(event) => void handleToggleAutomaticPrinting(event.target.checked)}
                   />
-                  <div>
-                    <strong>Imprimir pedidos novos automaticamente</strong>
-                    <p>O backend fila o pedido e o agente da unidade tenta imprimir sem acao manual da equipe.</p>
-                  </div>
+                  <span className="zpprint-switch-track" aria-hidden="true">
+                    <span className="zpprint-switch-thumb" />
+                  </span>
+                  <em>{automaticEnabled ? "Pedidos novos entram na fila" : "Pausada para novos pedidos"}</em>
                 </label>
+              </article>
 
-                <section className="print-profile-card">
-                  <div className="module-section-head compact-order-column-head">
-                    <div className="kitchen-column-copy">
-                      <span className="eyebrow">Perfil da impressora</span>
-                      <strong>Escolha o tipo de folha da unidade</strong>
+              {printerState ? (
+                <article className={`zpprint-stat is-${printerState.tone}`}>
+                  <span className="zpprint-stat-label">Impressora</span>
+                  <strong>{printerState.label}</strong>
+                  <small>{printerState.detail}</small>
+                </article>
+              ) : null}
+
+              <article className="zpprint-stat is-queue">
+                <span className="zpprint-stat-label">Fila de impressao</span>
+                <div className="zpprint-queue">
+                  <div>
+                    <strong>{printing.pendingJobs}</strong>
+                    <small>aguardando</small>
+                  </div>
+                  <div>
+                    <strong className={printing.failedJobs > 0 ? "is-danger" : ""}>{printing.failedJobs}</strong>
+                    <small>falhas</small>
+                  </div>
+                  <div>
+                    <strong className="is-good">{printing.printedJobs}</strong>
+                    <small>impressos</small>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            {/* ── Passos para ligar ──────────────────────────────── */}
+            <div className="zpprint-steps">
+              <div className="zpprint-steps-head">
+                <span className="eyebrow">Agente Windows</span>
+                <strong>Configure, conecte e teste sem depender da impressora fisica.</strong>
+              </div>
+
+              <ol className="zpprint-step-list">
+                <li className="zpprint-step">
+                  <span className="zpprint-step-num">1</span>
+                  <div className="zpprint-step-body">
+                    <strong>Baixar o agente</strong>
+                    <p>Instale o app no computador que fica perto da impressora.</p>
+                    <div className="zpprint-step-actions">
+                      <a className="zpprint-btn is-primary" href={recommendedAgentUrl} download>
+                        Baixar app
+                      </a>
+                      <a className="zpprint-btn is-ghost" href={windows64AgentUrl} download>
+                        Windows 64 bits
+                      </a>
+                      {legacyAgentUrl ? (
+                        <a className="zpprint-btn is-ghost" href={legacyAgentUrl} download>
+                          Windows antigo
+                        </a>
+                      ) : null}
                     </div>
-                    {isSavingProfile ? <span className="mini-chip">Salvando</span> : null}
                   </div>
+                </li>
 
-                  <div className="print-option-grid">
-                    <button
-                      className={`print-option-button ${printing.paperProfile === "Thermal80mm" ? "active" : ""}`}
-                      type="button"
-                      disabled={isSavingProfile}
-                      onClick={() => void handleUpdateProfile("Thermal80mm", 1)}
-                    >
-                      <strong>Termica 80mm</strong>
-                      <span>Pedido por pedido, sem agrupamento e sem risco de salvar arquivo.</span>
-                    </button>
-
-                    <button
-                      className={`print-option-button ${printing.paperProfile === "A4" ? "active" : ""}`}
-                      type="button"
-                      disabled={isSavingProfile}
-                      onClick={() =>
-                        void handleUpdateProfile(
-                          "A4",
-                          printing.paperProfile === "A4" ? printing.ordersPerPage : 1,
-                        )
-                      }
-                    >
-                      <strong>Impressora comum A4</strong>
-                      <span>Permite imprimir 1, 2 ou 4 pedidos por folha mantendo a fila automatica.</span>
-                    </button>
-                  </div>
-
-                  <div className="print-sheet-grid">
-                    {[1, 2, 4].map((value) => {
-                      const disabled = printing.paperProfile !== "A4" && value !== 1;
-                      const active = printing.ordersPerPage === value;
-
-                      return (
-                        <button
-                          key={value}
-                          className={`print-sheet-button ${active ? "active" : ""}`}
-                          type="button"
-                          disabled={isSavingProfile || disabled}
-                          onClick={() =>
-                            void handleUpdateProfile(printing.paperProfile === "A4" ? "A4" : "Thermal80mm", value)
-                          }
-                        >
-                          <strong>{value}x</strong>
-                          <span>{formatOrdersPerPage(value)}</span>
+                <li className={`zpprint-step ${codeDone ? "is-done" : ""}`}>
+                  <span className="zpprint-step-num">{codeDone ? "OK" : "2"}</span>
+                  <div className="zpprint-step-body">
+                    <strong>Gerar codigo</strong>
+                    <p>Copie este codigo uma vez e cole no app Windows.</p>
+                    <div className="zpprint-step-actions">
+                      <button
+                        className="zpprint-btn is-ghost"
+                        type="button"
+                        disabled={isRotatingKey}
+                        onClick={() => void handleRotateAgentKey()}
+                      >
+                        {isRotatingKey ? "Gerando..." : codeDone ? "Gerar novo codigo" : "Gerar codigo"}
+                      </button>
+                    </div>
+                    {generatedKey ? (
+                      <div className="zpprint-code-row">
+                        <input className="zpprint-code-input" readOnly value={generatedKey} />
+                        <button className="zpprint-btn is-ghost" type="button" onClick={() => void handleCopyAgentKey()}>
+                          Copiar
                         </button>
-                      );
-                    })}
+                      </div>
+                    ) : null}
                   </div>
+                </li>
 
-                  <p className="print-agent-hint">
-                    No modo termico, o sistema trava em 1 pedido por folha para evitar configuracao invalida. No A4 voce pode alternar entre 1, 2 ou 4 sem quebrar a automacao.
-                  </p>
-                </section>
+                <li className={`zpprint-step ${connectDone ? "is-done" : ""}`}>
+                  <span className="zpprint-step-num">{connectDone ? "OK" : "3"}</span>
+                  <div className="zpprint-step-body">
+                    <strong>Conectar o agente</strong>
+                    <p>Escolha impressora real ou modo de previa em arquivo.</p>
+                    <span className={`zpprint-pill ${printing.agentOnline ? "is-good" : "is-danger"}`}>
+                      {printing.agentOnline ? "Agente online" : "Agente offline"}
+                    </span>
+                    {printing.agentName || printing.appVersion ? (
+                      <small className="zpprint-step-hint">
+                        {[printing.agentName, printing.appVersion ? `v${printing.appVersion}` : ""].filter(Boolean).join(" - ")}
+                      </small>
+                    ) : null}
+                    {printing.lastSeenAtUtc ? (
+                      <small className="zpprint-step-hint">Ultimo contato: {formatDateTime(printing.lastSeenAtUtc)}</small>
+                    ) : null}
+                  </div>
+                </li>
 
-                <p className="print-agent-hint">
-                  Baixe o app, gere a chave da unidade e selecione uma impressora fisica. Depois disso o pedido novo vai direto para a cozinha.
+                <li className="zpprint-step">
+                  <span className="zpprint-step-num">4</span>
+                  <div className="zpprint-step-body">
+                    <strong>Testar a impressao</strong>
+                    <p>
+                      Envia um cupom de teste. Sem impressora, use &quot;Salvar previa em arquivo&quot; no app.
+                    </p>
+                    <div className="zpprint-step-actions">
+                      <button
+                        className="zpprint-btn is-primary"
+                        type="button"
+                        disabled={isSendingTest || !hasAgentToken}
+                        onClick={() => void handleSendTest()}
+                      >
+                        {isSendingTest ? "Enviando..." : "Enviar teste"}
+                      </button>
+                    </div>
+                    {!hasAgentToken ? (
+                      <small className="zpprint-step-hint">Gere o codigo no passo 2 antes de testar.</small>
+                    ) : null}
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            {/* ── Erro do agente ─────────────────────────────────── */}
+            {printing.lastError ? (
+              <div className="zpprint-alert">
+                <strong>Ultimo erro do agente</strong>
+                <p>
+                  {printing.lastError}
+                  {printing.lastErrorAtUtc ? ` (${formatDateTime(printing.lastErrorAtUtc)})` : ""}
                 </p>
-
-                <div className="toolbar-actions compact print-module-actions">
-                  <a className="primary-link button-link" href={printing.downloadUrl}>
-                    Baixar agente
-                  </a>
-                  <button className="ghost-link button-link" type="button" disabled={isRotatingKey} onClick={() => void handleRotateAgentKey()}>
-                    {isRotatingKey ? "Gerando..." : printing.hasAgentKey ? "Gerar nova chave" : "Gerar chave"}
-                  </button>
-                  <Link className="ghost-link button-link" href="/app/implantacao">
-                    Abrir implantacao
-                  </Link>
-                </div>
-              </article>
-            </section>
-
-            {generatedKey ? (
-              <article className="surface-card print-key-card">
-                <div className="module-section-head compact-order-column-head">
-                  <div className="kitchen-column-copy">
-                    <span className="eyebrow">Chave segura da unidade</span>
-                    <strong>Cole no app Windows</strong>
-                  </div>
-                </div>
-
-                <div className="print-key-row">
-                  <input className="print-key-input" readOnly value={generatedKey} />
-                  <button className="ghost-link button-link" type="button" onClick={() => void handleCopyAgentKey()}>
-                    Copiar chave
-                  </button>
-                </div>
-              </article>
+              </div>
             ) : null}
 
-            {warnings.length > 0 ? (
-              <section className="print-warning-grid">
-                {warnings.map((warning) => (
-                  <article key={warning.id} className="surface-card print-warning-card">
-                    <span className="eyebrow">Atencao</span>
-                    <strong>{warning.title}</strong>
-                    <p>{warning.copy}</p>
-                  </article>
-                ))}
-              </section>
-            ) : null}
-
-            <article className="surface-card print-jobs-card">
-              <div className="module-section-head compact-order-column-head">
-                <div className="kitchen-column-copy">
-                  <span className="eyebrow">Pedidos recentes</span>
-                  <strong>Impressao quase invisivel na operacao</strong>
-                </div>
+            {/* ── Pedidos recentes ───────────────────────────────── */}
+            <div className="zpprint-jobs">
+              <div className="zpprint-jobs-head">
+                <span className="eyebrow">Pedidos recentes</span>
+                {refreshing ? <span className="zpprint-mini">Atualizando</span> : null}
               </div>
 
               {recentOrders.length === 0 ? (
-                <div className="module-empty-state compact-empty-state">
-                  <strong>Sem pedidos para mostrar</strong>
-                  <p>Quando um pedido novo entrar, ele passa aqui e o agente tenta imprimir sozinho.</p>
+                <div className="zpprint-empty">
+                  <strong>Sem pedidos por enquanto</strong>
+                  <p>Quando um pedido novo entrar, ele aparece aqui e o agente tenta imprimir sozinho.</p>
                 </div>
               ) : (
-                <div className="module-card-list print-job-list">
+                <div className="zpprint-job-list">
                   {recentOrders.map((order) => (
-                    <article key={order.id} className="module-entity-card print-job-card">
-                      <div className="entity-head">
+                    <article key={order.id} className={`zpprint-job is-${order.printStatus.toLowerCase()}`}>
+                      <div className="zpprint-job-head">
                         <div>
-                          <h3>Pedido #{order.number}</h3>
-                          <p>{order.tableName}</p>
+                          <strong>{renderPrintOrderTitle(order)}</strong>
+                          <p>{renderPrintOrderSubtitle(order)}</p>
                         </div>
-                        <span className={`status-chip status-${order.printStatus.toLowerCase()}`}>{formatPrintStatus(order.printStatus)}</span>
+                        <span className={`zpprint-pill is-${order.printStatus.toLowerCase()}`}>
+                          {formatPrintStatus(order.printStatus)}
+                        </span>
                       </div>
 
-                      <div className="entity-meta-grid">
+                      <div className="zpprint-job-meta">
                         <span>{formatKitchenStatus(order.status)}</span>
                         <span>{formatDateTime(order.submittedAtUtc)}</span>
                         <span>{formatCurrency(order.totalAmount)}</span>
                         <span>{order.printAttempts} tentativa(s)</span>
                       </div>
 
-                      {order.printedAtUtc ? <p className="print-job-note">Impresso em {formatDateTime(order.printedAtUtc)}.</p> : null}
-                      {!order.printedAtUtc && !order.printLastError ? <p className="print-job-note">O agente ainda esta tentando ou aguardando coleta.</p> : null}
-                      {order.printLastError ? <p className="module-feedback error">{order.printLastError}</p> : null}
+                      {order.printLastError ? <p className="zpprint-job-error">{order.printLastError}</p> : null}
 
-                      <div className="toolbar-actions compact print-module-actions">
-                        <button
-                          className="ghost-link button-link module-action-button"
-                          type="button"
-                          disabled={pendingOrderId === order.id}
-                          onClick={() => void handleRequeue(order.id)}
-                        >
-                          {pendingOrderId === order.id ? "Reenviando..." : order.printStatus === "Printed" ? "Reimprimir" : "Imprimir agora"}
-                        </button>
-                      </div>
+                      <button
+                        className="zpprint-btn is-ghost zpprint-job-action"
+                        type="button"
+                        disabled={pendingOrderId === order.id}
+                        onClick={() => void handleRequeue(order.id)}
+                      >
+                        {pendingOrderId === order.id
+                          ? "Reenviando..."
+                          : order.printStatus === "Printed"
+                            ? "Reimprimir"
+                            : "Imprimir agora"}
+                      </button>
                     </article>
                   ))}
                 </div>
               )}
-            </article>
+            </div>
           </>
         )}
 

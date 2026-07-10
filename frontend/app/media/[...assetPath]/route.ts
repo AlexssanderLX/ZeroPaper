@@ -1,36 +1,38 @@
 const CONFIGURED_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
 const INTERNAL_BACKEND_URL = process.env.BACKEND_INTERNAL_URL ?? CONFIGURED_API_BASE_URL;
 
-function buildBackendAssetUrl(request: Request, assetPath: string[]) {
-    const requestUrl = new URL(request.url);
-    const backendUrl = new URL(INTERNAL_BACKEND_URL);
-
-    if (
-        !process.env.BACKEND_INTERNAL_URL &&
-        requestUrl.hostname &&
-        requestUrl.hostname !== "localhost" &&
-        requestUrl.hostname !== "127.0.0.1"
-    ) {
-        backendUrl.hostname = requestUrl.hostname;
-    }
-
+function buildBackendAssetUrl(assetPath: string[]) {
+  const backendUrl = new URL(INTERNAL_BACKEND_URL);
   backendUrl.pathname = `/${assetPath.join("/")}`;
-  backendUrl.search = requestUrl.search;
 
   return backendUrl.toString();
 }
 
+function isSafeUploadPath(assetPath: string[]) {
+  return (
+    assetPath.length >= 2 &&
+    assetPath[0] === "uploads" &&
+    assetPath.every(
+      (segment) =>
+        segment.length > 0 &&
+        segment !== "." &&
+        segment !== ".." &&
+        /^[a-zA-Z0-9._-]+$/.test(segment),
+    )
+  );
+}
+
 export async function GET(
-  request: Request,
+  _request: Request,
   context: { params: Promise<{ assetPath: string[] }> },
 ) {
   const { assetPath } = await context.params;
 
-  if (!assetPath?.length) {
+  if (!assetPath?.length || !isSafeUploadPath(assetPath)) {
     return new Response("Not found", { status: 404 });
   }
 
-  const backendUrl = buildBackendAssetUrl(request, assetPath);
+  const backendUrl = buildBackendAssetUrl(assetPath);
   const response = await fetch(backendUrl, {
     cache: "no-store",
   });

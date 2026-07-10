@@ -197,6 +197,24 @@ public class WorkspaceAiController : ControllerBase
                 Detail = exception.Message
             });
         }
+        catch (HttpRequestException)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "WhatsApp indisponivel",
+                Detail = "Nao foi possivel conectar ao servidor da Evolution. Verifique se a Evolution local esta rodando e se a URL configurada esta correta."
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "WhatsApp indisponivel",
+                Detail = "A Evolution demorou para responder. Verifique se a Evolution local esta rodando e tente gerar o QR Code novamente."
+            });
+        }
     }
 
     private async Task<WorkspaceSessionContext?> GetRequiredSessionAsync(CancellationToken cancellationToken)
