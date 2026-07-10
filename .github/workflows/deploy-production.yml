@@ -1,0 +1,188 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: What should be deployed?
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+      confirm_production_deploy:
+        description: Confirm production deploy
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: production
+
+    steps:
+      - name: Require explicit production confirmation
+        run: |
+          if [ "${{ inputs.confirm_production_deploy }}" != "true" ]; then
+            echo "Production deploy was not confirmed."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore backend
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'backend' }}
+        run: dotnet restore backend/ZeroPaper.csproj
+
+      - name: Publish backend artifact
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'backend' }}
+        run: |
+          dotnet publish backend/ZeroPaper.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --self-contained true \
+            --output .codex-deploy/backend-release
+          tar -C .codex-deploy/backend-release -czf .codex-deploy/zeropaper-backend.tar.gz .
+
+      - name: Install frontend dependencies
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
+        working-directory: frontend
+        run: npm run build
+
+      - name: Package frontend artifact
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
+        run: |
+          mkdir -p .codex-deploy/frontend-release/.next/static
+          cp -a frontend/.next/standalone/. .codex-deploy/frontend-release/
+          cp -a frontend/.next/static/. .codex-deploy/frontend-release/.next/static/
+          cp -a frontend/public .codex-deploy/frontend-release/public
+          cp frontend/package.json .codex-deploy/frontend-release/package.json
+          tar -C .codex-deploy/frontend-release -czf .codex-deploy/zeropaper-frontend.tar.gz .
+
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$VPS_HOST"
+          test -n "$VPS_PORT"
+          test -n "$VPS_SSH_PRIVATE_KEY"
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/zeropaper_deploy_key
+          chmod 600 ~/.ssh/zeropaper_deploy_key
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload backend artifact
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'backend' }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          test -n "$VPS_USER"
+          scp -P "$VPS_PORT" -i ~/.ssh/zeropaper_deploy_key \
+            .codex-deploy/zeropaper-backend.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/zeropaper-backend-new.tar.gz"
+
+      - name: Upload frontend artifact
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          test -n "$VPS_USER"
+          scp -P "$VPS_PORT" -i ~/.ssh/zeropaper_deploy_key \
+            .codex-deploy/zeropaper-frontend.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/zeropaper-frontend-new.tar.gz"
+
+      - name: Activate release on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -p "$VPS_PORT" -i ~/.ssh/zeropaper_deploy_key "$VPS_USER@$VPS_HOST" \
+            "DEPLOY_SCOPE='${{ inputs.scope }}' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          STAMP="$(date +%Y%m%d-%H%M%S)"
+          BACKUP_DIR="/opt/zeropaper/backups/$STAMP"
+          mkdir -p "$BACKUP_DIR"
+
+          if [ "$DEPLOY_SCOPE" = "all" ] || [ "$DEPLOY_SCOPE" = "backend" ]; then
+            test -f /tmp/zeropaper-backend-new.tar.gz
+            cp -a /opt/zeropaper/backend "$BACKUP_DIR/backend"
+            rm -rf /tmp/zeropaper-backend-new
+            mkdir -p /tmp/zeropaper-backend-new
+            tar -xzf /tmp/zeropaper-backend-new.tar.gz -C /tmp/zeropaper-backend-new
+
+            systemctl stop zeropaper-backend
+            rm -rf /opt/zeropaper/backend
+            mv /tmp/zeropaper-backend-new /opt/zeropaper/backend
+            chown -R zeropaper:zeropaper /opt/zeropaper/backend
+            chmod +x /opt/zeropaper/backend/ZeroPaper
+            systemctl start zeropaper-backend
+            rm -f /tmp/zeropaper-backend-new.tar.gz
+          fi
+
+          if [ "$DEPLOY_SCOPE" = "all" ] || [ "$DEPLOY_SCOPE" = "frontend" ]; then
+            test -f /tmp/zeropaper-frontend-new.tar.gz
+            cp -a /opt/zeropaper/frontend "$BACKUP_DIR/frontend"
+            rm -rf /tmp/zeropaper-frontend-new
+            mkdir -p /tmp/zeropaper-frontend-new
+            tar -xzf /tmp/zeropaper-frontend-new.tar.gz -C /tmp/zeropaper-frontend-new
+
+            systemctl stop zeropaper-frontend
+            rm -rf /opt/zeropaper/frontend
+            mv /tmp/zeropaper-frontend-new /opt/zeropaper/frontend
+            chown -R zeropaper:zeropaper /opt/zeropaper/frontend
+            systemctl start zeropaper-frontend
+            rm -f /tmp/zeropaper-frontend-new.tar.gz
+          fi
+
+          systemctl is-active zeropaper-backend
+          systemctl is-active zeropaper-frontend
+
+          BACKEND_STATUS="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5097/api/workspace/overview || true)"
+          FRONTEND_STATUS="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ || true)"
+
+          echo "Backend smoke status: $BACKEND_STATUS"
+          echo "Frontend smoke status: $FRONTEND_STATUS"
+          echo "Backup created at: $BACKUP_DIR"
+
+          test "$FRONTEND_STATUS" = "200"
+          test "$BACKEND_STATUS" = "401"
+          REMOTE

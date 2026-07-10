@@ -1,0 +1,57 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:15"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      frontend-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: nuget
+    directory: /backend
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:30"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      backend-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: nuget
+    directory: /tools/ZeroPaper.PrintAgent
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:45"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      print-agent-dependencies:
+        patterns:
+          - "*"
