@@ -176,13 +176,28 @@ jobs:
           systemctl is-active zeropaper-backend
           systemctl is-active zeropaper-frontend
 
-          BACKEND_STATUS="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5097/api/workspace/overview || true)"
-          FRONTEND_STATUS="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ || true)"
+          wait_for_status() {
+            local name="$1"
+            local url="$2"
+            local expected="$3"
+            local status="000"
 
-          echo "Backend smoke status: $BACKEND_STATUS"
-          echo "Frontend smoke status: $FRONTEND_STATUS"
+            for attempt in $(seq 1 30); do
+              status="$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)"
+              echo "$name smoke attempt $attempt: $status"
+
+              if [ "$status" = "$expected" ]; then
+                return 0
+              fi
+
+              sleep 2
+            done
+
+            echo "$name smoke failed. Expected $expected, got $status."
+            return 1
+          }
+
+          wait_for_status "Backend" "http://127.0.0.1:5097/api/workspace/overview" "401"
+          wait_for_status "Frontend" "http://127.0.0.1:3000/" "200"
           echo "Backup created at: $BACKUP_DIR"
-
-          test "$FRONTEND_STATUS" = "200"
-          test "$BACKEND_STATUS" = "401"
           REMOTE
