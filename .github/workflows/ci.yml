@@ -93,6 +93,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Audit frontend production dependencies
+        run: npm audit --omit=dev
+
       - name: Run frontend lint when script exists
         shell: bash
         run: |

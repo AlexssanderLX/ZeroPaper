@@ -74,6 +74,11 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Audit frontend production dependencies
+        if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
+        working-directory: frontend
+        run: npm audit --omit=dev
+
       - name: Build frontend
         if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
         working-directory: frontend
