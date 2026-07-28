@@ -216,6 +216,10 @@ builder.Services.AddHttpClient<IWhatsAppIntegrationService, WhatsAppIntegrationS
     client.BaseAddress = new Uri("https://api.z-api.io/", UriKind.Absolute);
     client.Timeout = TimeSpan.FromSeconds(20);
 });
+builder.Services.AddHttpClient<IWhatsAppProvider, EvolutionWhatsAppProvider>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+});
 builder.Services.AddHttpClient<IMercadoPagoService, MercadoPagoService>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MercadoPagoOptions>>().Value;

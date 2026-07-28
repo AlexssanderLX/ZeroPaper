@@ -48,6 +48,7 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
     private readonly ILogger<WhatsAppIntegrationService> _logger;
     private readonly PublicAppOptions _publicAppOptions;
     private readonly EvolutionApiOptions _evolutionOptions;
+    private readonly IWhatsAppProvider _whatsAppProvider;
     private readonly IDataProtector _instanceTokenProtector;
     private readonly IDataProtector _accountTokenProtector;
     private readonly IDataProtector _webhookSecretProtector;
@@ -59,6 +60,7 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         IDeliveryCustomerLinkService deliveryCustomerLinkService,
         IOptions<PublicAppOptions> publicAppOptions,
         IOptions<EvolutionApiOptions> evolutionOptions,
+        IWhatsAppProvider whatsAppProvider,
         IDataProtectionProvider dataProtectionProvider,
         ILogger<WhatsAppIntegrationService> logger)
     {
@@ -68,6 +70,7 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         _deliveryCustomerLinkService = deliveryCustomerLinkService;
         _publicAppOptions = publicAppOptions.Value;
         _evolutionOptions = evolutionOptions.Value;
+        _whatsAppProvider = whatsAppProvider;
         _logger = logger;
         _instanceTokenProtector = dataProtectionProvider.CreateProtector(WhatsAppInstanceTokenProtectorPurpose);
         _accountTokenProtector = dataProtectionProvider.CreateProtector(WhatsAppAccountTokenProtectorPurpose);
@@ -964,46 +967,13 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
 
     private async Task<SendMessageResult> SendTextMessageAsync(Company company, string phone, string message, CancellationToken cancellationToken)
     {
-        if (IsEvolutionConfigured())
+        if (_whatsAppProvider.IsConfigured)
         {
-            return await SendTextViaEvolutionAsync(company, phone, message, cancellationToken);
+            var result = await _whatsAppProvider.SendTextAsync(company, phone, message, cancellationToken);
+            return new SendMessageResult(result.Succeeded, result.ExternalMessageId, result.Status);
         }
 
         return await SendTextViaZApiAsync(company, phone, message, cancellationToken);
-    }
-
-    private async Task<SendMessageResult> SendTextViaEvolutionAsync(Company company, string phone, string message, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(company.WhatsAppInstanceId))
-        {
-            return SendMessageResult.Failed("MISSING_INSTANCE");
-        }
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, BuildEvolutionApiUrl($"message/sendText/{Uri.EscapeDataString(company.WhatsAppInstanceId)}"));
-        request.Headers.TryAddWithoutValidation("apikey", ResolveEvolutionApiKey());
-        request.Content = JsonContent.Create(new
-        {
-            number = phone,
-            text = message
-        });
-
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning(
-                "Falha ao enviar mensagem via Evolution para a unidade {CompanyId}. Status: {StatusCode}.",
-                company.Id,
-                (int)response.StatusCode);
-
-            return SendMessageResult.Failed(((int)response.StatusCode).ToString());
-        }
-
-        return new SendMessageResult(
-            succeeded: true,
-            externalMessageId: ExtractEvolutionExternalMessageId(responseText),
-            status: "SENT");
     }
 
     private async Task<SendMessageResult> SendTextViaZApiAsync(Company company, string phone, string message, CancellationToken cancellationToken)
