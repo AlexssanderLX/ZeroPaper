@@ -1,9 +1,15 @@
 using System.ComponentModel.DataAnnotations;
+using ZeroPaper.Domain.Enums;
 
 namespace ZeroPaper.DTOs.Onboarding;
 
 public class RestaurantOnboardingRequestDto
 {
+    public BusinessSegment BusinessSegment { get; set; } = BusinessSegment.Restaurant;
+
+    [MaxLength(40)]
+    public string? PlanKey { get; set; }
+
     [Required]
     [MaxLength(150)]
     public string RestaurantName { get; set; } = string.Empty;

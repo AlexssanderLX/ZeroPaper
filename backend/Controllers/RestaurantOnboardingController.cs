@@ -7,6 +7,7 @@ namespace ZeroPaper.Controllers;
 
 [ApiController]
 [Route("api/onboarding/restaurants")]
+[Route("api/onboarding")]
 [EnableRateLimiting("public-write")]
 public class RestaurantOnboardingController : ControllerBase
 {

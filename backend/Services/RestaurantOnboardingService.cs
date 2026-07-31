@@ -73,6 +73,15 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             var signupCode = string.IsNullOrWhiteSpace(request.AccessCode)
                 ? null
                 : await ValidateSignupCodeAsync(request.AccessCode, normalizedOwnerEmail, cancellationToken);
+            if (signupCode is not null && request.BusinessSegment != BusinessSegment.Restaurant)
+            {
+                throw new InvalidOperationException("O codigo de liberacao informado nao e valido para este segmento.");
+            }
+            if (!Enum.IsDefined(request.BusinessSegment))
+            {
+                throw new ArgumentException("Segmento invalido para cadastro.", nameof(request.BusinessSegment));
+            }
+
             var tenantIdentifier = await EnsureUniqueTenantIdentifierAsync(
                 request.TenantIdentifier ?? request.RestaurantName,
                 cancellationToken);
@@ -91,6 +100,12 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 accessSlug,
                 contactPhone: request.ContactPhone,
                 contactEmail: normalizedOwnerEmail);
+            company.ChangeBusinessSegment(request.BusinessSegment);
+            if (request.BusinessSegment == BusinessSegment.PetShop)
+            {
+                company.SetPetShopPublicCode(Convert.ToHexString(
+                    System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)).ToLowerInvariant());
+            }
 
             var owner = new AppUser(
                 tenant.Id,
@@ -105,9 +120,10 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 owner.Deactivate();
             }
 
-            var requestedPlanName = signupCode?.AllowedPlanName ?? request.PlanName;
-            var selectedPlan = CommercialPlanCatalog.Resolve(requestedPlanName);
-            var maxUsers = signupCode?.AllowedMaxUsers ?? request.MaxUsers;
+            var selectedPlan = signupCode is not null
+                ? CommercialPlanCatalog.Resolve(signupCode.AllowedPlanName)
+                : ResolveRequestedPlan(request);
+            var maxUsers = signupCode?.AllowedMaxUsers ?? selectedPlan.DefaultMaxUsers;
 
             var subscription = new Subscription(
                 tenant.Id,
@@ -118,11 +134,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 SubscriptionStatus.Active);
             subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
 
-            var qrCodeAccess = new QrCodeAccess(
-                tenant.Id,
-                company.Id,
-                "Entrada principal do restaurante",
-                $"/r/{accessSlug}/menu");
+            var qrCodeAccess = request.BusinessSegment == BusinessSegment.Restaurant
+                ? new QrCodeAccess(tenant.Id, company.Id, "Entrada principal do restaurante", $"/r/{accessSlug}/menu")
+                : null;
 
             await using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -130,7 +144,10 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             await _companyRepository.AddAsync(company, cancellationToken);
             await _appUserRepository.AddAsync(owner, cancellationToken);
             await _subscriptionRepository.AddAsync(subscription, cancellationToken);
-            await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
+            if (qrCodeAccess is not null)
+            {
+                await _qrCodeAccessRepository.AddAsync(qrCodeAccess, cancellationToken);
+            }
             signupCode?.RegisterUse(DateTime.UtcNow, normalizedOwnerEmail);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -145,7 +162,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 await _cashOrderTableService.EnsureAsync(tenant.Id, company.Id, cancellationToken);
             }
 
-            return BuildResponse(tenant, company, owner, subscription, signupCode is null);
+            return BuildResponse(tenant, company, owner, subscription, selectedPlan.Key, signupCode is null);
         }
         finally
         {
@@ -185,6 +202,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             AccessUrl = $"/r/{owner.Company.AccessSlug}/menu",
             OwnerEmail = owner.Email,
             PlanName = subscription?.PlanName ?? string.Empty,
+            PlanKey = CommercialPlanCatalog.TryResolve(subscription?.PlanName, out var plan) ? plan.Key : string.Empty,
+            BusinessSegment = (int)owner.Company.BusinessSegment,
             RequiresApproval = !owner.IsActive,
             Message = owner.IsActive
                 ? "Cadastro ja existe e esta liberado para login."
@@ -197,6 +216,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         Company company,
         AppUser owner,
         Subscription subscription,
+        string planKey,
         bool requiresApproval)
     {
         return new RestaurantOnboardingResponseDto
@@ -206,11 +226,31 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             AccessUrl = $"/r/{company.AccessSlug}/menu",
             OwnerEmail = owner.Email,
             PlanName = subscription.PlanName,
+            PlanKey = planKey,
+            BusinessSegment = (int)company.BusinessSegment,
             RequiresApproval = requiresApproval,
             Message = requiresApproval
                 ? "Pre-cadastro enviado. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
                 : "Cadastro liberado."
         };
+    }
+
+    private static CommercialPlanDefinition ResolveRequestedPlan(RestaurantOnboardingRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.PlanKey))
+        {
+            return SegmentCommercialPlanCatalog.Resolve(request.BusinessSegment, request.PlanKey);
+        }
+
+        // Compatibilidade com clientes antigos: nome, preco e limite enviados pelo cliente
+        // nunca sao usados como fonte de verdade.
+        if (request.BusinessSegment != BusinessSegment.Restaurant ||
+            !CommercialPlanCatalog.TryResolve(request.PlanName, out var legacyPlan))
+        {
+            throw new ArgumentException("Informe um plano valido para o segmento selecionado.", nameof(request.PlanKey));
+        }
+
+        return legacyPlan;
     }
 
     private Task<AccessRequestResponseDto> NotifyPendingApprovalAsync(
