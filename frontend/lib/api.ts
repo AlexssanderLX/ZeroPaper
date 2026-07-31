@@ -68,6 +68,12 @@ export type WorkspaceOverview = {
   hasAdvancedReports?: boolean;
   hasManagementDashboard?: boolean;
   hasSalesAgents?: boolean;
+  businessSegment?: number;
+  hasCustomerProfiles?: boolean;
+  hasCatalog?: boolean;
+  hasPets?: boolean;
+  hasAppointments?: boolean;
+  hasOnlinePayments?: boolean;
 };
 
 export type Coupon = {
@@ -2397,5 +2403,525 @@ export function getPublicSellerLink(code: string) {
 export function getSellerOrders(token: string, agentId: string) {
   return apiRequest<CustomerOrder[]>(`/api/workspace/sellers/${agentId}/orders`, { token }).then(
     (res) => res.map(normalizeCustomerOrder),
+  );
+}
+
+// ─── Pet Shop ────────────────────────────────────────────────────────────────
+
+export type PetSpecies = 1 | 2 | 3; // Dog=1, Cat=2, Other=3
+export type PetSize = 1 | 2 | 3; // Small=1, Medium=2, Large=3
+export type AppointmentStatus = 1 | 2 | 3 | 4 | 5 | 6; // Requested=1, Confirmed=2, InProgress=3, Completed=4, Cancelled=5, NoShow=6
+
+export type CustomerProfileDto = {
+  id: string;
+  phoneNumber: string;
+  name: string;
+  zipCode?: string | null;
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  complement?: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  lastOrderAtUtc?: string | null;
+};
+
+export type CustomerProfileListDto = {
+  items: CustomerProfileDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type CreateCustomerProfilePayload = {
+  phoneNumber: string;
+  name: string;
+  zipCode?: string | null;
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  complement?: string | null;
+};
+
+export type UpdateCustomerProfilePayload = {
+  name: string;
+  zipCode?: string | null;
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  complement?: string | null;
+};
+
+export type PetDto = {
+  id: string;
+  customerProfileId: string;
+  customerName: string;
+  name: string;
+  species: PetSpecies;
+  size: PetSize;
+  breed?: string | null;
+  weightKg?: number | null;
+  birthDate?: string | null;
+  behaviorNotes?: string | null;
+  allergyNotes?: string | null;
+  restrictions?: string | null;
+  photoUrl?: string | null;
+  isActive: boolean;
+};
+
+export type PetListDto = {
+  items: PetDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type CreatePetPayload = {
+  customerProfileId: string;
+  name: string;
+  species: PetSpecies;
+  size: PetSize;
+  breed?: string | null;
+  weightKg?: number | null;
+  birthDate?: string | null;
+  behaviorNotes?: string | null;
+  allergyNotes?: string | null;
+  restrictions?: string | null;
+};
+
+export type UpdatePetPayload = {
+  name: string;
+  species: PetSpecies;
+  size: PetSize;
+  breed?: string | null;
+  weightKg?: number | null;
+  birthDate?: string | null;
+  behaviorNotes?: string | null;
+  allergyNotes?: string | null;
+  restrictions?: string | null;
+};
+
+export type AppointmentDto = {
+  id: string;
+  petId: string;
+  petName: string;
+  menuItemId: string;
+  serviceName: string;
+  customerOrderId?: string | null;
+  assignedUserId?: string | null;
+  assignedUserName?: string | null;
+  startsAtUtc: string;
+  endsAtUtc: string;
+  durationMinutes: number;
+  status: AppointmentStatus;
+  unitPrice: number;
+  customerNotes?: string | null;
+  internalNotes?: string | null;
+  cancellationReason?: string | null;
+};
+
+export type AppointmentHistoryEntryDto = {
+  id: string;
+  previousStatus?: AppointmentStatus | null;
+  newStatus: AppointmentStatus;
+  changedByUserId?: string | null;
+  changedByUserName?: string | null;
+  changedAtUtc: string;
+  reason?: string | null;
+};
+
+export type AvailabilitySlot = {
+  startsAtUtc: string;
+  endsAtUtc: string;
+};
+
+export type AvailabilityDto = {
+  date: string;
+  serviceId: string;
+  durationMinutes: number;
+  timeZone: string;
+  slots: AvailabilitySlot[];
+};
+
+export type AppointmentSettingsDto = {
+  serviceDays: string;
+  startTime: string;
+  endTime: string;
+  slotIntervalMinutes: number;
+  timeZone?: string;
+};
+
+export type AppointmentBlockDto = {
+  id: string;
+  assignedUserId?: string | null;
+  startsAtUtc: string;
+  endsAtUtc: string;
+  reason?: string | null;
+};
+
+export type AppointmentReportDto = {
+  requested: number;
+  confirmed: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+  linkedRevenue: number;
+};
+
+export type ProfessionalDto = {
+  id: string;
+  name: string;
+};
+
+export type CreateAppointmentPayload = {
+  petId: string;
+  menuItemId: string;
+  assignedUserId?: string | null;
+  startsAtUtc: string;
+  durationMinutes?: number | null;
+  customerNotes?: string | null;
+};
+
+export type RescheduleAppointmentPayload = {
+  startsAtUtc: string;
+  durationMinutes?: number | null;
+};
+
+export type UpdateAppointmentNotesPayload = {
+  customerNotes?: string | null;
+  internalNotes?: string | null;
+};
+
+export type UpdateAppointmentAssigneePayload = {
+  assignedUserId?: string | null;
+};
+
+export type UpdateAppointmentStatusPayload = {
+  status: AppointmentStatus;
+  cancellationReason?: string | null;
+};
+
+export type CreateAppointmentOrderPayload = {
+  paymentMethod?: string | null;
+  unitPrice?: number | null;
+  notes?: string | null;
+};
+
+export type LinkAppointmentOrderPayload = {
+  customerOrderId: string;
+};
+
+export type CreateAppointmentBlockPayload = {
+  assignedUserId?: string | null;
+  startsAtUtc: string;
+  endsAtUtc: string;
+  reason?: string | null;
+};
+
+export type CatalogServiceDto = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  kind: number;
+  estimatedDurationMinutes?: number | null;
+  imageUrl?: string | null;
+  isPublished: boolean;
+};
+
+export type PublicPetShopDto = {
+  businessName: string;
+  logoUrl?: string | null;
+  timeZone: string;
+};
+
+export type PublicServiceDto = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  durationMinutes: number;
+  imageUrl?: string | null;
+};
+
+export type PublicAppointmentRequestPayload = {
+  customerName: string;
+  phoneNumber: string;
+  petName: string;
+  petSpecies: PetSpecies;
+  petSize: PetSize;
+  petBreed?: string | null;
+  serviceId: string;
+  startsAtUtc: string;
+  notes?: string | null;
+};
+
+export type PublicAppointmentCreatedDto = {
+  accessToken: string;
+  accessExpiresAtUtc: string;
+  status: AppointmentStatus;
+  startsAtUtc: string;
+};
+
+export type PublicAppointmentTrackingDto = {
+  petName: string;
+  serviceName: string;
+  startsAtUtc: string;
+  endsAtUtc: string;
+  status: AppointmentStatus;
+  canCancel: boolean;
+};
+
+export function getPetShopCustomers(
+  token: string,
+  params: { search?: string; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.page) query.set("page", String(params.page));
+  if (params.pageSize) query.set("pageSize", String(params.pageSize));
+  const qs = query.toString();
+  return apiRequest<CustomerProfileListDto>(`/api/workspace/customers${qs ? `?${qs}` : ""}`, { token });
+}
+
+export function getPetShopCustomer(token: string, customerId: string) {
+  return apiRequest<CustomerProfileDto>(`/api/workspace/customers/${customerId}`, { token });
+}
+
+export function createPetShopCustomer(token: string, payload: CreateCustomerProfilePayload) {
+  return apiRequest<CustomerProfileDto>("/api/workspace/customers", { method: "POST", token, body: payload });
+}
+
+export function updatePetShopCustomer(token: string, customerId: string, payload: UpdateCustomerProfilePayload) {
+  return apiRequest<CustomerProfileDto>(`/api/workspace/customers/${customerId}`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function getPets(
+  token: string,
+  params: { search?: string; customerProfileId?: string; isActive?: boolean; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.customerProfileId) query.set("customerProfileId", params.customerProfileId);
+  if (params.isActive !== undefined) query.set("isActive", String(params.isActive));
+  if (params.page) query.set("page", String(params.page));
+  if (params.pageSize) query.set("pageSize", String(params.pageSize));
+  const qs = query.toString();
+  return apiRequest<PetListDto>(`/api/workspace/pets${qs ? `?${qs}` : ""}`, { token });
+}
+
+export function getPet(token: string, petId: string) {
+  return apiRequest<PetDto>(`/api/workspace/pets/${petId}`, { token });
+}
+
+export function createPet(token: string, payload: CreatePetPayload) {
+  return apiRequest<PetDto>("/api/workspace/pets", { method: "POST", token, body: payload });
+}
+
+export function updatePet(token: string, petId: string, payload: UpdatePetPayload) {
+  return apiRequest<PetDto>(`/api/workspace/pets/${petId}`, { method: "PUT", token, body: payload });
+}
+
+export function updatePetStatus(token: string, petId: string, isActive: boolean) {
+  return apiRequest<PetDto>(`/api/workspace/pets/${petId}/status`, { method: "PATCH", token, body: { isActive } });
+}
+
+export function uploadPetPhoto(token: string, petId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFormRequest<{ petId: string; photoUrl: string | null }>(`/api/workspace/pets/${petId}/photo`, formData, token);
+}
+
+export function deletePetPhoto(token: string, petId: string) {
+  return apiRequest<{ petId: string; photoUrl: null }>(`/api/workspace/pets/${petId}/photo`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function getAppointments(
+  token: string,
+  params: {
+    fromUtc?: string;
+    toUtc?: string;
+    status?: number;
+    petId?: string;
+    customerId?: string;
+    assignedUserId?: string;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.fromUtc) query.set("fromUtc", params.fromUtc);
+  if (params.toUtc) query.set("toUtc", params.toUtc);
+  if (params.status !== undefined) query.set("status", String(params.status));
+  if (params.petId) query.set("petId", params.petId);
+  if (params.customerId) query.set("customerId", params.customerId);
+  if (params.assignedUserId) query.set("assignedUserId", params.assignedUserId);
+  const qs = query.toString();
+  return apiRequest<AppointmentDto[]>(`/api/workspace/appointments${qs ? `?${qs}` : ""}`, { token });
+}
+
+export function getAppointment(token: string, appointmentId: string) {
+  return apiRequest<AppointmentDto>(`/api/workspace/appointments/${appointmentId}`, { token });
+}
+
+export function createAppointment(token: string, payload: CreateAppointmentPayload) {
+  return apiRequest<AppointmentDto>("/api/workspace/appointments", { method: "POST", token, body: payload });
+}
+
+export function rescheduleAppointment(token: string, appointmentId: string, payload: RescheduleAppointmentPayload) {
+  return apiRequest<AppointmentDto>(`/api/workspace/appointments/${appointmentId}/schedule`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function updateAppointmentNotes(token: string, appointmentId: string, payload: UpdateAppointmentNotesPayload) {
+  return apiRequest<AppointmentDto>(`/api/workspace/appointments/${appointmentId}/notes`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function updateAppointmentAssignee(
+  token: string,
+  appointmentId: string,
+  payload: UpdateAppointmentAssigneePayload,
+) {
+  return apiRequest<AppointmentDto>(`/api/workspace/appointments/${appointmentId}/assignee`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function updateAppointmentStatus(
+  token: string,
+  appointmentId: string,
+  payload: UpdateAppointmentStatusPayload,
+) {
+  return apiRequest<AppointmentDto>(`/api/workspace/appointments/${appointmentId}/status`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function getAppointmentHistory(token: string, appointmentId: string) {
+  return apiRequest<AppointmentHistoryEntryDto[]>(`/api/workspace/appointments/${appointmentId}/history`, { token });
+}
+
+export function createAppointmentOrder(token: string, appointmentId: string, payload: CreateAppointmentOrderPayload) {
+  return apiRequest<{ appointment: AppointmentDto; order: unknown }>(
+    `/api/workspace/appointments/${appointmentId}/order`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export function linkAppointmentOrder(token: string, appointmentId: string, payload: LinkAppointmentOrderPayload) {
+  return apiRequest<AppointmentDto>(`/api/workspace/appointments/${appointmentId}/order`, {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function getAppointmentSettings(token: string) {
+  return apiRequest<AppointmentSettingsDto>("/api/workspace/appointments/settings", { token });
+}
+
+export function updateAppointmentSettings(
+  token: string,
+  payload: Omit<AppointmentSettingsDto, "timeZone">,
+) {
+  return apiRequest<AppointmentSettingsDto>("/api/workspace/appointments/settings", {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function getAppointmentAvailability(
+  token: string,
+  params: { date: string; serviceId: string; assignedUserId?: string },
+) {
+  const query = new URLSearchParams({ date: params.date, serviceId: params.serviceId });
+  if (params.assignedUserId) query.set("assignedUserId", params.assignedUserId);
+  return apiRequest<AvailabilityDto>(`/api/workspace/appointments/availability?${query.toString()}`, { token });
+}
+
+export function getAppointmentBlocks(token: string, params: { fromUtc: string; toUtc: string }) {
+  const query = new URLSearchParams({ fromUtc: params.fromUtc, toUtc: params.toUtc });
+  return apiRequest<AppointmentBlockDto[]>(`/api/workspace/appointments/blocks?${query.toString()}`, { token });
+}
+
+export function createAppointmentBlock(token: string, payload: CreateAppointmentBlockPayload) {
+  return apiRequest<AppointmentBlockDto>("/api/workspace/appointments/blocks", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function deleteAppointmentBlock(token: string, blockId: string) {
+  return apiRequest<void>(`/api/workspace/appointments/blocks/${blockId}`, { method: "DELETE", token });
+}
+
+export function getAppointmentReport(token: string, params: { fromUtc: string; toUtc: string }) {
+  const query = new URLSearchParams({ fromUtc: params.fromUtc, toUtc: params.toUtc });
+  return apiRequest<AppointmentReportDto>(`/api/workspace/appointments/reports/summary?${query.toString()}`, {
+    token,
+  });
+}
+
+export function getProfessionals(token: string) {
+  return apiRequest<ProfessionalDto[]>("/api/workspace/appointments/professionals", { token });
+}
+
+export function getCatalogServices(token: string) {
+  return apiRequest<CatalogServiceDto[]>("/api/workspace/catalog/items?kind=2", { token });
+}
+
+export function getPublicPetShop(publicCode: string) {
+  return apiRequest<PublicPetShopDto>(`/api/public/petshops/${encodeURIComponent(publicCode)}`, {});
+}
+
+export function getPublicPetShopServices(publicCode: string) {
+  return apiRequest<PublicServiceDto[]>(`/api/public/petshops/${encodeURIComponent(publicCode)}/services`, {});
+}
+
+export function getPublicPetShopAvailability(publicCode: string, params: { date: string; serviceId: string }) {
+  const query = new URLSearchParams({ date: params.date, serviceId: params.serviceId });
+  return apiRequest<AvailabilityDto>(
+    `/api/public/petshops/${encodeURIComponent(publicCode)}/availability?${query.toString()}`,
+    {},
+  );
+}
+
+export function createPublicAppointmentRequest(publicCode: string, payload: PublicAppointmentRequestPayload) {
+  return apiRequest<PublicAppointmentCreatedDto>(
+    `/api/public/petshops/${encodeURIComponent(publicCode)}/appointment-requests`,
+    { method: "POST", body: payload },
+  );
+}
+
+export function getPublicAppointmentTracking(accessToken: string) {
+  return apiRequest<PublicAppointmentTrackingDto>(
+    `/api/public/petshops/appointments/${encodeURIComponent(accessToken)}`,
+    {},
+  );
+}
+
+export function cancelPublicAppointment(accessToken: string) {
+  return apiRequest<PublicAppointmentTrackingDto>(
+    `/api/public/petshops/appointments/${encodeURIComponent(accessToken)}/cancel`,
+    { method: "POST" },
   );
 }

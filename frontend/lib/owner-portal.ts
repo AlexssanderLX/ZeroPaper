@@ -31,6 +31,9 @@ export type PortalFeatureAccess = {
   hasBasicReports: boolean;
   hasAdvancedReports: boolean;
   hasSalesAgents: boolean;
+  hasCustomerProfiles: boolean;
+  hasPets: boolean;
+  hasAppointments: boolean;
 };
 
 export const PORTAL_SESSION_KEY = "zp.portal.session";
@@ -122,6 +125,31 @@ export const ownerModules: PortalModule[] = [
     slug: "ajustes",
     title: "Unidade",
     eyebrow: "Unidade",
+  },
+  // Pet Shop modules
+  {
+    slug: "tutores",
+    title: "Tutores",
+    eyebrow: "Pet Shop",
+    featureKey: "hasCustomerProfiles",
+  },
+  {
+    slug: "animais",
+    title: "Animais",
+    eyebrow: "Pet Shop",
+    featureKey: "hasPets",
+  },
+  {
+    slug: "agenda",
+    title: "Agenda",
+    eyebrow: "Pet Shop",
+    featureKey: "hasAppointments",
+  },
+  {
+    slug: "atendimentos-pet",
+    title: "Atendimentos",
+    eyebrow: "Pet Shop",
+    featureKey: "hasAppointments",
   },
 ];
 

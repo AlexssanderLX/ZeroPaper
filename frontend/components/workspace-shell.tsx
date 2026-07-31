@@ -197,7 +197,7 @@ export function WorkspaceShell({
       }),
     [overview, overviewLoaded],
   );
-  const mainSidebarSlugs = ["pedidos", "caixa"];
+  const mainSidebarSlugs = ["pedidos", "caixa", "agenda", "atendimentos-pet"];
   const operationModules = visibleModules.filter((module) => mainSidebarSlugs.includes(module.slug));
   const configurationModules = visibleModules.filter((module) => !mainSidebarSlugs.includes(module.slug));
 
