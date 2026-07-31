@@ -1,81 +1,73 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { RestaurantSignupForm } from "@/components/restaurant-signup-form";
-import { commercialPlans, getCommercialPlan } from "@/lib/commercial-plans";
 import { ElectricBg } from "@/components/electric-bg";
+import { getPublicCommercialPlans } from "@/lib/api";
 
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ plano?: string }>;
-}) {
-  const { plano } = await searchParams;
-  const selectedPlan = getCommercialPlan(plano);
+export const dynamic = "force-dynamic";
+
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plano?: string; segmento?: string }> }) {
+  const params = await searchParams;
+  const segment: 1 | 2 = params.segmento === "petshop" ? 2 : 1;
+  const segmentKey = segment === 2 ? "petshop" : "restaurante";
+  const segmentLabel = segment === 2 ? "Pet shop" : "Restaurante";
+
+  let plans;
+  try {
+    plans = await getPublicCommercialPlans(segment);
+  } catch {
+    return (
+      <main className="page-shell zp-signup-sales-page">
+        <ElectricBg />
+        <section className="surface-card zp-signup-unavailable">
+          <span className="eyebrow">Cadastro seguro</span>
+          <h1>Planos temporariamente indisponiveis</h1>
+          <p>Nao foi possivel confirmar os valores no servidor. Tente novamente em instantes.</p>
+          <Link className="ghost-link" href={`/segmentos/${segment === 2 ? "pet-shop" : "restaurantes"}`}>Voltar aos planos</Link>
+        </section>
+      </main>
+    );
+  }
+
+  const selectedPlan = plans.find((plan) => plan.key === params.plano) ?? plans.find((plan) => plan.recommended) ?? plans[0];
+  if (!selectedPlan) return null;
+  const shortName = (name: string) => name.replace("ZeroPaper Pet ", "").replace("ZeroPaper ", "");
 
   return (
     <main className="page-shell zp-signup-sales-page">
       <ElectricBg />
       <section className="top-link-row">
-        <Link className="ghost-link" href="/">
-          Voltar para a home
-        </Link>
+        <Link className="ghost-link" href={`/segmentos/${segment === 2 ? "pet-shop" : "restaurantes"}`}>Voltar para {segmentLabel.toLowerCase()}</Link>
+      </section>
+
+      <section className="zp-signup-segment-context" aria-label="Tipo de negocio selecionado">
+        <span>Tipo de negocio</span><strong>{segmentLabel}</strong>
+        <Link href="/segmentos">Trocar segmento</Link>
       </section>
 
       <section className="zp-signup-sales-layout">
-        {/* ── Painel esquerdo: plano ─────────────────────────────── */}
         <section className="surface-card zp-signup-sales-intro">
-          <div className="brand-lockup compact">
-            <BrandMark small variant="full" />
-            <div className="brand-copy">
-              <span className="eyebrow">ZeroPaper</span>
-              <strong>Cadastro</strong>
-            </div>
-          </div>
-
+          <div className="brand-lockup compact"><BrandMark small variant="full" /><div className="brand-copy"><span className="eyebrow">ZeroPaper</span><strong>Cadastro {segmentLabel}</strong></div></div>
           <nav className="zp-signup-plan-switch" aria-label="Trocar plano">
-            {commercialPlans.map((plan) => (
-              <Link
-                key={plan.slug}
-                className={plan.slug === selectedPlan.slug ? "is-active" : ""}
-                href={`/cadastro?plano=${plan.slug}`}
-              >
-                {plan.badge ? <span className="zp-plan-badge">{plan.badge}</span> : null}
-                <strong>{plan.name.replace("ZeroPaper ", "")}</strong>
-                <span>{plan.priceLabel}<small>/mes</small></span>
+            {plans.map((plan) => (
+              <Link key={plan.key} className={plan.key === selectedPlan.key ? "is-active" : ""} href={`/cadastro?segmento=${segmentKey}&plano=${plan.key}`}>
+                {plan.recommended ? <span className="zp-plan-badge">Mais indicado</span> : null}
+                <strong>{shortName(plan.name)}</strong>
+                <span>R$ {plan.monthlyPrice.toFixed(0)}<small>/mes</small></span>
               </Link>
             ))}
           </nav>
-
           <article className="zp-signup-selected-plan">
-            <span>O que esta incluido</span>
-            <strong>{selectedPlan.name}</strong>
-            <b>
-              {selectedPlan.priceLabel}
-              <small>/mes</small>
-            </b>
-            <ul>
-              {selectedPlan.features.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
+            <span>O que esta incluido</span><strong>{selectedPlan.name}</strong>
+            <b>R$ {selectedPlan.monthlyPrice.toFixed(0)}<small>/mes</small></b>
+            <ul>{selectedPlan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
           </article>
         </section>
 
-        {/* ── Painel direito: form ───────────────────────────────── */}
         <section className="surface-card login-form-card zp-signup-sales-form">
-          <div className="zp-signup-form-plan-row">
-            <div>
-              <span className="eyebrow">Plano selecionado</span>
-              <strong>{selectedPlan.name.replace("ZeroPaper ", "")}</strong>
-            </div>
-            <b className="zp-signup-form-price">
-              {selectedPlan.priceLabel}
-              <small>/mes</small>
-            </b>
-          </div>
-
-          <h2 className="form-title">Criar sua conta</h2>
-          <RestaurantSignupForm selectedPlan={selectedPlan} />
+          <div className="zp-signup-form-plan-row"><div><span className="eyebrow">Plano selecionado</span><strong>{shortName(selectedPlan.name)}</strong></div><b className="zp-signup-form-price">R$ {selectedPlan.monthlyPrice.toFixed(0)}<small>/mes</small></b></div>
+          <h1 className="form-title">Criar sua conta</h1>
+          <RestaurantSignupForm selectedPlan={selectedPlan} segment={segment} />
         </section>
       </section>
     </main>

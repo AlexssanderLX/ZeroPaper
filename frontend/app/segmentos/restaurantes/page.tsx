@@ -4,7 +4,9 @@ import Link from "next/link";
 import { PublicSiteHeader } from "@/components/public-site-header";
 import { LandingMotion } from "@/components/landing-motion";
 import { ElectricBg } from "@/components/electric-bg";
-import { commercialPlans } from "@/lib/commercial-plans";
+import { getPublicCommercialPlans, type PublicCommercialPlan } from "@/lib/api";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Planos para Restaurantes | ZeroPaper",
@@ -110,7 +112,9 @@ const restaurantFeatures: { icon: React.ReactNode; title: string; text: string }
   },
 ];
 
-export default function RestaurantesPage() {
+export default async function RestaurantesPage() {
+  let commercialPlans: PublicCommercialPlan[] = [];
+  try { commercialPlans = await getPublicCommercialPlans(1); } catch { /* cadastro exibira erro seguro */ }
   return (
     <main className="zpld" id="restaurantes-page">
       <LandingMotion />
@@ -142,7 +146,7 @@ export default function RestaurantesPage() {
             ate o fechamento do caixa.
           </p>
           <div className="zpld-ctas" style={{ justifyContent: "center", marginTop: "0.5rem" }}>
-            <Link className="zpld-btn-primary" href="/cadastro?plano=operacao">Comecar agora →</Link>
+            <Link className="zpld-btn-primary" href="/cadastro?segmento=restaurante&plano=operacao">Comecar agora →</Link>
             <a className="zpld-btn-ghost" href="#planos-rest">Ver planos</a>
           </div>
         </div>
@@ -182,14 +186,14 @@ export default function RestaurantesPage() {
         <div className="zp-lp-plans-grid">
           {commercialPlans.map((plan) => (
             <article
-              key={plan.slug}
-              className={`zp-lp-plan-card zp-lp-reveal${plan.spotlight ? " is-spotlight" : ""}${plan.premium ? " is-premium" : ""}`}
+              key={plan.key}
+              className={`zp-lp-plan-card zp-lp-reveal${plan.recommended ? " is-spotlight" : ""}`}
             >
-              {plan.badge ? <em className="zp-lp-plan-badge">{plan.badge}</em> : null}
-              <span className="zp-lp-plan-audience">{plan.audience}</span>
+              {plan.recommended ? <em className="zp-lp-plan-badge">Mais indicado</em> : null}
+              <span className="zp-lp-plan-audience">Ate {plan.maxUsers} usuarios</span>
               <h3>{plan.name.replace("ZeroPaper ", "")}</h3>
               <div className="zp-lp-plan-price">
-                <strong>{plan.priceLabel}</strong>
+                <strong>R$ {plan.monthlyPrice.toFixed(0)}</strong>
                 <small>/mes</small>
               </div>
               <ul className="zp-lp-plan-features">
@@ -197,7 +201,7 @@ export default function RestaurantesPage() {
                   <li key={f}>{f}</li>
                 ))}
               </ul>
-              <Link className="zp-lp-plan-cta" href={`/cadastro?plano=${plan.slug}`}>
+              <Link className="zp-lp-plan-cta" href={`/cadastro?segmento=restaurante&plano=${plan.key}`}>
                 Escolher {plan.name.replace("ZeroPaper ", "")} →
               </Link>
             </article>
@@ -212,7 +216,7 @@ export default function RestaurantesPage() {
           <h2 id="rest-cta-title">Seu restaurante organizado a partir de agora.</h2>
           <p>Configure em minutos. Sem contrato, sem taxa de adesao.</p>
           <div className="zpld-ctas">
-            <Link className="zpld-btn-primary" href="/cadastro?plano=operacao">Criar conta agora →</Link>
+            <Link className="zpld-btn-primary" href="/cadastro?segmento=restaurante&plano=operacao">Criar conta agora →</Link>
           </div>
         </div>
       </section>

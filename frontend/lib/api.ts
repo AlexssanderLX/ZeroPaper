@@ -700,15 +700,14 @@ export type WorkspaceAlertsSignal = {
 };
 
 export type RestaurantSignupPayload = {
+  businessSegment: 1 | 2;
+  planKey: string;
   restaurantName: string;
   legalName: string;
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
   contactPhone: string;
-  planName: string;
-  monthlyPrice: number;
-  maxUsers: number;
 };
 
 export type RestaurantSignupResult = {
@@ -717,8 +716,20 @@ export type RestaurantSignupResult = {
   accessUrl: string;
   ownerEmail: string;
   planName: string;
+  planKey: string;
+  businessSegment: number;
   requiresApproval: boolean;
   message: string;
+};
+
+export type PublicCommercialPlan = {
+  segment: 1 | 2;
+  key: string;
+  name: string;
+  monthlyPrice: number;
+  maxUsers: number;
+  recommended: boolean;
+  features: string[];
 };
 
 export type SignupCode = {
@@ -1319,10 +1330,14 @@ export function loginWithShortcut(payload: ShortcutLoginPayload) {
 }
 
 export function createRestaurantSignup(payload: RestaurantSignupPayload) {
-  return apiRequest<RestaurantSignupResult>("/api/onboarding/restaurants", {
+  return apiRequest<RestaurantSignupResult>("/api/onboarding", {
     method: "POST",
     body: payload,
   });
+}
+
+export function getPublicCommercialPlans(segment: 1 | 2) {
+  return apiRequest<PublicCommercialPlan[]>(`/api/public/commercial-plans?segment=${segment}`, {});
 }
 
 export function getAdminDashboard(token: string) {

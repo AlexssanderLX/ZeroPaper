@@ -2,10 +2,11 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, createRestaurantSignup } from "@/lib/api";
-import type { CommercialPlan } from "@/lib/commercial-plans";
+import { ApiError, createRestaurantSignup, type PublicCommercialPlan } from "@/lib/api";
 
-export function RestaurantSignupForm({ selectedPlan }: { selectedPlan: CommercialPlan }) {
+type Props = { selectedPlan: PublicCommercialPlan; segment: 1 | 2 };
+
+export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -13,21 +14,19 @@ export function RestaurantSignupForm({ selectedPlan }: { selectedPlan: Commercia
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmittingRef.current) {
-      return;
-    }
+    if (isSubmittingRef.current) return;
 
     const formData = new FormData(event.currentTarget);
+    const businessName = String(formData.get("businessName") ?? "").trim();
     const ownerName = String(formData.get("ownerName") ?? "").trim();
     const ownerEmail = String(formData.get("ownerEmail") ?? "").trim().toLowerCase();
     const contactPhone = String(formData.get("contactPhone") ?? "").trim();
     const ownerPassword = String(formData.get("ownerPassword") ?? "").trim();
 
-    if (!ownerName || !ownerEmail || !contactPhone || !ownerPassword) {
+    if (!businessName || !ownerName || !ownerEmail || !contactPhone || !ownerPassword) {
       setErrorMessage("Preencha todos os campos para continuar.");
       return;
     }
-
     if (ownerPassword.length < 6) {
       setErrorMessage("Crie uma senha com pelo menos 6 caracteres.");
       return;
@@ -39,26 +38,20 @@ export function RestaurantSignupForm({ selectedPlan }: { selectedPlan: Commercia
 
     try {
       await createRestaurantSignup({
-        restaurantName: ownerName,
-        legalName: ownerName,
+        businessSegment: segment,
+        planKey: selectedPlan.key,
+        restaurantName: businessName,
+        legalName: businessName,
         ownerName,
         ownerEmail,
         ownerPassword,
         contactPhone,
-        planName: selectedPlan.name,
-        monthlyPrice: selectedPlan.monthlyPrice,
-        maxUsers: selectedPlan.maxUsers,
       });
-
-      router.push("/cadastro/confirmacao");
+      router.push(`/cadastro/confirmacao?segmento=${segment === 2 ? "petshop" : "restaurante"}`);
     } catch (error) {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message);
-        return;
-      }
-      setErrorMessage("Nao foi possivel enviar o pre-cadastro agora.");
+      setErrorMessage(error instanceof ApiError ? error.message : "Nao foi possivel enviar o pre-cadastro agora.");
     }
   }
 
@@ -73,81 +66,36 @@ export function RestaurantSignupForm({ selectedPlan }: { selectedPlan: Commercia
     event.currentTarget.setCustomValidity("");
   }
 
+  const requiredProps = { required: true, onInvalid, onInput };
+  const shortPlanName = selectedPlan.name.replace("ZeroPaper Pet ", "").replace("ZeroPaper ", "");
+
   return (
     <form className="login-form signup-form" onSubmit={handleSubmit}>
       <div className="field-group">
-        <label className="field-label-row" htmlFor="ownerName">
-          <span>Seu nome</span>
-          <span className="field-requirement">Obrigatorio</span>
-        </label>
-        <input
-          id="ownerName"
-          name="ownerName"
-          placeholder="Como quer ser chamado"
-          required
-          onInvalid={onInvalid}
-          onInput={onInput}
-        />
+        <label className="field-label-row" htmlFor="businessName"><span>Nome do {segment === 2 ? "pet shop" : "restaurante"}</span><span className="field-requirement">Obrigatorio</span></label>
+        <input id="businessName" name="businessName" placeholder={segment === 2 ? "Ex.: Pet Feliz" : "Ex.: Sabor da Casa"} {...requiredProps} />
       </div>
-
       <div className="field-group">
-        <label className="field-label-row" htmlFor="ownerEmail">
-          <span>Email de acesso</span>
-          <span className="field-requirement">Obrigatorio</span>
-        </label>
-        <input
-          id="ownerEmail"
-          name="ownerEmail"
-          type="email"
-          placeholder="voce@empresa.com"
-          required
-          onInvalid={onInvalid}
-          onInput={onInput}
-        />
+        <label className="field-label-row" htmlFor="ownerName"><span>Seu nome</span><span className="field-requirement">Obrigatorio</span></label>
+        <input id="ownerName" name="ownerName" placeholder="Como quer ser chamado" {...requiredProps} />
       </div>
-
       <div className="field-group">
-        <label className="field-label-row" htmlFor="contactPhone">
-          <span>WhatsApp</span>
-          <span className="field-requirement">Obrigatorio</span>
-        </label>
-        <input
-          id="contactPhone"
-          name="contactPhone"
-          type="tel"
-          placeholder="(11) 99999-0000"
-          required
-          onInvalid={onInvalid}
-          onInput={onInput}
-        />
+        <label className="field-label-row" htmlFor="ownerEmail"><span>Email de acesso</span><span className="field-requirement">Obrigatorio</span></label>
+        <input id="ownerEmail" name="ownerEmail" type="email" placeholder="voce@empresa.com" {...requiredProps} />
       </div>
-
       <div className="field-group">
-        <label className="field-label-row" htmlFor="ownerPassword">
-          <span>Senha</span>
-          <span className="field-requirement">Minimo 6 caracteres</span>
-        </label>
-        <input
-          id="ownerPassword"
-          name="ownerPassword"
-          type="password"
-          placeholder="Crie uma senha"
-          required
-          minLength={6}
-          onInvalid={onInvalid}
-          onInput={onInput}
-        />
+        <label className="field-label-row" htmlFor="contactPhone"><span>WhatsApp</span><span className="field-requirement">Obrigatorio</span></label>
+        <input id="contactPhone" name="contactPhone" type="tel" placeholder="(11) 99999-0000" {...requiredProps} />
       </div>
-
-      {errorMessage ? <p className="form-feedback">{errorMessage}</p> : null}
-
+      <div className="field-group">
+        <label className="field-label-row" htmlFor="ownerPassword"><span>Senha</span><span className="field-requirement">Minimo 6 caracteres</span></label>
+        <input id="ownerPassword" name="ownerPassword" type="password" placeholder="Crie uma senha" minLength={6} {...requiredProps} />
+      </div>
+      {errorMessage ? <p className="form-feedback" role="alert">{errorMessage}</p> : null}
       <button className="primary-link button-link signup-submit" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Enviando..." : `Solicitar acesso — ${selectedPlan.name.replace("ZeroPaper ", "")}`}
+        {isSubmitting ? "Enviando..." : `Solicitar acesso — ${shortPlanName}`}
       </button>
-
-      <p className="signup-form-hint">
-        Vou revisar e liberar seu acesso em breve.
-      </p>
+      <p className="signup-form-hint">O plano, valor e modulos serao confirmados com seguranca pelo servidor.</p>
     </form>
   );
 }
