@@ -1,16 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAppSession } from "@/components/app-session-provider";
 import { MenuModule } from "@/components/modules/menu-module";
 import { WorkspaceModulePage } from "@/components/workspace-module-page";
 import { getModuleBySlug } from "@/lib/owner-portal";
+import { getWorkspaceOverview } from "@/lib/api";
 
 const moduleData = getModuleBySlug("cardapio");
 
 export default function MenuPage() {
   const { session, clearSession } = useAppSession();
+  const [businessSegment, setBusinessSegment] = useState<number | null>(null);
 
-  if (!moduleData) {
+  useEffect(() => {
+    let mounted = true;
+    void getWorkspaceOverview(session.token)
+      .then((overview) => {
+        if (mounted) setBusinessSegment(overview.businessSegment ?? 1);
+      })
+      .catch(() => {
+        if (mounted) setBusinessSegment(1);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [session.token]);
+
+  if (!moduleData || businessSegment === null) {
     return null;
   }
 
@@ -19,10 +36,12 @@ export default function MenuPage() {
       module={moduleData}
       token={session.token}
       onUnauthorized={clearSession}
-      heading="Cardapio"
-      description="Organize categorias e produtos sem carregar tudo de uma vez."
+      heading={businessSegment === 2 ? "Servicos" : "Cardapio"}
+      description={businessSegment === 2
+        ? "Organize os servicos, valores e disponibilidade do Pet Shop."
+        : "Organize categorias e produtos sem carregar tudo de uma vez."}
     >
-      <MenuModule token={session.token} onUnauthorized={clearSession} section="items" />
+      <MenuModule token={session.token} onUnauthorized={clearSession} section="items" itemKind={businessSegment === 2 ? 2 : 1} />
     </WorkspaceModulePage>
   );
 }

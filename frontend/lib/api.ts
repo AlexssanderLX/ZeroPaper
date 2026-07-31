@@ -45,6 +45,22 @@ export type ShortcutLoginPayload = {
 };
 
 export type WorkspaceOverview = {
+  capabilities?: {
+    hasCustomerProfiles: boolean;
+    hasCatalog: boolean;
+    hasPets: boolean;
+    hasAppointments: boolean;
+    hasOnlinePayments: boolean;
+    hasWhatsApp: boolean;
+    hasAiAssistant: boolean;
+    hasCoupons: boolean;
+    hasReports: boolean;
+    hasPrinting: boolean;
+    hasDelivery: boolean;
+    hasTables: boolean;
+    hasKitchen: boolean;
+    hasWaiterCalls: boolean;
+  };
   activeTables: number;
   openOrders: number;
   publishedMenuItems: number;
@@ -168,6 +184,8 @@ export type MenuItem = {
   isActive: boolean;
   maxAdditionalSelections?: number | null;
   hasAdditionalOptions?: boolean;
+  kind?: number;
+  estimatedDurationMinutes?: number | null;
   additionalGroups: MenuItemAdditionalGroup[];
 };
 
@@ -1644,6 +1662,8 @@ export function createMenuItem(
     imageUrl?: string;
     price: number;
     maxAdditionalSelections?: number | null;
+    kind?: number;
+    estimatedDurationMinutes?: number | null;
     additionalGroups?: MenuItemAdditionalGroupPayload;
   },
 ) {
@@ -1665,6 +1685,8 @@ export function updateMenuItem(
     imageUrl?: string;
     price: number;
     maxAdditionalSelections?: number | null;
+    kind?: number;
+    estimatedDurationMinutes?: number | null;
     additionalGroups?: MenuItemAdditionalGroupPayload;
   },
 ) {

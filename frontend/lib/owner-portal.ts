@@ -15,9 +15,25 @@ export type PortalModule = {
   title: string;
   eyebrow: string;
   featureKey?: keyof PortalFeatureAccess;
+  segments?: Array<"restaurant" | "petshop">;
 };
 
 export type PortalFeatureAccess = {
+  capabilities?: Partial<{
+    hasCustomerProfiles: boolean;
+    hasCatalog: boolean;
+    hasPets: boolean;
+    hasAppointments: boolean;
+    hasOnlinePayments: boolean;
+    hasAiAssistant: boolean;
+    hasCoupons: boolean;
+    hasReports: boolean;
+    hasPrinting: boolean;
+    hasDelivery: boolean;
+    hasTables: boolean;
+    hasKitchen: boolean;
+    hasWaiterCalls: boolean;
+  }>;
   includesMenuModule: boolean;
   includesTablesModule: boolean;
   includesKitchenModule: boolean;
@@ -43,42 +59,49 @@ export const ownerModules: PortalModule[] = [
     slug: "implantacao",
     title: "Configurar app",
     eyebrow: "Guia inicial",
+    segments: ["restaurant"],
   },
   {
     slug: "cardapio",
     title: "Cardapio",
     eyebrow: "Cardapio",
     featureKey: "includesMenuModule",
+    segments: ["restaurant", "petshop"],
   },
   {
     slug: "estoque",
     title: "Estoque",
     eyebrow: "Estoque",
     featureKey: "includesStockModule",
+    segments: ["restaurant"],
   },
   {
     slug: "mesas",
     title: "Mesas",
     eyebrow: "Mesas",
     featureKey: "includesTablesModule",
+    segments: ["restaurant"],
   },
   {
     slug: "pedidos",
     title: "Cozinha",
     eyebrow: "Cozinha",
     featureKey: "includesKitchenModule",
+    segments: ["restaurant"],
   },
   {
     slug: "caixa",
     title: "Caixa",
     eyebrow: "Caixa",
     featureKey: "includesCashModule",
+    segments: ["restaurant"],
   },
   {
     slug: "cupons",
     title: "Cupons",
     eyebrow: "Descontos",
     featureKey: "hasCoupons",
+    segments: ["restaurant"],
   },
   {
     slug: "relatorios",
@@ -103,6 +126,7 @@ export const ownerModules: PortalModule[] = [
     title: "Entrega e frete",
     eyebrow: "Delivery",
     featureKey: "includesDeliveryModule",
+    segments: ["restaurant"],
   },
   {
     slug: "atendimento",
@@ -115,6 +139,7 @@ export const ownerModules: PortalModule[] = [
     title: "Vendedores",
     eyebrow: "Vendas",
     featureKey: "hasSalesAgents",
+    segments: ["restaurant"],
   },
   {
     slug: "pagamentos",
@@ -132,24 +157,28 @@ export const ownerModules: PortalModule[] = [
     title: "Tutores",
     eyebrow: "Pet Shop",
     featureKey: "hasCustomerProfiles",
+    segments: ["petshop"],
   },
   {
     slug: "animais",
     title: "Animais",
     eyebrow: "Pet Shop",
     featureKey: "hasPets",
+    segments: ["petshop"],
   },
   {
     slug: "agenda",
     title: "Agenda",
     eyebrow: "Pet Shop",
     featureKey: "hasAppointments",
+    segments: ["petshop"],
   },
   {
     slug: "atendimentos-pet",
     title: "Atendimentos",
     eyebrow: "Pet Shop",
     featureKey: "hasAppointments",
+    segments: ["petshop"],
   },
 ];
 
@@ -162,7 +191,34 @@ export function isPortalModuleAvailable(module: PortalModule, access?: Partial<P
     return true;
   }
 
-  return Boolean(access?.[module.featureKey]);
+  const capabilityByFeature: Partial<Record<keyof PortalFeatureAccess, keyof NonNullable<PortalFeatureAccess["capabilities"]>>> = {
+    includesMenuModule: "hasCatalog",
+    includesTablesModule: "hasTables",
+    includesKitchenModule: "hasKitchen",
+    includesCashModule: "hasOnlinePayments",
+    includesDeliveryModule: "hasDelivery",
+    includesPrintingModule: "hasPrinting",
+    includesWaiterCallModule: "hasWaiterCalls",
+    includesAiAssistantModule: "hasAiAssistant",
+    hasCoupons: "hasCoupons",
+    hasBasicReports: "hasReports",
+    hasCustomerProfiles: "hasCustomerProfiles",
+    hasPets: "hasPets",
+    hasAppointments: "hasAppointments",
+  };
+  const capabilityKey = capabilityByFeature[module.featureKey];
+  const capabilityValue = capabilityKey ? access?.capabilities?.[capabilityKey] : undefined;
+
+  return capabilityValue ?? Boolean(access?.[module.featureKey]);
+}
+
+export function isPortalModuleForSegment(module: PortalModule, businessSegment?: number) {
+  if (!module.segments?.length) {
+    return true;
+  }
+
+  const segment = businessSegment === 2 ? "petshop" : "restaurant";
+  return module.segments.includes(segment);
 }
 
 export function buildOwnerName(email: string) {

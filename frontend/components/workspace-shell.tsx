@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAppSession } from "@/components/app-session-provider";
 import { WaiterCallMonitor } from "@/components/waiter-call-monitor";
 import {
@@ -18,7 +18,7 @@ import {
   type PrintingSettings,
   type WorkspaceOverview,
 } from "@/lib/api";
-import { isPortalModuleAvailable, ownerModules } from "@/lib/owner-portal";
+import { isPortalModuleAvailable, isPortalModuleForSegment, ownerModules } from "@/lib/owner-portal";
 
 export function WorkspaceShell({
   children,
@@ -33,6 +33,7 @@ export function WorkspaceShell({
 }) {
   const { session, clearSession } = useAppSession();
   const pathname = usePathname();
+  const router = useRouter();
   const [logoUrl, setLogoUrl] = useState("");
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [overviewLoaded, setOverviewLoaded] = useState(false);
@@ -95,6 +96,28 @@ export function WorkspaceShell({
       isMounted = false;
     };
   }, [clearSession, session.token]);
+
+  const capabilityAccess = useMemo(() => {
+    if (!overview) {
+      return null;
+    }
+
+    return {
+      ...overview,
+      hasCustomerProfiles: overview.capabilities?.hasCustomerProfiles ?? overview.hasCustomerProfiles,
+      hasPets: overview.capabilities?.hasPets ?? overview.hasPets,
+      hasAppointments: overview.capabilities?.hasAppointments ?? overview.hasAppointments,
+      includesMenuModule: overview.capabilities?.hasCatalog ?? overview.includesMenuModule,
+      includesTablesModule: overview.capabilities?.hasTables ?? overview.includesTablesModule,
+      includesKitchenModule: overview.capabilities?.hasKitchen ?? overview.includesKitchenModule,
+      includesDeliveryModule: overview.capabilities?.hasDelivery ?? overview.includesDeliveryModule,
+      includesPrintingModule: overview.capabilities?.hasPrinting ?? overview.includesPrintingModule,
+      includesWaiterCallModule: overview.capabilities?.hasWaiterCalls ?? overview.includesWaiterCallModule,
+      includesAiAssistantModule: overview.capabilities?.hasAiAssistant ?? overview.includesAiAssistantModule,
+      hasCoupons: overview.capabilities?.hasCoupons ?? overview.hasCoupons,
+      hasBasicReports: overview.capabilities?.hasReports ?? overview.hasBasicReports,
+    };
+  }, [overview]);
 
   useEffect(() => {
     let isMounted = true;
@@ -163,6 +186,11 @@ export function WorkspaceShell({
   useEffect(() => {
     let isMounted = true;
 
+    if (!overviewLoaded || overview?.businessSegment !== 1 || !overview.includesCashModule) {
+      setCashOrderAccessUrl("");
+      return;
+    }
+
     void (async () => {
       try {
         const cashOrderTable = await ensureCashOrderTable(session.token);
@@ -180,11 +208,14 @@ export function WorkspaceShell({
     return () => {
       isMounted = false;
     };
-  }, [clearSession, session.token]);
+  }, [clearSession, overview, overviewLoaded, session.token]);
 
-  const visibleModules = useMemo(
-    () =>
-      ownerModules.filter((module) => {
+  const visibleModules = useMemo(() => {
+    const modules = ownerModules.filter((module) => {
+        if (!isPortalModuleForSegment(module, overview?.businessSegment)) {
+          return false;
+        }
+
         if (!module.featureKey) {
           return true;
         }
@@ -193,13 +224,42 @@ export function WorkspaceShell({
           return false;
         }
 
-        return isPortalModuleAvailable(module, overview);
-      }),
-    [overview, overviewLoaded],
-  );
+        return isPortalModuleAvailable(module, capabilityAccess);
+      });
+
+    if (overview?.businessSegment === 2) {
+      const petOrder = ["agenda", "atendimentos-pet", "tutores", "animais", "cardapio", "atendimento", "pagamentos", "relatorios", "analise-vendas", "ajustes"];
+      return [...modules].sort((left, right) => petOrder.indexOf(left.slug) - petOrder.indexOf(right.slug));
+    }
+
+    return modules;
+  }, [capabilityAccess, overview, overviewLoaded]);
   const mainSidebarSlugs = ["pedidos", "caixa", "agenda", "atendimentos-pet"];
   const operationModules = visibleModules.filter((module) => mainSidebarSlugs.includes(module.slug));
   const configurationModules = visibleModules.filter((module) => !mainSidebarSlugs.includes(module.slug));
+  const isPetShop = overview?.businessSegment === 2;
+
+  useEffect(() => {
+    if (!overviewLoaded || !overview) {
+      return;
+    }
+
+    if (isPetShop && pathname === "/app") {
+      router.replace("/app/agenda");
+      return;
+    }
+
+    const requestedSlug = pathname.match(/^\/app\/([^/]+)/)?.[1];
+    const restaurantOnlyRoutes = new Set(["caixa", "confirmacoes-pix", "cupons", "entrega", "estoque", "finalizados", "implantacao", "mesas", "pedidos", "vendedores"]);
+    if (isPetShop && requestedSlug && restaurantOnlyRoutes.has(requestedSlug)) {
+      router.replace("/app/agenda");
+      return;
+    }
+    const requestedModule = requestedSlug ? ownerModules.find((module) => module.slug === requestedSlug) : null;
+    if (requestedModule && !visibleModules.some((module) => module.slug === requestedModule.slug)) {
+      router.replace(isPetShop ? "/app/agenda" : "/app");
+    }
+  }, [isPetShop, overview, overviewLoaded, pathname, router, visibleModules]);
 
   async function handleSignOut() {
     const confirmed = window.confirm("Tem certeza que deseja sair?");
@@ -296,6 +356,22 @@ export function WorkspaceShell({
     );
   }
 
+  function getSegmentModuleTitle(slug: string, title: string) {
+    if (!isPetShop) {
+      return title;
+    }
+
+    if (slug === "cardapio") {
+      return "Servicos";
+    }
+
+    if (slug === "ajustes") {
+      return "Pet Shop";
+    }
+
+    return title;
+  }
+
 
   return (
     <main className="page-shell app-shell">
@@ -340,7 +416,7 @@ export function WorkspaceShell({
             <nav className="owner-sidebar-nav" aria-label="Navegacao do painel">
               <div className="owner-sidebar-group">
                 <span>Dia a dia</span>
-                {renderSidebarLink({ href: "/app", title: "Meus pedidos", eyebrow: "Lobby" })}
+                {!isPetShop ? renderSidebarLink({ href: "/app", title: "Meus pedidos", eyebrow: "Lobby" }) : null}
                 {cashOrderAccessUrl ? (
                   <Link
                     className="owner-sidebar-link owner-sidebar-cash-order-link"
@@ -362,7 +438,7 @@ export function WorkspaceShell({
                 {operationModules.map((module) =>
                   renderSidebarLink({
                     href: `/app/${module.slug}`,
-                    title: module.title,
+                    title: getSegmentModuleTitle(module.slug, module.title),
                     eyebrow: module.eyebrow,
                   }),
                 )}
@@ -374,7 +450,7 @@ export function WorkspaceShell({
                   {configurationModules.map((module) =>
                     renderSidebarLink({
                       href: `/app/${module.slug}`,
-                      title: module.title,
+                      title: getSegmentModuleTitle(module.slug, module.title),
                       eyebrow: module.eyebrow,
                     }),
                   )}
@@ -443,7 +519,7 @@ export function WorkspaceShell({
         </div>
       </section>
 
-      <WaiterCallMonitor showCard={showAlertCard} />
+      {capabilityAccess?.includesWaiterCallModule ? <WaiterCallMonitor showCard={showAlertCard} /> : null}
     </main>
   );
 }

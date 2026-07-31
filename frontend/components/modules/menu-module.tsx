@@ -281,11 +281,16 @@ export function MenuModule({
   token,
   onUnauthorized,
   section,
+  itemKind = 1,
 }: {
   token: string;
   onUnauthorized: AsyncVoid;
   section: MenuModuleSection;
+  itemKind?: 1 | 2;
 }) {
+  const isServiceCatalog = itemKind === 2;
+  const itemSingular = isServiceCatalog ? "servico" : "produto";
+  const itemPlural = isServiceCatalog ? "servicos" : "produtos";
   const [categories, setCategories] = useState<MenuCategorySummary[]>([]);
   const [categoryItems, setCategoryItems] = useState<Record<string, MenuCategory>>({});
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -714,6 +719,8 @@ export function MenuModule({
         imageUrl: normalizeMenuImageUrlForPayload(imageUrl),
         price: parsePrice(itemEditor.price),
         maxAdditionalSelections: parseOptionalAdditionalLimit(itemEditor.maxAdditionalSelections),
+        kind: itemKind,
+        estimatedDurationMinutes: isServiceCatalog ? 30 : null,
         additionalGroups: normalizeAdditionalGroupsForPayload(itemEditor.additionalGroups),
       };
 
@@ -738,7 +745,7 @@ export function MenuModule({
       ]);
 
       setSelectedCategoryId(savedItem.categoryId);
-      setFeedback(itemEditor.mode === "edit" ? "Produto salvo." : "Produto criado.");
+      setFeedback(itemEditor.mode === "edit" ? `${itemSingular} salvo.` : `${itemSingular} criado.`);
       setItemEditorDirty(false);
       dismissItemEditor();
     } catch (error) {
@@ -940,7 +947,7 @@ export function MenuModule({
           </div>
           <div className="mnu-stat">
             <b>{menuTotals.totalItems}</b>
-            <span>produtos</span>
+            <span>{itemPlural}</span>
           </div>
           <div className="mnu-stat mnu-stat--ok">
             <b>{menuTotals.activeItems}</b>
@@ -967,7 +974,7 @@ export function MenuModule({
         ) : categories.length === 0 ? (
           <div className="mnu-empty surface-card">
             <strong>Nenhuma categoria criada</strong>
-            <p>Crie a primeira categoria para liberar o cadastro dos produtos.</p>
+            <p>Crie a primeira categoria para liberar o cadastro dos {itemPlural}.</p>
             <button className="primary-link button-link" type="button" onClick={openCreateCategory}>
               Criar categoria
             </button>
@@ -1408,9 +1415,9 @@ export function MenuModule({
           <div className="mnu-dialog-header">
             <div>
               <span className="eyebrow">
-                {itemEditor.mode === "edit" ? "Editar" : "Novo"} produto
+                {itemEditor.mode === "edit" ? "Editar" : "Novo"} {itemSingular}
               </span>
-              <h3>{itemEditor.name || "Produto"}</h3>
+              <h3>{itemEditor.name || (isServiceCatalog ? "Servico" : "Produto")}</h3>
             </div>
             <button
               className="ghost-link button-link"
@@ -1443,7 +1450,7 @@ export function MenuModule({
                   id="itemName"
                   value={itemEditor.name}
                   onChange={(e) => updateItemEditor({ name: e.target.value })}
-                  placeholder="Ex.: Pastel de carne"
+                  placeholder={isServiceCatalog ? "Ex.: Banho e tosa" : "Ex.: Pastel de carne"}
                 />
               </div>
               <div className="mnu-field-group mnu-col-2">
@@ -1498,17 +1505,17 @@ export function MenuModule({
                   onChange={(e) => updateItemEditor({ isActive: e.target.checked })}
                 />
                 <span className="mnu-toggle-label">
-                  {itemEditor.isActive ? "Produto visivel" : "Produto oculto"}
+                  {itemEditor.isActive ? `${itemSingular} visivel` : `${itemSingular} oculto`}
                 </span>
               </label>
             </div>
 
             <div className="mnu-image-field">
               <div className="mnu-image-preview">
-                {renderThumb(preview, itemEditor.name || "Produto")}
+                {renderThumb(preview, itemEditor.name || (isServiceCatalog ? "Servico" : "Produto"))}
               </div>
               <div className="mnu-image-right">
-                <label htmlFor="itemImage">Foto do produto</label>
+                <label htmlFor="itemImage">Foto do {itemSingular}</label>
                 <input
                   key={itemFileInputKey}
                   id="itemImage"
