@@ -113,6 +113,7 @@ public class AdminDashboardService : IAdminDashboardService
             {
                 CompanyId = item.Id,
                 RestaurantName = item.TradeName,
+                BusinessSegment = item.BusinessSegment,
                 AccessSlug = item.AccessSlug,
                 OwnerName = item.Users
                     .Where(user => user.Role == UserRole.Owner)
@@ -416,6 +417,31 @@ public class AdminDashboardService : IAdminDashboardService
         await _context.SaveChangesAsync(cancellationToken);
 
         return MapPlanUpdate(company, subscription);
+    }
+
+    public async Task<AdminCompanySegmentDto> UpdateCompanySegmentAsync(
+        WorkspaceSessionContext session,
+        Guid companyId,
+        UpdateAdminCompanySegmentRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Password);
+        EnsureRoot(session);
+        await ValidateRootPasswordAsync(session, request.Password, cancellationToken);
+
+        var company = await _context.Companies
+            .FirstOrDefaultAsync(item => item.Id == companyId, cancellationToken)
+            ?? throw new KeyNotFoundException("Unidade nao encontrada.");
+
+        company.ChangeBusinessSegment(request.BusinessSegment);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new AdminCompanySegmentDto
+        {
+            CompanyId = company.Id,
+            BusinessSegment = company.BusinessSegment
+        };
     }
 
     public async Task DeleteCompanyAsync(

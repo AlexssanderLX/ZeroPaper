@@ -4,6 +4,7 @@ namespace ZeroPaper.DTOs.Workspace;
 
 public class WorkspaceOverviewDto
 {
+    public BusinessSegment BusinessSegment { get; set; } = BusinessSegment.Restaurant;
     public int ActiveTables { get; set; }
     public int OpenOrders { get; set; }
     public int PublishedMenuItems { get; set; }
@@ -103,6 +104,8 @@ public class MenuItemDto
     public bool IsActive { get; set; }
     public int? MaxAdditionalSelections { get; set; }
     public bool HasAdditionalOptions { get; set; }
+    public CatalogItemKind Kind { get; set; } = CatalogItemKind.Product;
+    public int? EstimatedDurationMinutes { get; set; }
 
     public List<MenuItemAdditionalGroupDto> AdditionalGroups { get; set; } = [];
 }
@@ -170,6 +173,8 @@ public class CreateMenuItemRequestDto
     public string? ImageUrl { get; set; }
     public decimal Price { get; set; }
     public int? MaxAdditionalSelections { get; set; }
+    public CatalogItemKind Kind { get; set; } = CatalogItemKind.Product;
+    public int? EstimatedDurationMinutes { get; set; }
     public List<Guid> AdditionalCatalogGroupIds { get; set; } = [];
     public List<MenuItemAdditionalGroupInputDto> AdditionalGroups { get; set; } = [];
 }
@@ -183,6 +188,8 @@ public class UpdateMenuItemRequestDto
     public string? ImageUrl { get; set; }
     public decimal Price { get; set; }
     public int? MaxAdditionalSelections { get; set; }
+    public CatalogItemKind Kind { get; set; } = CatalogItemKind.Product;
+    public int? EstimatedDurationMinutes { get; set; }
 
     public List<Guid> AdditionalCatalogGroupIds { get; set; } = [];
     public List<MenuItemAdditionalGroupInputDto> AdditionalGroups { get; set; } = [];

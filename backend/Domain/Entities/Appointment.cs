@@ -37,11 +37,11 @@ public sealed class Appointment : TenantOwnedEntity
                 nameof(startsAtUtc));
         }
 
-        if (durationMinutes <= 0)
+        if (durationMinutes is < 1 or > 1440)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(durationMinutes),
-                "A duração deve ser maior que zero.");
+                "A duração deve ficar entre 1 e 1440 minutos.");
         }
 
         if (unitPriceSnapshot < 0)
@@ -110,6 +110,16 @@ public sealed class Appointment : TenantOwnedEntity
 
     public DateTime? NoShowAtUtc { get; private set; }
 
+    public Company Company { get; private set; } = null!;
+
+    public Pet Pet { get; private set; } = null!;
+
+    public MenuItem MenuItem { get; private set; } = null!;
+
+    public CustomerOrder? CustomerOrder { get; private set; }
+
+    public AppUser? AssignedUser { get; private set; }
+
     public void Reschedule(DateTime startsAtUtc, int durationMinutes)
     {
         EnsureNotTerminal();
@@ -127,11 +137,11 @@ public sealed class Appointment : TenantOwnedEntity
                 nameof(startsAtUtc));
         }
 
-        if (durationMinutes <= 0)
+        if (durationMinutes is < 1 or > 1440)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(durationMinutes),
-                "A duração deve ser maior que zero.");
+                "A duração deve ficar entre 1 e 1440 minutos.");
         }
 
         StartsAtUtc = startsAtUtc;

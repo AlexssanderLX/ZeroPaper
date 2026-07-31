@@ -1,4 +1,5 @@
 using ZeroPaper.Domain.Common;
+using ZeroPaper.Domain.Enums;
 
 namespace ZeroPaper.Domain.Entities;
 
@@ -20,7 +21,9 @@ public class MenuItem : TenantOwnedEntity
         string? accentLabel = null,
         string? imageUrl = null,
         int displayOrder = 0,
-        int? maxAdditionalSelections = null) : base(tenantId)
+        int? maxAdditionalSelections = null,
+        CatalogItemKind kind = CatalogItemKind.Product,
+        int? estimatedDurationMinutes = null) : base(tenantId)
     {
         CompanyId = companyId;
         MenuCategoryId = menuCategoryId;
@@ -28,6 +31,7 @@ public class MenuItem : TenantOwnedEntity
         UpdatePrice(price);
         SetDisplayOrder(displayOrder);
         UpdateAdditionalLimit(maxAdditionalSelections);
+        UpdateOfferingDetails(kind, estimatedDurationMinutes);
     }
 
     public Guid CompanyId { get; private set; }
@@ -39,6 +43,8 @@ public class MenuItem : TenantOwnedEntity
     public decimal Price { get; private set; }
     public int DisplayOrder { get; private set; }
     public int? MaxAdditionalSelections { get; private set; }
+    public CatalogItemKind Kind { get; private set; } = CatalogItemKind.Product;
+    public int? EstimatedDurationMinutes { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
@@ -97,6 +103,28 @@ public class MenuItem : TenantOwnedEntity
         }
 
         MaxAdditionalSelections = maxAdditionalSelections;
+        Touch();
+    }
+
+    public void UpdateOfferingDetails(CatalogItemKind kind, int? estimatedDurationMinutes)
+    {
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), "O tipo do item e invalido.");
+        }
+
+        if (estimatedDurationMinutes is < 1 or > 1440)
+        {
+            throw new ArgumentOutOfRangeException(nameof(estimatedDurationMinutes), "A duracao estimada deve ficar entre 1 e 1440 minutos.");
+        }
+
+        if (kind == CatalogItemKind.Product && estimatedDurationMinutes.HasValue)
+        {
+            throw new ArgumentException("Produtos nao podem possuir duracao estimada.", nameof(estimatedDurationMinutes));
+        }
+
+        Kind = kind;
+        EstimatedDurationMinutes = kind == CatalogItemKind.Service ? estimatedDurationMinutes : null;
         Touch();
     }
 

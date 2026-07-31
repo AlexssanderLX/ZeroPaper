@@ -30,6 +30,8 @@ public class Company : TenantOwnedEntity
     private readonly List<MenuCategory> _menuCategories = [];
     private readonly List<MenuItem> _menuItems = [];
     private readonly List<WhatsAppConversation> _whatsAppConversations = [];
+    private readonly List<Pet> _pets = [];
+    private readonly List<Appointment> _appointments = [];
 
     private Company()
     {
@@ -115,6 +117,7 @@ public class Company : TenantOwnedEntity
     public DateTime? MercadoPagoConnectedAtUtc { get; private set; }
     public DateTime? MercadoPagoDisconnectedAtUtc { get; private set; }
     public string TimeZoneId { get; private set; } = "America/Sao_Paulo";
+    public BusinessSegment BusinessSegment { get; private set; } = BusinessSegment.Restaurant;
 
     public Tenant Tenant { get; private set; } = null!;
     public IReadOnlyCollection<AppUser> Users => _users.AsReadOnly();
@@ -127,6 +130,19 @@ public class Company : TenantOwnedEntity
     public IReadOnlyCollection<MenuCategory> MenuCategories => _menuCategories.AsReadOnly();
     public IReadOnlyCollection<MenuItem> MenuItems => _menuItems.AsReadOnly();
     public IReadOnlyCollection<WhatsAppConversation> WhatsAppConversations => _whatsAppConversations.AsReadOnly();
+    public IReadOnlyCollection<Pet> Pets => _pets.AsReadOnly();
+    public IReadOnlyCollection<Appointment> Appointments => _appointments.AsReadOnly();
+
+    public void ChangeBusinessSegment(BusinessSegment businessSegment)
+    {
+        if (!Enum.IsDefined(businessSegment))
+        {
+            throw new ArgumentOutOfRangeException(nameof(businessSegment), "O segmento informado e invalido.");
+        }
+
+        BusinessSegment = businessSegment;
+        Touch();
+    }
 
     public void UpdateNames(string legalName, string tradeName)
     {

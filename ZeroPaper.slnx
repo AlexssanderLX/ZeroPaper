@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="backend/ZeroPaper.csproj" />
+  <Project Path="backend.Tests/ZeroPaper.Tests.csproj" />
   <Project Path="tools/ZeroPaper.PrintAgent/ZeroPaper.PrintAgent.csproj" />
 </Solution>

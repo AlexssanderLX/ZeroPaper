@@ -263,6 +263,7 @@ public class AuthSessionService : IAuthSessionService
             FullName = session.AppUser.FullName,
             Role = session.AppUser.Role.ToString(),
             RestaurantName = session.Company.TradeName,
+            BusinessSegment = session.Company.BusinessSegment,
             PlanName = CommercialPlanCatalog.TryResolve(planName, out var plan)
                 ? plan.Name
                 : planName,

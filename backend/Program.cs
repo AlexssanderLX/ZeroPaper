@@ -155,6 +155,8 @@ builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestN
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ISalesAgentService, SalesAgentService>();
+builder.Services.AddScoped<IPetService, PetService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<ISalesReportService, SalesReportService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<ICashClosingService, CashClosingService>();

@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="ZeroPaper.csproj" />
+  <Project Path="../backend.Tests/ZeroPaper.Tests.csproj" />
 </Solution>

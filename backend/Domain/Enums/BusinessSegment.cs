@@ -3,6 +3,6 @@
     public enum BusinessSegment
     {
         Restaurant = 1,
-        Petshop = 2
+        PetShop = 2
     }
 }

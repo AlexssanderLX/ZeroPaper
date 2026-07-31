@@ -5,6 +5,7 @@ namespace ZeroPaper.Domain.Entities;
 
 public sealed class Pet : TenantOwnedEntity
 {
+    private readonly List<Appointment> _appointments = [];
     private const int MaxNameLength = 120;
     private const int MaxBreedLength = 120;
     private const int MaxNotesLength = 1000;
@@ -33,6 +34,8 @@ public sealed class Pet : TenantOwnedEntity
         CompanyId = companyId;
         CustomerProfileId = customerProfileId;
         Name = NormalizeRequiredText(name, MaxNameLength, nameof(name));
+        ValidateEnum(species, nameof(species));
+        ValidateEnum(size, nameof(size));
         Species = species;
         Size = size;
         Breed = NormalizeOptionalText(breed, MaxBreedLength, nameof(breed));
@@ -65,6 +68,12 @@ public sealed class Pet : TenantOwnedEntity
 
     public string? PhotoUrl { get; private set; }
 
+    public Company Company { get; private set; } = null!;
+
+    public DeliveryCustomerProfile CustomerProfile { get; private set; } = null!;
+
+    public IReadOnlyCollection<Appointment> Appointments => _appointments.AsReadOnly();
+
     public void UpdateBasicInformation(
         string name,
         PetSpecies species,
@@ -74,6 +83,8 @@ public sealed class Pet : TenantOwnedEntity
         DateOnly? birthDate)
     {
         Name = NormalizeRequiredText(name, MaxNameLength, nameof(name));
+        ValidateEnum(species, nameof(species));
+        ValidateEnum(size, nameof(size));
         Species = species;
         Size = size;
         Breed = NormalizeOptionalText(breed, MaxBreedLength, nameof(breed));
@@ -149,6 +160,15 @@ public sealed class Pet : TenantOwnedEntity
             throw new ArgumentException(
                 "O identificador é obrigatório.",
                 parameterName);
+        }
+    }
+
+    private static void ValidateEnum<TEnum>(TEnum value, string parameterName)
+        where TEnum : struct, Enum
+    {
+        if (!Enum.IsDefined(value))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "O valor informado e invalido.");
         }
     }
 

@@ -45,6 +45,8 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<PrintJob> PrintJobs => Set<PrintJob>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<SalesAgent> SalesAgents => Set<SalesAgent>();
+    public DbSet<Pet> Pets => Set<Pet>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -79,6 +81,10 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.DocumentNumber).HasMaxLength(30);
             entity.Property(x => x.ContactEmail).HasMaxLength(180);
             entity.Property(x => x.ContactPhone).HasMaxLength(30);
+            entity.Property(x => x.BusinessSegment)
+                .HasConversion<int>()
+                .HasDefaultValue(Domain.Enums.BusinessSegment.Restaurant)
+                .IsRequired();
             entity.Property(x => x.LastOrderNumber).IsRequired();
             entity.Property(x => x.EnableOrderAlerts).IsRequired();
             entity.Property(x => x.EnableWaiterCallAlerts).IsRequired();
@@ -955,6 +961,11 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.ImageUrl).HasMaxLength(500);
             entity.Property(x => x.Price).HasPrecision(10, 2).IsRequired();
             entity.Property(x => x.MaxAdditionalSelections).IsRequired(false);
+            entity.Property(x => x.Kind)
+                .HasConversion<int>()
+                .HasDefaultValue(Domain.Enums.CatalogItemKind.Product)
+                .IsRequired();
+            entity.Property(x => x.EstimatedDurationMinutes).IsRequired(false);
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
@@ -1137,6 +1148,88 @@ public class ZeroPaperDbContext : DbContext
                 .HasForeignKey(x => x.SalesAgentId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .IsRequired(false);
+        });
+
+        modelBuilder.Entity<Pet>(entity =>
+        {
+            entity.ToTable("pets");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Species).HasConversion<int>().IsRequired();
+            entity.Property(x => x.Size).HasConversion<int>().IsRequired();
+            entity.Property(x => x.Breed).HasMaxLength(120);
+            entity.Property(x => x.WeightKg).HasPrecision(7, 2);
+            entity.Property(x => x.BirthDate).HasColumnType("date");
+            entity.Property(x => x.BehaviorNotes).HasMaxLength(1000);
+            entity.Property(x => x.AllergyNotes).HasMaxLength(1000);
+            entity.Property(x => x.Restrictions).HasMaxLength(1000);
+            entity.Property(x => x.PhotoUrl).HasMaxLength(500);
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => new { x.CompanyId, x.CustomerProfileId, x.IsActive });
+            entity.HasIndex(x => new { x.CompanyId, x.Name });
+
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.Pets)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CustomerProfile)
+                .WithMany()
+                .HasForeignKey(x => x.CustomerProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.ToTable("appointments");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.StartsAtUtc).IsRequired();
+            entity.Property(x => x.DurationMinutes).IsRequired();
+            entity.Ignore(x => x.EndsAtUtc);
+            entity.Property(x => x.Status).HasConversion<int>().IsRequired();
+            entity.Property(x => x.ServiceNameSnapshot).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.UnitPriceSnapshot).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.CustomerNotes).HasMaxLength(1000);
+            entity.Property(x => x.InternalNotes).HasMaxLength(1000);
+            entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+
+            entity.HasIndex(x => new { x.CompanyId, x.StartsAtUtc, x.Status });
+            entity.HasIndex(x => new { x.CompanyId, x.PetId, x.StartsAtUtc });
+            entity.HasIndex(x => x.CustomerOrderId);
+            entity.HasIndex(x => x.AssignedUserId);
+
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.Appointments)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Pet)
+                .WithMany(x => x.Appointments)
+                .HasForeignKey(x => x.PetId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.MenuItem)
+                .WithMany()
+                .HasForeignKey(x => x.MenuItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CustomerOrder)
+                .WithMany()
+                .HasForeignKey(x => x.CustomerOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.AssignedUser)
+                .WithMany()
+                .HasForeignKey(x => x.AssignedUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -1,3 +1,5 @@
+using ZeroPaper.Domain.Enums;
+
 namespace ZeroPaper.DTOs.Admin;
 
 public class AdminDashboardDto
@@ -28,6 +30,7 @@ public class AdminCompanyFlowDto
 {
     public Guid CompanyId { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
+    public BusinessSegment BusinessSegment { get; set; } = BusinessSegment.Restaurant;
     public string AccessSlug { get; set; } = string.Empty;
     public string OwnerName { get; set; } = string.Empty;
     public string OwnerEmail { get; set; } = string.Empty;
@@ -102,6 +105,17 @@ public class AdminCompanyPlanUpdateDto
     public bool HasAdvancedReports { get; set; }
     public bool HasCoupons { get; set; }
     public bool HasRecurringCustomers { get; set; }
+}
+
+public sealed class UpdateAdminCompanySegmentRequestDto : AdminSensitiveActionRequestDto
+{
+    public BusinessSegment BusinessSegment { get; set; }
+}
+
+public sealed class AdminCompanySegmentDto
+{
+    public Guid CompanyId { get; set; }
+    public BusinessSegment BusinessSegment { get; set; }
 }
 
 public class AdminCompanyMasterPasswordStatusDto

@@ -152,6 +152,7 @@ public class WorkspaceService : IWorkspaceService
 
         return new WorkspaceOverviewDto
         {
+            BusinessSegment = session.BusinessSegment,
             ActiveTables = activeTables,
             OpenOrders = openOrders,
             PublishedMenuItems = publishedMenuItems,
@@ -577,7 +578,9 @@ public class WorkspaceService : IWorkspaceService
             request.AccentLabel,
             normalizedImageUrl,
             nextDisplayOrder + 1,
-            NormalizeMaxAdditionalSelections(request.MaxAdditionalSelections));
+            NormalizeMaxAdditionalSelections(request.MaxAdditionalSelections),
+            request.Kind,
+            request.EstimatedDurationMinutes);
 
         menuItem.ReplaceAdditionalGroups(await BuildAdditionalGroupsAsync(session, menuItem.Id, request.AdditionalGroups, cancellationToken));
 
@@ -625,6 +628,7 @@ public class WorkspaceService : IWorkspaceService
         menuItem.UpdateCatalog(request.Name, request.Description, request.AccentLabel, normalizedImageUrl);
         menuItem.UpdatePrice(request.Price);
         menuItem.UpdateAdditionalLimit(NormalizeMaxAdditionalSelections(request.MaxAdditionalSelections));
+        menuItem.UpdateOfferingDetails(request.Kind, request.EstimatedDurationMinutes);
         var replacementGroups = await BuildAdditionalGroupsAsync(session, menuItem.Id, request.AdditionalGroups, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -5216,6 +5220,8 @@ public class WorkspaceService : IWorkspaceService
                     group.IsActive &&
                     group.MaxAdditionalSelections != 0 &&
                     group.Options.Any(option => option.IsActive)),
+            Kind = item.Kind,
+            EstimatedDurationMinutes = item.EstimatedDurationMinutes,
             AdditionalGroups = item.AdditionalGroups
                 .Where(group => group.IsActive)
                 .OrderBy(group => group.DisplayOrder)
@@ -5262,7 +5268,9 @@ public class WorkspaceService : IWorkspaceService
             DisplayOrder = item.DisplayOrder,
             IsActive = item.IsActive,
             MaxAdditionalSelections = item.MaxAdditionalSelections,
-            HasAdditionalOptions = hasAdditionalOptions
+            HasAdditionalOptions = hasAdditionalOptions,
+            Kind = item.Kind,
+            EstimatedDurationMinutes = item.EstimatedDurationMinutes
         };
     }
 

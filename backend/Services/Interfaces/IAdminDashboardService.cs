@@ -21,6 +21,11 @@ public interface IAdminDashboardService
         Guid companyId,
         UpdateAdminCompanyPlanRequestDto request,
         CancellationToken cancellationToken = default);
+    Task<AdminCompanySegmentDto> UpdateCompanySegmentAsync(
+        WorkspaceSessionContext session,
+        Guid companyId,
+        UpdateAdminCompanySegmentRequestDto request,
+        CancellationToken cancellationToken = default);
     Task DeleteCompanyAsync(
         WorkspaceSessionContext session,
         Guid companyId,

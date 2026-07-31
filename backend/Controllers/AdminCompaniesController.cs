@@ -61,6 +61,20 @@ public class AdminCompaniesController : ControllerBase
             : Ok(await _adminDashboardService.UpdateCompanyPlanAsync(session, companyId, request, cancellationToken));
     }
 
+    [HttpPatch("{companyId:guid}/segment")]
+    [EnableRateLimiting("sensitive-write")]
+    [ProducesResponseType(typeof(AdminCompanySegmentDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateSegmentAsync(
+        Guid companyId,
+        [FromBody] UpdateAdminCompanySegmentRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var session = await GetRequiredSessionAsync(cancellationToken);
+        return session is null
+            ? Unauthorized()
+            : Ok(await _adminDashboardService.UpdateCompanySegmentAsync(session, companyId, request, cancellationToken));
+    }
+
     [HttpDelete("{companyId:guid}")]
     [EnableRateLimiting("sensitive-write")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
