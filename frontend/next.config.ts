@@ -13,7 +13,7 @@ const securityHeaders = [
   },
   {
     key: "Referrer-Policy",
-    value: "strict-origin-when-cross-origin",
+    value: "no-referrer",
   },
   {
     key: "Permissions-Policy",
@@ -31,7 +31,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      `connect-src 'self' https:${isDevelopment ? " http://localhost:5097" : ""} https://cloudflareinsights.com https://*.cloudflareinsights.com`,
+      `connect-src 'self'${isDevelopment ? " http://localhost:5097" : ""} https://cloudflareinsights.com https://*.cloudflareinsights.com`,
       "media-src 'self' data: blob: https:",
     ].join("; "),
   },
@@ -43,6 +43,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   output: "standalone",
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   async headers() {

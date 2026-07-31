@@ -1,4 +1,5 @@
 const CONFIGURED_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5097";
+const INTERNAL_API_BASE_URL = process.env.BACKEND_INTERNAL_URL;
 export const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL ?? "";
 const ASSET_VERSION = "20260322-1133";
 
@@ -6,6 +7,7 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string;
+  headers?: Record<string, string>;
 };
 
 type FileDownloadResult = {
@@ -1003,12 +1005,17 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
   if (options.token) {
     headers.set("Authorization", `Bearer ${options.token}`);
   }
+  for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value);
+
+  const method = options.method ?? "GET";
+  if (method !== "GET") headers.set("X-ZP-CSRF", "1");
 
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: options.method ?? "GET",
+    method,
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -1040,12 +1047,14 @@ async function apiFormRequest<T>(path: string, body: FormData, token?: string): 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  headers.set("X-ZP-CSRF", "1");
 
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
     headers,
     body,
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -1068,11 +1077,11 @@ async function apiFileRequest(path: string, token: string): Promise<FileDownload
   const apiBaseUrl = getApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: "GET",
-    headers: {
-      Accept: "application/pdf",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token
+      ? { Accept: "application/pdf", Authorization: `Bearer ${token}` }
+      : { Accept: "application/pdf" },
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -1153,6 +1162,14 @@ function getApiBaseUrl() {
     }
 
     return "";
+  }
+
+  if (INTERNAL_API_BASE_URL) {
+    try {
+      return new URL(INTERNAL_API_BASE_URL).origin;
+    } catch {
+      // A configuracao publica validada abaixo permanece como fallback.
+    }
   }
 
   try {
@@ -2280,7 +2297,8 @@ export function quotePublicDeliveryFreight(
 
 export function getPublicDeliveryCustomerProfile(publicCode: string, token: string) {
   return apiRequest<PublicDeliveryCustomerProfile>(
-    `/api/public/tables/${publicCode}/delivery/customer?token=${encodeURIComponent(token)}`,
+    `/api/public/tables/${publicCode}/delivery/customer`,
+    { headers: { "X-ZP-Public-Token": token } },
   );
 }
 
@@ -2929,14 +2947,14 @@ export function createPublicAppointmentRequest(publicCode: string, payload: Publ
 
 export function getPublicAppointmentTracking(accessToken: string) {
   return apiRequest<PublicAppointmentTrackingDto>(
-    `/api/public/petshops/appointments/${encodeURIComponent(accessToken)}`,
-    {},
+    "/api/public/petshops/appointments/track",
+    { headers: { "X-ZP-Public-Token": accessToken } },
   );
 }
 
 export function cancelPublicAppointment(accessToken: string) {
   return apiRequest<PublicAppointmentTrackingDto>(
-    `/api/public/petshops/appointments/${encodeURIComponent(accessToken)}/cancel`,
-    { method: "POST" },
+    "/api/public/petshops/appointments/cancel",
+    { method: "POST", headers: { "X-ZP-Public-Token": accessToken } },
   );
 }

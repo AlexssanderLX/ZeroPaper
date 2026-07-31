@@ -41,7 +41,7 @@ export function PublicSiteHeader() {
           <Link className="zpnav-login" href="/login">
             Entrar
           </Link>
-          <Link className="zpnav-cta" href="/segmentos">
+          <Link className="zpnav-cta" href="/login">
             Comecar agora
           </Link>
         </div>
@@ -80,7 +80,7 @@ export function PublicSiteHeader() {
           <Link className="zpnav-drawer-login" href="/login">
             Entrar na conta
           </Link>
-          <Link className="zpnav-cta zpnav-drawer-cta" href="/segmentos">
+          <Link className="zpnav-cta zpnav-drawer-cta" href="/login">
             Comecar agora
           </Link>
         </div>

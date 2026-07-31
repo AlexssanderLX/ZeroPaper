@@ -217,11 +217,11 @@ export async function getDailySalesReport(
     `${getApiBaseUrl()}/api/workspace/reports/sales/${date}`,
     {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token
+        ? { Accept: "application/json", Authorization: `Bearer ${token}` }
+        : { Accept: "application/json" },
       cache: "no-store",
+      credentials: "include",
     },
   );
 

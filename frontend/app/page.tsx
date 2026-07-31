@@ -141,7 +141,7 @@ export default function Home() {
           </p>
 
           <div className="zpld-ctas zpld-anim-6">
-            <Link className="zpld-btn-primary" href="/segmentos">
+            <Link className="zpld-btn-primary" href="/login">
               Comecar agora
             </Link>
             <a className="zpld-btn-ghost" href="#como-funciona">
@@ -329,7 +329,7 @@ export default function Home() {
           <h2 id="zpld-cta-title">Seu negocio organizado a partir de hoje.</h2>
           <p>Configure em minutos. Sem contrato, sem taxa de adesao.</p>
           <div className="zpld-ctas">
-            <Link className="zpld-btn-primary" href="/segmentos">
+            <Link className="zpld-btn-primary" href="/login">
               Criar conta agora
             </Link>
             <Link className="zpld-btn-ghost" href="/segmentos">
