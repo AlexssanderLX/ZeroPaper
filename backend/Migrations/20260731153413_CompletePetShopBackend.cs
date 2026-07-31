@@ -11,43 +11,17 @@ namespace ZeroPaper.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<TimeOnly>(
-                name: "AppointmentEndTime",
-                table: "companies",
-                type: "time",
-                nullable: false,
-                defaultValue: new TimeOnly(18, 0, 0));
-
-            migrationBuilder.AddColumn<string>(
-                name: "AppointmentServiceDays",
-                table: "companies",
-                type: "varchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "1,2,3,4,5,6")
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.AddColumn<int>(
-                name: "AppointmentSlotIntervalMinutes",
-                table: "companies",
-                type: "int",
-                nullable: false,
-                defaultValue: 30);
-
-            migrationBuilder.AddColumn<TimeOnly>(
-                name: "AppointmentStartTime",
-                table: "companies",
-                type: "time",
-                nullable: false,
-                defaultValue: new TimeOnly(8, 0, 0));
-
-            migrationBuilder.AddColumn<string>(
-                name: "PetShopPublicCode",
-                table: "companies",
-                type: "varchar(48)",
-                maxLength: 48,
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // The legacy companies row is close to InnoDB's 65,535-byte inline limit.
+            // Moving the largest free-form value off-page preserves its contents and
+            // leaves room for the small scheduling fields. IF NOT EXISTS also makes
+            // recovery safe after a partially applied MySQL/MariaDB DDL migration.
+            migrationBuilder.Sql(
+                "ALTER TABLE `companies` MODIFY `AiAssistantSystemPrompt` TEXT CHARACTER SET utf8mb4 NOT NULL;");
+            AddColumnIfMissing(migrationBuilder, "AppointmentEndTime", "time NOT NULL DEFAULT '18:00:00'");
+            AddColumnIfMissing(migrationBuilder, "AppointmentServiceDays", "varchar(20) CHARACTER SET utf8mb4 NOT NULL DEFAULT '1,2,3,4,5,6'");
+            AddColumnIfMissing(migrationBuilder, "AppointmentSlotIntervalMinutes", "int NOT NULL DEFAULT 30");
+            AddColumnIfMissing(migrationBuilder, "AppointmentStartTime", "time NOT NULL DEFAULT '08:00:00'");
+            AddColumnIfMissing(migrationBuilder, "PetShopPublicCode", "varchar(48) CHARACTER SET utf8mb4 NULL");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "PublicAccessExpiresAtUtc",
@@ -225,6 +199,27 @@ namespace ZeroPaper.Migrations
             migrationBuilder.DropColumn(
                 name: "PublicAccessTokenHash",
                 table: "appointments");
+        }
+
+        private static void AddColumnIfMissing(MigrationBuilder migrationBuilder, string columnName, string definition)
+        {
+            var escapedDefinition = definition.Replace("'", "''", StringComparison.Ordinal);
+            migrationBuilder.Sql($"""
+                SET @zp_migration_sql = IF(
+                    EXISTS(
+                        SELECT 1
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = 'companies'
+                          AND COLUMN_NAME = '{columnName}'
+                    ),
+                    'SELECT 1',
+                    'ALTER TABLE `companies` ADD `{columnName}` {escapedDefinition}'
+                );
+                PREPARE zp_migration_stmt FROM @zp_migration_sql;
+                EXECUTE zp_migration_stmt;
+                DEALLOCATE PREPARE zp_migration_stmt;
+                """);
         }
     }
 }

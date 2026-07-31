@@ -465,7 +465,7 @@ namespace ZeroPaper.Migrations
                     b.Property<string>("AiAssistantSystemPrompt")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("text");
 
                     b.Property<int>("AlertPlaybackSeconds")
                         .HasColumnType("int");

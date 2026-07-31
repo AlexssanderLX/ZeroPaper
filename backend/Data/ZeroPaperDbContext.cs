@@ -108,7 +108,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.PrintAgentPrinterName).HasMaxLength(180);
             entity.Property(x => x.EnableAiAssistant).IsRequired();
             entity.Property(x => x.AiAssistantModel).HasMaxLength(80).IsRequired();
-            entity.Property(x => x.AiAssistantSystemPrompt).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.AiAssistantSystemPrompt).HasColumnType("text").HasMaxLength(4000).IsRequired();
             entity.Property(x => x.AiAssistantGreetingMessage).HasMaxLength(500).IsRequired();
             entity.Property(x => x.AiAssistantRedirectMessage).HasMaxLength(500).IsRequired();
             entity.Property(x => x.AiAssistantFallbackMessage).HasMaxLength(500).IsRequired();
