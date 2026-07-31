@@ -157,6 +157,8 @@ builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ISalesAgentService, SalesAgentService>();
 builder.Services.AddScoped<IPetService, PetService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();
+builder.Services.AddScoped<IPublicPetShopService, PublicPetShopService>();
 builder.Services.AddScoped<ISalesReportService, SalesReportService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<ICashClosingService, CashClosingService>();
@@ -255,6 +257,7 @@ app.UseExceptionHandler(errorApp =>
         var feature = context.Features.Get<IExceptionHandlerFeature>();
         var statusCode = feature?.Error switch
         {
+            CapabilityUnavailableException => StatusCodes.Status403Forbidden,
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             InvalidOperationException => StatusCodes.Status409Conflict,

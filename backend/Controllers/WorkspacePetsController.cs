@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.Domain.Enums;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Services.Interfaces;
@@ -20,11 +21,11 @@ public sealed class WorkspacePetsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAsync([FromQuery] Guid? customerProfileId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAsync([FromQuery] string? search, [FromQuery] Guid? customerProfileId, [FromQuery] bool? isActive, [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(cancellationToken);
         var denied = EnsureAccess(session);
-        return denied ?? Ok(await _petService.GetAsync(session!, customerProfileId, cancellationToken));
+        return denied ?? Ok(await _petService.GetAsync(session!, search, customerProfileId, isActive, page, pageSize, cancellationToken));
     }
 
     [HttpGet("{petId:guid}")]
@@ -62,13 +63,30 @@ public sealed class WorkspacePetsController : ControllerBase
         return denied ?? Ok(await _petService.UpdateStatusAsync(session!, petId, request.IsActive, cancellationToken));
     }
 
+    [HttpPost("{petId:guid}/photo")]
+    [EnableRateLimiting("upload-write")]
+    public async Task<IActionResult> UploadPhotoAsync(Guid petId, IFormFile file, CancellationToken cancellationToken)
+    {
+        var session = await GetSessionAsync(cancellationToken);
+        var denied = EnsureAccess(session);
+        return denied ?? Ok(await _petService.UploadPhotoAsync(session!, petId, file, cancellationToken));
+    }
+
+    [HttpDelete("{petId:guid}/photo")]
+    public async Task<IActionResult> RemovePhotoAsync(Guid petId, CancellationToken cancellationToken)
+    {
+        var session = await GetSessionAsync(cancellationToken);
+        var denied = EnsureAccess(session);
+        return denied ?? Ok(await _petService.RemovePhotoAsync(session!, petId, cancellationToken));
+    }
+
     private Task<WorkspaceSessionContext?> GetSessionAsync(CancellationToken cancellationToken) =>
         _authSessionService.GetSessionAsync(Request.Headers.Authorization.ToString(), cancellationToken);
 
     private ObjectResult? EnsureAccess(WorkspaceSessionContext? session)
     {
         if (session is null) return UnauthorizedProblem();
-        return session.BusinessSegment == BusinessSegment.PetShop
+        return session.Capabilities.HasPets
             ? null
             : StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails { Title = "Modulo indisponivel", Detail = "Animais nao estao disponiveis para esta empresa.", Status = 403 });
     }

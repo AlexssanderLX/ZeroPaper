@@ -1,5 +1,6 @@
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Services.Models;
+using ZeroPaper.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 
 namespace ZeroPaper.Services.Interfaces;
@@ -8,6 +9,7 @@ public interface IWorkspaceService
 {
     Task<WorkspaceOverviewDto> GetOverviewAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MenuCategoryDto>> GetMenuAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MenuItemDto>> GetCatalogItemsAsync(WorkspaceSessionContext session, CatalogItemKind? kind = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MenuCategorySummaryDto>> GetMenuCategorySummariesAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default);
     Task<MenuCategoryDto> GetMenuCategoryItemsAsync(WorkspaceSessionContext session, Guid categoryId, CancellationToken cancellationToken = default);
     Task<MenuItemDto> GetMenuItemAsync(WorkspaceSessionContext session, Guid menuItemId, CancellationToken cancellationToken = default);

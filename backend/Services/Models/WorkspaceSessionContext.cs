@@ -12,6 +12,7 @@ public class WorkspaceSessionContext
     public string Role { get; init; } = string.Empty;
     public string RestaurantName { get; init; } = string.Empty;
     public BusinessSegment BusinessSegment { get; init; } = BusinessSegment.Restaurant;
+    public BusinessCapabilities Capabilities { get; init; } = new();
     public string PlanName { get; init; } = string.Empty;
     public string PlanTier { get; init; } = string.Empty;
     public bool IncludesMenuModule { get; init; } = true;

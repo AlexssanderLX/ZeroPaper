@@ -62,7 +62,8 @@ public sealed class AppointmentServiceTests
         TenantId = tenantId,
         CompanyId = companyId,
         UserId = Guid.NewGuid(),
-        BusinessSegment = BusinessSegment.PetShop
+        BusinessSegment = BusinessSegment.PetShop,
+        Capabilities = BusinessCapabilities.Resolve(BusinessSegment.PetShop, true, true, true, true, true, true, true, true, true, true)
     };
 
     private static ZeroPaperDbContext CreateContext()

@@ -31,6 +31,7 @@ public class AdminCompanyFlowDto
     public Guid CompanyId { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
     public BusinessSegment BusinessSegment { get; set; } = BusinessSegment.Restaurant;
+    public string? PetShopPublicCode { get; set; }
     public string AccessSlug { get; set; } = string.Empty;
     public string OwnerName { get; set; } = string.Empty;
     public string OwnerEmail { get; set; } = string.Empty;
@@ -116,6 +117,7 @@ public sealed class AdminCompanySegmentDto
 {
     public Guid CompanyId { get; set; }
     public BusinessSegment BusinessSegment { get; set; }
+    public string? PetShopPublicCode { get; set; }
 }
 
 public class AdminCompanyMasterPasswordStatusDto

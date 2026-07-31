@@ -114,6 +114,7 @@ public class AdminDashboardService : IAdminDashboardService
                 CompanyId = item.Id,
                 RestaurantName = item.TradeName,
                 BusinessSegment = item.BusinessSegment,
+                PetShopPublicCode = item.PetShopPublicCode,
                 AccessSlug = item.AccessSlug,
                 OwnerName = item.Users
                     .Where(user => user.Role == UserRole.Owner)
@@ -435,12 +436,17 @@ public class AdminDashboardService : IAdminDashboardService
             ?? throw new KeyNotFoundException("Unidade nao encontrada.");
 
         company.ChangeBusinessSegment(request.BusinessSegment);
+        if (request.BusinessSegment == BusinessSegment.PetShop && string.IsNullOrWhiteSpace(company.PetShopPublicCode))
+        {
+            company.SetPetShopPublicCode(Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant());
+        }
         await _context.SaveChangesAsync(cancellationToken);
 
         return new AdminCompanySegmentDto
         {
             CompanyId = company.Id,
-            BusinessSegment = company.BusinessSegment
+            BusinessSegment = company.BusinessSegment,
+            PetShopPublicCode = company.PetShopPublicCode
         };
     }
 

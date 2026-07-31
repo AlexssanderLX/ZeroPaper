@@ -118,6 +118,11 @@ public class Company : TenantOwnedEntity
     public DateTime? MercadoPagoDisconnectedAtUtc { get; private set; }
     public string TimeZoneId { get; private set; } = "America/Sao_Paulo";
     public BusinessSegment BusinessSegment { get; private set; } = BusinessSegment.Restaurant;
+    public string AppointmentServiceDays { get; private set; } = "1,2,3,4,5,6";
+    public TimeOnly AppointmentStartTime { get; private set; } = new(8, 0);
+    public TimeOnly AppointmentEndTime { get; private set; } = new(18, 0);
+    public int AppointmentSlotIntervalMinutes { get; private set; } = 30;
+    public string? PetShopPublicCode { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public IReadOnlyCollection<AppUser> Users => _users.AsReadOnly();
@@ -141,6 +146,27 @@ public class Company : TenantOwnedEntity
         }
 
         BusinessSegment = businessSegment;
+        Touch();
+    }
+
+    public void UpdateAppointmentSchedule(string serviceDays, TimeOnly startTime, TimeOnly endTime, int slotIntervalMinutes)
+    {
+        var days = serviceDays.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(value => int.TryParse(value, out var day) && day is >= 0 and <= 6 ? day : throw new ArgumentException("Dias de atendimento invalidos.", nameof(serviceDays)))
+            .Distinct().Order().ToArray();
+        if (days.Length == 0) throw new ArgumentException("Informe ao menos um dia de atendimento.", nameof(serviceDays));
+        if (endTime <= startTime) throw new ArgumentException("O horario final deve ser posterior ao inicial.");
+        if (slotIntervalMinutes is < 5 or > 240) throw new ArgumentOutOfRangeException(nameof(slotIntervalMinutes));
+        AppointmentServiceDays = string.Join(',', days);
+        AppointmentStartTime = startTime;
+        AppointmentEndTime = endTime;
+        AppointmentSlotIntervalMinutes = slotIntervalMinutes;
+        Touch();
+    }
+
+    public void SetPetShopPublicCode(string? publicCode)
+    {
+        PetShopPublicCode = string.IsNullOrWhiteSpace(publicCode) ? null : publicCode.Trim().ToLowerInvariant();
         Touch();
     }
 

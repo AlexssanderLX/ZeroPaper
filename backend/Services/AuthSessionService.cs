@@ -254,6 +254,15 @@ public class AuthSessionService : IAuthSessionService
         var planFeatures = CommercialPlanCatalog.ResolveFeatures(planName);
         var planTier = CommercialPlanCatalog.ResolveTier(planName);
 
+        var includesMenu = activeSubscription?.IncludesMenuModule ?? true;
+        var includesTables = activeSubscription?.IncludesTablesModule ?? true;
+        var includesKitchen = activeSubscription?.IncludesKitchenModule ?? true;
+        var includesCash = activeSubscription?.IncludesCashModule ?? true;
+        var includesDelivery = activeSubscription?.IncludesDeliveryModule ?? true;
+        var includesPrinting = activeSubscription?.IncludesPrintingModule ?? true;
+        var includesWaiterCalls = activeSubscription?.IncludesWaiterCallModule ?? true;
+        var includesAiAssistant = activeSubscription?.IncludesAiAssistantModule ?? false;
+
         return new WorkspaceSessionContext
         {
             TenantId = session.TenantId,
@@ -264,19 +273,31 @@ public class AuthSessionService : IAuthSessionService
             Role = session.AppUser.Role.ToString(),
             RestaurantName = session.Company.TradeName,
             BusinessSegment = session.Company.BusinessSegment,
+            Capabilities = BusinessCapabilities.Resolve(
+                session.Company.BusinessSegment,
+                includesMenu,
+                includesTables,
+                includesKitchen,
+                includesCash,
+                includesDelivery,
+                includesPrinting,
+                includesWaiterCalls,
+                includesAiAssistant,
+                planFeatures.HasCoupons,
+                planFeatures.HasBasicReports || planFeatures.HasAdvancedReports),
             PlanName = CommercialPlanCatalog.TryResolve(planName, out var plan)
                 ? plan.Name
                 : planName,
             PlanTier = planTier.ToString(),
-            IncludesMenuModule = activeSubscription?.IncludesMenuModule ?? true,
-            IncludesTablesModule = activeSubscription?.IncludesTablesModule ?? true,
-            IncludesKitchenModule = activeSubscription?.IncludesKitchenModule ?? true,
-            IncludesCashModule = activeSubscription?.IncludesCashModule ?? true,
+            IncludesMenuModule = includesMenu,
+            IncludesTablesModule = includesTables,
+            IncludesKitchenModule = includesKitchen,
+            IncludesCashModule = includesCash,
             IncludesStockModule = activeSubscription?.IncludesStockModule ?? true,
-            IncludesDeliveryModule = activeSubscription?.IncludesDeliveryModule ?? true,
-            IncludesPrintingModule = activeSubscription?.IncludesPrintingModule ?? true,
-            IncludesWaiterCallModule = activeSubscription?.IncludesWaiterCallModule ?? true,
-            IncludesAiAssistantModule = activeSubscription?.IncludesAiAssistantModule ?? false,
+            IncludesDeliveryModule = includesDelivery,
+            IncludesPrintingModule = includesPrinting,
+            IncludesWaiterCallModule = includesWaiterCalls,
+            IncludesAiAssistantModule = includesAiAssistant,
             HasWhatsAppAI = planFeatures.HasWhatsAppAI,
             HasDelivery = planFeatures.HasDelivery,
             HasAutoPrint = planFeatures.HasAutoPrint,

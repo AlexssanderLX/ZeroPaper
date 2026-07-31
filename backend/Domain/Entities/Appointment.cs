@@ -109,6 +109,9 @@ public sealed class Appointment : TenantOwnedEntity
     public DateTime? CancelledAtUtc { get; private set; }
 
     public DateTime? NoShowAtUtc { get; private set; }
+    public string? PublicAccessTokenHash { get; private set; }
+    public DateTime? PublicAccessExpiresAtUtc { get; private set; }
+    public DateTime? PublicAccessRevokedAtUtc { get; private set; }
 
     public Company Company { get; private set; } = null!;
 
@@ -278,6 +281,22 @@ public sealed class Appointment : TenantOwnedEntity
             MaxNotesLength,
             nameof(internalNotes));
 
+        Touch();
+    }
+
+    public void SetPublicAccess(string tokenHash, DateTime expiresAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
+        if (expiresAtUtc.Kind != DateTimeKind.Utc || expiresAtUtc <= DateTime.UtcNow) throw new ArgumentException("A expiracao deve ser futura e UTC.", nameof(expiresAtUtc));
+        PublicAccessTokenHash = tokenHash.Trim();
+        PublicAccessExpiresAtUtc = expiresAtUtc;
+        PublicAccessRevokedAtUtc = null;
+        Touch();
+    }
+
+    public void RevokePublicAccess(DateTime revokedAtUtc)
+    {
+        PublicAccessRevokedAtUtc = EnsureUtc(revokedAtUtc, nameof(revokedAtUtc));
         Touch();
     }
 

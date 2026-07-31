@@ -1,10 +1,12 @@
 using ZeroPaper.Domain.Enums;
+using ZeroPaper.Services.Models;
 
 namespace ZeroPaper.DTOs.Workspace;
 
 public class WorkspaceOverviewDto
 {
     public BusinessSegment BusinessSegment { get; set; } = BusinessSegment.Restaurant;
+    public BusinessCapabilities Capabilities { get; set; } = new();
     public int ActiveTables { get; set; }
     public int OpenOrders { get; set; }
     public int PublishedMenuItems { get; set; }

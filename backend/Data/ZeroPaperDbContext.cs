@@ -47,6 +47,8 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<SalesAgent> SalesAgents => Set<SalesAgent>();
     public DbSet<Pet> Pets => Set<Pet>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<AppointmentStatusHistory> AppointmentStatusHistories => Set<AppointmentStatusHistory>();
+    public DbSet<AppointmentBlock> AppointmentBlocks => Set<AppointmentBlock>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -85,6 +87,11 @@ public class ZeroPaperDbContext : DbContext
                 .HasConversion<int>()
                 .HasDefaultValue(Domain.Enums.BusinessSegment.Restaurant)
                 .IsRequired();
+            entity.Property(x => x.AppointmentServiceDays).HasMaxLength(20).HasDefaultValue("1,2,3,4,5,6").IsRequired();
+            entity.Property(x => x.AppointmentStartTime).HasColumnType("time").HasDefaultValue(new TimeOnly(8, 0)).IsRequired();
+            entity.Property(x => x.AppointmentEndTime).HasColumnType("time").HasDefaultValue(new TimeOnly(18, 0)).IsRequired();
+            entity.Property(x => x.AppointmentSlotIntervalMinutes).HasDefaultValue(30).IsRequired();
+            entity.Property(x => x.PetShopPublicCode).HasMaxLength(48);
             entity.Property(x => x.LastOrderNumber).IsRequired();
             entity.Property(x => x.EnableOrderAlerts).IsRequired();
             entity.Property(x => x.EnableWaiterCallAlerts).IsRequired();
@@ -140,6 +147,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.IsActive).IsRequired();
 
             entity.HasIndex(x => new { x.TenantId, x.AccessSlug }).IsUnique();
+            entity.HasIndex(x => x.PetShopPublicCode).IsUnique();
 
             entity.HasOne(x => x.Tenant)
                 .WithMany(x => x.Companies)
@@ -1197,6 +1205,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.CustomerNotes).HasMaxLength(1000);
             entity.Property(x => x.InternalNotes).HasMaxLength(1000);
             entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.Property(x => x.PublicAccessTokenHash).HasMaxLength(128);
             entity.Property(x => x.CreatedAtUtc).IsRequired();
             entity.Property(x => x.UpdatedAtUtc).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
@@ -1205,6 +1214,7 @@ public class ZeroPaperDbContext : DbContext
             entity.HasIndex(x => new { x.CompanyId, x.PetId, x.StartsAtUtc });
             entity.HasIndex(x => x.CustomerOrderId);
             entity.HasIndex(x => x.AssignedUserId);
+            entity.HasIndex(x => x.PublicAccessTokenHash).IsUnique();
 
             entity.HasOne(x => x.Company)
                 .WithMany(x => x.Appointments)
@@ -1230,6 +1240,38 @@ public class ZeroPaperDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.AssignedUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AppointmentStatusHistory>(entity =>
+        {
+            entity.ToTable("appointmentstatushistories");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PreviousStatus).HasConversion<int>().IsRequired();
+            entity.Property(x => x.NewStatus).HasConversion<int>().IsRequired();
+            entity.Property(x => x.ChangedAtUtc).IsRequired();
+            entity.Property(x => x.Reason).HasMaxLength(500);
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            entity.HasIndex(x => new { x.CompanyId, x.AppointmentId, x.ChangedAtUtc });
+            entity.HasOne(x => x.Appointment).WithMany().HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.ChangedByUser).WithMany().HasForeignKey(x => x.ChangedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AppointmentBlock>(entity =>
+        {
+            entity.ToTable("appointmentblocks");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.StartsAtUtc).IsRequired();
+            entity.Property(x => x.EndsAtUtc).IsRequired();
+            entity.Property(x => x.Reason).HasMaxLength(300);
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            entity.HasIndex(x => new { x.CompanyId, x.StartsAtUtc, x.EndsAtUtc });
+            entity.HasIndex(x => x.AssignedUserId);
+            entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AssignedUser).WithMany().HasForeignKey(x => x.AssignedUserId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

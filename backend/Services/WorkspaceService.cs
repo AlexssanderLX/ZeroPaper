@@ -153,6 +153,7 @@ public class WorkspaceService : IWorkspaceService
         return new WorkspaceOverviewDto
         {
             BusinessSegment = session.BusinessSegment,
+            Capabilities = session.Capabilities,
             ActiveTables = activeTables,
             OpenOrders = openOrders,
             PublishedMenuItems = publishedMenuItems,
@@ -189,6 +190,15 @@ public class WorkspaceService : IWorkspaceService
     public async Task<IReadOnlyList<MenuCategoryDto>> GetMenuAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
     {
         return await BuildMenuAsync(session.CompanyId, includeInactiveItems: true, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MenuItemDto>> GetCatalogItemsAsync(WorkspaceSessionContext session, CatalogItemKind? kind = null, CancellationToken cancellationToken = default)
+    {
+        BusinessCapabilityGuard.Require(session.Capabilities.HasCatalog, "Catalog");
+        var query = _context.MenuItems.AsNoTracking().Where(item => item.CompanyId == session.CompanyId && item.TenantId == session.TenantId && item.IsActive);
+        if (kind.HasValue) query = query.Where(item => item.Kind == kind.Value);
+        var items = await query.Include(item => item.AdditionalGroups).ThenInclude(group => group.Options).OrderBy(item => item.DisplayOrder).ToListAsync(cancellationToken);
+        return items.Select(MapMenuItem).ToList();
     }
 
     public async Task<IReadOnlyList<MenuCategorySummaryDto>> GetMenuCategorySummariesAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)

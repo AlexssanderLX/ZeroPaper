@@ -23,7 +23,7 @@ public sealed class PetServiceTests
         context.Pets.Add(pet);
         await context.SaveChangesAsync();
 
-        var service = new PetService(context);
+        var service = new PetService(context, Path.GetTempPath());
         var session = CreateSession(tenantId, firstCompanyId);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetByIdAsync(session, pet.Id));
@@ -41,7 +41,7 @@ public sealed class PetServiceTests
         context.DeliveryCustomerProfiles.Add(customer);
         await context.SaveChangesAsync();
 
-        var service = new PetService(context);
+        var service = new PetService(context, Path.GetTempPath());
         var request = new CreatePetRequestDto
         {
             CustomerProfileId = customer.Id,
@@ -57,10 +57,10 @@ public sealed class PetServiceTests
     public async Task Restaurant_session_cannot_use_pet_service()
     {
         await using var context = CreateContext();
-        var service = new PetService(context);
+        var service = new PetService(context, Path.GetTempPath());
         var session = CreateSession(Guid.NewGuid(), Guid.NewGuid(), BusinessSegment.Restaurant);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetAsync(session));
+        await Assert.ThrowsAsync<CapabilityUnavailableException>(() => service.GetAsync(session, null, null, null, 1, 25));
     }
 
     private static WorkspaceSessionContext CreateSession(
@@ -71,7 +71,8 @@ public sealed class PetServiceTests
         TenantId = tenantId,
         CompanyId = companyId,
         UserId = Guid.NewGuid(),
-        BusinessSegment = businessSegment
+        BusinessSegment = businessSegment,
+        Capabilities = BusinessCapabilities.Resolve(businessSegment, true, true, true, true, true, true, true, true, true, true)
     };
 
     private static ZeroPaperDbContext CreateContext()
