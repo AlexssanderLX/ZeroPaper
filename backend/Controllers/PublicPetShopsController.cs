@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Services.Interfaces;
@@ -6,6 +7,8 @@ using ZeroPaper.Services.Interfaces;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[RequestSizeLimit(64 * 1024)]
 [Route("api/public/petshops")]
 public sealed class PublicPetShopsController : ControllerBase
 {
@@ -27,10 +30,13 @@ public sealed class PublicPetShopsController : ControllerBase
     public async Task<IActionResult> CreateAsync(string publicCode, [FromBody] PublicAppointmentRequestDto request, CancellationToken cancellationToken)
         => Ok(await _service.CreateRequestAsync(publicCode, request, cancellationToken));
 
-    [HttpGet("appointments/{accessToken}")]
-    public async Task<IActionResult> TrackAsync(string accessToken, CancellationToken cancellationToken) => Ok(await _service.GetTrackingAsync(accessToken, cancellationToken));
-
-    [HttpPost("appointments/{accessToken}/cancel")]
+    [HttpGet("appointments/track")]
     [EnableRateLimiting("public-write")]
-    public async Task<IActionResult> CancelAsync(string accessToken, CancellationToken cancellationToken) => Ok(await _service.CancelAsync(accessToken, cancellationToken));
+    public async Task<IActionResult> TrackAsync([FromHeader(Name = "X-ZP-Public-Token")] string accessToken, CancellationToken cancellationToken)
+        => Ok(await _service.GetTrackingAsync(accessToken, cancellationToken));
+
+    [HttpPost("appointments/cancel")]
+    [EnableRateLimiting("public-write")]
+    public async Task<IActionResult> CancelAsync([FromHeader(Name = "X-ZP-Public-Token")] string accessToken, CancellationToken cancellationToken)
+        => Ok(await _service.CancelAsync(accessToken, cancellationToken));
 }

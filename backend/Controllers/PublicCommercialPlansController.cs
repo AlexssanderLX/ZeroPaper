@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ZeroPaper.Domain.Enums;
 using ZeroPaper.Domain.Plans;
 using ZeroPaper.DTOs.Public;
@@ -6,6 +7,7 @@ using ZeroPaper.DTOs.Public;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("api/public/commercial-plans")]
 public sealed class PublicCommercialPlansController : ControllerBase
 {

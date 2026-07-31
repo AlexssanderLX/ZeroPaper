@@ -2,11 +2,14 @@ using System.Net;
 using System.Net.Mail;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ZeroPaper.DTOs.Public;
 
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[RequestSizeLimit(64 * 1024)]
 [Route("api/public/contact")]
 public class PublicContactController : ControllerBase
 {

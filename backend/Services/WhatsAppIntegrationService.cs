@@ -127,12 +127,6 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
     public async Task HandleEvolutionWebhookAsync(string instanceName, string? key, JsonDocument payload, CancellationToken cancellationToken = default)
     {
         var envelope = ParseEvolutionEnvelope(payload.RootElement);
-        _logger.LogDebug(
-            "Webhook Evolution recebido para instancia {Instance}. Evento: {Event}. Data detectada: {HasData}.",
-            instanceName,
-            string.IsNullOrWhiteSpace(envelope.Event) ? "(vazio)" : envelope.Event,
-            envelope.Data.ValueKind != JsonValueKind.Undefined);
-
         var company = await ResolveCompanyAsync(instanceName, key, tracking: true, cancellationToken);
         var normalizedEvent = NormalizeEvolutionEventName(envelope.Event);
 
@@ -151,11 +145,7 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
                 await HandleEvolutionSendMessageAsync(company, envelope.Data, cancellationToken);
                 break;
             default:
-                _logger.LogDebug(
-                    "Evento Evolution ignorado para a unidade {CompanyId}. Evento bruto: {Event}. Trecho: {PayloadExcerpt}",
-                    company.Id,
-                    envelope.Event,
-                    TruncateWebhookPayload(payload.RootElement.ToString()));
+                _logger.LogDebug("Evento Evolution ignorado para a unidade {CompanyId}. Tipo: {Event}.", company.Id, envelope.Event);
                 break;
         }
     }
@@ -1505,18 +1495,6 @@ public partial class WhatsAppIntegrationService : IWhatsAppIntegrationService
         return PendingEvolutionSnapshots.TryGetValue(instanceName, out var snapshot)
             ? snapshot
             : new EvolutionConnectionSnapshot();
-    }
-
-    private static string TruncateWebhookPayload(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Length <= 900
-            ? value
-            : $"{value[..900]}...";
     }
 
     private static void StoreEvolutionSnapshot(string? instanceName, EvolutionConnectionSnapshot snapshot)

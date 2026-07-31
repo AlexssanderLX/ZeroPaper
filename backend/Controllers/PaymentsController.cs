@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ZeroPaper.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -9,6 +11,7 @@ using ZeroPaper.Services.Models;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[Authorize(Policy = ZeroPaperSecurity.WorkspacePolicy)]
 [Route("api/workspace/payments")]
 public class PaymentsController : ControllerBase
 {
@@ -63,6 +66,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpGet("mercadopago/callback")]
+    [AllowAnonymous]
     public async Task<IActionResult> HandleCallbackAsync(
         [FromQuery] string? code,
         [FromQuery] string? state,
@@ -74,6 +78,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost("~/api/public/tables/{publicCode}/orders/{orderId:guid}/mercadopago/checkout")]
+    [AllowAnonymous]
     [EnableRateLimiting("public-write")]
     [ProducesResponseType(typeof(MercadoPagoCheckoutResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreatePublicCheckoutAsync(
@@ -85,6 +90,9 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost("~/api/public/payments/mercadopago/webhook")]
+    [AllowAnonymous]
+    [EnableRateLimiting("webhook-ingress")]
+    [RequestSizeLimit(256 * 1024)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> HandleWebhookAsync(CancellationToken cancellationToken)
     {

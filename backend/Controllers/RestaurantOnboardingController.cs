@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Onboarding;
 using ZeroPaper.Services.Interfaces;
@@ -6,6 +7,8 @@ using ZeroPaper.Services.Interfaces;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[RequestSizeLimit(64 * 1024)]
 [Route("api/onboarding/restaurants")]
 [Route("api/onboarding")]
 [EnableRateLimiting("public-write")]

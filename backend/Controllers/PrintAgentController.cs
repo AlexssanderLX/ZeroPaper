@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Services.Interfaces;
@@ -6,6 +7,7 @@ using ZeroPaper.Services.Interfaces;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("api/print-agent")]
 [EnableRateLimiting("integration-write")]
 public class PrintAgentController : ControllerBase

@@ -139,7 +139,8 @@ public class PasswordResetService : IPasswordResetService
             ?? _configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>()?.FirstOrDefault()
             ?? "http://localhost:3000";
 
-        var resetUrl = $"{frontendBaseUrl.TrimEnd('/')}/redefinir-senha?token={Uri.EscapeDataString(rawToken)}";
+        // Fragmentos nao sao enviados ao servidor/proxy e evitam token em access logs e Referer.
+        var resetUrl = $"{frontendBaseUrl.TrimEnd('/')}/redefinir-senha#token={Uri.EscapeDataString(rawToken)}";
         var restaurantName = user.Role.ToString().Equals("Root", StringComparison.OrdinalIgnoreCase)
             ? "ZeroPaper"
             : user.Company.TradeName;

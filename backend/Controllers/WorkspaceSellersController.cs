@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ZeroPaper.Security;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Services.Interfaces;
 
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[Authorize(Policy = ZeroPaperSecurity.WorkspacePolicy)]
 [Route("api/workspace/sellers")]
 public class WorkspaceSellersController : ControllerBase
 {

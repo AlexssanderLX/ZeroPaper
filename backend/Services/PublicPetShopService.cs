@@ -7,6 +7,7 @@ using ZeroPaper.Domain.Enums;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
+using ZeroPaper.Security;
 
 namespace ZeroPaper.Services;
 
@@ -45,6 +46,18 @@ public sealed class PublicPetShopService : IPublicPetShopService
     {
         var company = await GetCompanyAsync(publicCode, cancellationToken);
         var phone = DeliveryCustomerProfile.NormalizePhone(request.PhoneNumber);
+        var cutoff = DateTime.UtcNow.AddHours(-1);
+        var companyRequests = await _context.Appointments.AsNoTracking().CountAsync(item =>
+            item.CompanyId == company.Id && item.TenantId == company.TenantId &&
+            item.PublicAccessTokenHash != null && item.CreatedAtUtc >= cutoff, cancellationToken);
+        if (companyRequests >= 50) throw new PublicAbuseLimitException();
+
+        var phoneRequests = await _context.Appointments.AsNoTracking().CountAsync(item =>
+            item.CompanyId == company.Id && item.TenantId == company.TenantId &&
+            item.PublicAccessTokenHash != null && item.CreatedAtUtc >= cutoff &&
+            item.Pet.CustomerProfile.Phone == phone, cancellationToken);
+        if (phoneRequests >= 5) throw new PublicAbuseLimitException();
+
         var customer = await _context.DeliveryCustomerProfiles.FirstOrDefaultAsync(item => item.CompanyId == company.Id && item.Phone == phone, cancellationToken);
         if (customer is null)
         {

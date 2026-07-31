@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Auth;
 using ZeroPaper.Services.Interfaces;
+using ZeroPaper.Security;
 
 namespace ZeroPaper.Controllers;
 
@@ -11,14 +13,17 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthSessionService _authSessionService;
     private readonly IPasswordResetService _passwordResetService;
+    private readonly LoginAttemptProtector _loginAttempts;
 
-    public AuthController(IAuthSessionService authSessionService, IPasswordResetService passwordResetService)
+    public AuthController(IAuthSessionService authSessionService, IPasswordResetService passwordResetService, LoginAttemptProtector loginAttempts)
     {
         _authSessionService = authSessionService;
         _passwordResetService = passwordResetService;
+        _loginAttempts = loginAttempts;
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     [EnableRateLimiting("public-write")]
     [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -28,8 +33,17 @@ public class AuthController : ControllerBase
     {
         try
         {
+            await _loginAttempts.DelayIfNeededAsync(HttpContext, request.Email, cancellationToken);
             var response = await _authSessionService.LoginAsync(request, cancellationToken);
-            return response is null ? Unauthorized() : Ok(response);
+            if (response is null)
+            {
+                _loginAttempts.RecordFailure(HttpContext, request.Email);
+                return Unauthorized();
+            }
+            _loginAttempts.Reset(HttpContext, request.Email);
+            SetSessionCookie(response.Token, response.ExpiresAtUtc);
+            response.Token = string.Empty;
+            return Ok(response);
         }
         catch (ArgumentException exception)
         {
@@ -52,6 +66,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("shortcut-login")]
+    [AllowAnonymous]
     [EnableRateLimiting("public-write")]
     [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -62,7 +77,10 @@ public class AuthController : ControllerBase
         try
         {
             var response = await _authSessionService.LoginWithShortcutAsync(request, cancellationToken);
-            return response is null ? Unauthorized() : Ok(response);
+            if (response is null) return Unauthorized();
+            SetSessionCookie(response.Token, response.ExpiresAtUtc);
+            response.Token = string.Empty;
+            return Ok(response);
         }
         catch (ArgumentException exception)
         {
@@ -88,11 +106,13 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
     {
-        await _authSessionService.LogoutAsync(Request.Headers.Authorization.ToString(), cancellationToken);
+        await _authSessionService.LogoutAsync(GetSessionAuthorization(), cancellationToken);
+        Response.Cookies.Delete(ZeroPaperSecurity.SessionCookie, new CookieOptions { Path = "/" });
         return NoContent();
     }
 
     [HttpPost("password/request-reset")]
+    [AllowAnonymous]
     [EnableRateLimiting("public-write")]
     [ProducesResponseType(typeof(PasswordResetRequestResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> RequestPasswordResetAsync(
@@ -104,6 +124,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("password/reset")]
+    [AllowAnonymous]
     [EnableRateLimiting("public-write")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -123,19 +144,36 @@ public class AuthController : ControllerBase
         [FromBody] ConfirmPasswordRequestDto request,
         CancellationToken cancellationToken)
     {
-        var session = await _authSessionService.GetSessionAsync(Request.Headers.Authorization.ToString(), cancellationToken);
-
-        if (session is null)
-        {
-            return Unauthorized();
-        }
+        var session = HttpContext.GetWorkspaceSession();
 
         return Ok(new ConfirmPasswordResponseDto
         {
             Confirmed = await _authSessionService.ConfirmPasswordAsync(
-                Request.Headers.Authorization.ToString(),
+                GetSessionAuthorization(),
                 request.Password,
                 cancellationToken)
         });
+    }
+
+    private void SetSessionCookie(string token, DateTime expiresAtUtc)
+    {
+        Response.Cookies.Append(ZeroPaperSecurity.SessionCookie, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment(),
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+            Expires = new DateTimeOffset(expiresAtUtc),
+            IsEssential = true
+        });
+    }
+
+    private string GetSessionAuthorization()
+    {
+        var header = Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(header)) return header;
+        return Request.Cookies.TryGetValue(ZeroPaperSecurity.SessionCookie, out var token)
+            ? $"Bearer {token}"
+            : string.Empty;
     }
 }

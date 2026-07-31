@@ -1,11 +1,14 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.Services.Interfaces;
 
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[RequestSizeLimit(1024 * 1024)]
 public class WhatsAppWebhookController : ControllerBase
 {
     private readonly IWhatsAppIntegrationService _whatsAppIntegrationService;

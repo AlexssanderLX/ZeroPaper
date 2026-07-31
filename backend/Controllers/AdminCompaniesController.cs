@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ZeroPaper.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Admin;
 using ZeroPaper.Services.Interfaces;
@@ -7,6 +9,7 @@ using ZeroPaper.Services.Models;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[Authorize(Policy = ZeroPaperSecurity.RootPolicy)]
 [Route("api/admin/companies")]
 public class AdminCompaniesController : ControllerBase
 {
@@ -27,10 +30,13 @@ public class AdminCompaniesController : ControllerBase
         [FromBody] AdminSensitiveActionRequestDto request,
         CancellationToken cancellationToken)
     {
-        var session = await GetRequiredSessionAsync(cancellationToken);
-        return session is null
-            ? Unauthorized()
-            : Ok(await _adminDashboardService.RevealCompanyMasterPasswordAsync(session, companyId, request, cancellationToken));
+        await Task.CompletedTask;
+        return StatusCode(StatusCodes.Status410Gone, new ProblemDetails
+        {
+            Title = "Recurso desativado",
+            Detail = "A senha mestra compartilhada foi eliminada por seguranca.",
+            Status = StatusCodes.Status410Gone
+        });
     }
 
     [HttpPost("{companyId:guid}/master-password/rotate")]
@@ -41,10 +47,13 @@ public class AdminCompaniesController : ControllerBase
         [FromBody] AdminSensitiveActionRequestDto request,
         CancellationToken cancellationToken)
     {
-        var session = await GetRequiredSessionAsync(cancellationToken);
-        return session is null
-            ? Unauthorized()
-            : Ok(await _adminDashboardService.RotateCompanyMasterPasswordAsync(session, companyId, request, cancellationToken));
+        await Task.CompletedTask;
+        return StatusCode(StatusCodes.Status410Gone, new ProblemDetails
+        {
+            Title = "Recurso desativado",
+            Detail = "A senha mestra compartilhada foi eliminada por seguranca.",
+            Status = StatusCodes.Status410Gone
+        });
     }
 
     [HttpPatch("{companyId:guid}/plan")]

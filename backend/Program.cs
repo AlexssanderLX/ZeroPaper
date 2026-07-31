@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +10,7 @@ using QuestPDF.Infrastructure;
 using System.Net;
 using System.Net.Mime;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using ZeroPaper.Data;
 using ZeroPaper.Repositories;
 using ZeroPaper.Repositories.Interfaces;
@@ -15,6 +18,7 @@ using ZeroPaper.Services;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
 using ZeroPaper.Services.Reports;
+using ZeroPaper.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +27,7 @@ QuestPDF.Settings.License = LicenseType.Community;
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.AddServerHeader = false;
+    options.Limits.MaxRequestBodySize = 12 * 1024 * 1024;
 });
 builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole(options =>
@@ -37,8 +42,13 @@ if (builder.Environment.IsDevelopment())
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection was not configured.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    if (!builder.Environment.IsEnvironment("Testing"))
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection was not configured.");
+    connectionString = "Server=127.0.0.1;Database=security_tests;User=test;Password=test";
+}
 
 var allowedOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>()
     ?? ["http://localhost:3000"];
@@ -65,8 +75,21 @@ Directory.CreateDirectory(dataProtectionPath);
 Directory.CreateDirectory(uploadsPath);
 
 builder.Services.AddProblemDetails();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddAuthentication(ZeroPaperSecurity.AuthenticationScheme)
+    .AddScheme<AuthenticationSchemeOptions, ZeroPaperSessionAuthenticationHandler>(
+        ZeroPaperSecurity.AuthenticationScheme, _ => { });
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.AddPolicy(ZeroPaperSecurity.RootPolicy, policy => policy.RequireRole("Root"));
+    options.AddPolicy(ZeroPaperSecurity.OwnerPolicy, policy => policy.RequireRole("Owner", "Root"));
+    options.AddPolicy(ZeroPaperSecurity.WorkspacePolicy, policy => policy.RequireRole("Owner", "Manager", "Employee"));
+});
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
     .SetApplicationName("ZeroPaper");
@@ -80,20 +103,22 @@ builder.Services.AddCors(options =>
     options.AddPolicy("frontend", policy =>
     {
         policy.SetIsOriginAllowed(origin => IsAllowedFrontendOrigin(origin, allowedOrigins, builder.Environment.IsDevelopment()))
-            .WithHeaders("Content-Type", "Authorization")
+            .WithHeaders("Content-Type", "Authorization", ZeroPaperSecurity.CsrfHeader, "X-ZP-Public-Token")
             .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
+        policy.AllowCredentials();
     });
 });
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("public-write", limiter =>
-    {
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.PermitLimit = 10;
-        limiter.QueueLimit = 0;
-    });
+    options.AddPolicy("public-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            Window = TimeSpan.FromMinutes(1), PermitLimit = 10, QueueLimit = 0,
+            AutoReplenishment = true
+        }));
     options.AddFixedWindowLimiter("integration-write", limiter =>
     {
         limiter.Window = TimeSpan.FromMinutes(1);
@@ -107,24 +132,28 @@ builder.Services.AddRateLimiter(options =>
         limiter.QueueLimit = 1000;
         limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
-    options.AddFixedWindowLimiter("sensitive-write", limiter =>
-    {
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.PermitLimit = 12;
-        limiter.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("upload-write", limiter =>
-    {
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.PermitLimit = 20;
-        limiter.QueueLimit = 0;
-    });
+    options.AddPolicy("sensitive-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            Window = TimeSpan.FromMinutes(1), PermitLimit = 12, QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("upload-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            Window = TimeSpan.FromMinutes(1), PermitLimit = 20, QueueLimit = 0,
+            AutoReplenishment = true
+        }));
 });
 
 builder.Services.AddDbContext<ZeroPaperDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString),
+        new MariaDbServerVersion(new Version(10, 6, 0)),
         mysqlOptions => mysqlOptions
             .MigrationsHistoryTable("__efmigrationshistory")
             .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
@@ -240,6 +269,14 @@ builder.Services.AddHttpClient<IMercadoPagoService, MercadoPagoService>((service
     client.Timeout = TimeSpan.FromSeconds(20);
 });
 builder.Services.AddSingleton<PlatformRootSeeder>();
+builder.Services.AddSingleton<LoginAttemptProtector>();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+    options.ForwardLimit = 1;
+});
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
@@ -250,6 +287,7 @@ using (var scope = app.Services.CreateScope())
     await cashOrderTableService.EnsureForActiveOwnersAsync();
 }
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
@@ -257,6 +295,7 @@ app.UseExceptionHandler(errorApp =>
         var feature = context.Features.Get<IExceptionHandlerFeature>();
         var statusCode = feature?.Error switch
         {
+            PublicAbuseLimitException => StatusCodes.Status429TooManyRequests,
             CapabilityUnavailableException => StatusCodes.Status403Forbidden,
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
             KeyNotFoundException => StatusCodes.Status404NotFound,
@@ -292,20 +331,81 @@ app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
-    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
     context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'";
+    if (context.Request.Path.StartsWithSegments("/api/auth") ||
+        context.Request.Path.StartsWithSegments("/api/admin"))
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers.Pragma = "no-cache";
+    }
 
     await next();
 });
 
-app.UseRateLimiter();
 app.UseCors("frontend");
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+app.Use(async (context, next) =>
+{
+    var unsafeMethod = HttpMethods.IsPost(context.Request.Method) ||
+        HttpMethods.IsPut(context.Request.Method) ||
+        HttpMethods.IsPatch(context.Request.Method) ||
+        HttpMethods.IsDelete(context.Request.Method);
+    var cookieAuthenticated = context.Request.Cookies.ContainsKey(ZeroPaperSecurity.SessionCookie) &&
+        string.IsNullOrWhiteSpace(context.Request.Headers.Authorization);
+    var isAnonymousEndpoint = context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is not null;
+
+    if (unsafeMethod && cookieAuthenticated && !isAnonymousEndpoint &&
+        context.Request.Headers[ZeroPaperSecurity.CsrfHeader] != "1")
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new ProblemDetails
+        {
+            Title = "Requisicao recusada",
+            Detail = "Cabecalho de protecao CSRF ausente.",
+            Status = StatusCodes.Status400BadRequest
+        });
+        return;
+    }
+
+    await next();
+});
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    var isPrivateUpload = path.StartsWith("/uploads/pets/", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/uploads/alerts/", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/uploads/table-alerts/", StringComparison.OrdinalIgnoreCase);
+
+    if (isPrivateUpload && context.User.Identity?.IsAuthenticated != true)
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
+    await next();
+});
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
+    RequestPath = "/uploads",
+    OnPrepareResponse = staticFileContext =>
+    {
+        var path = staticFileContext.Context.Request.Path.Value ?? string.Empty;
+        var isPrivate = path.StartsWith("/uploads/pets/", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/uploads/alerts/", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/uploads/table-alerts/", StringComparison.OrdinalIgnoreCase);
+        staticFileContext.Context.Response.Headers.CacheControl = isPrivate
+            ? "private, no-store"
+            : "public, max-age=86400";
+        staticFileContext.Context.Response.Headers.ContentDisposition =
+            $"inline; filename=\"{Path.GetFileName(staticFileContext.File.Name).Replace("\"", string.Empty)}\"";
+        staticFileContext.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    }
 });
 app.UseStaticFiles();
 
@@ -314,7 +414,6 @@ if (enableHttpsRedirection && httpsPort.HasValue)
     app.UseHttpsRedirection();
 }
 
-app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
@@ -362,3 +461,5 @@ static bool IsAllowedFrontendOrigin(string? origin, string[] allowedOrigins, boo
         || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
         || (bytes[0] == 192 && bytes[1] == 168);
 }
+
+public partial class Program { }

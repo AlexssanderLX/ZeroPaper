@@ -8,6 +8,7 @@ using ZeroPaper.Domain.Plans;
 using ZeroPaper.DTOs.Auth;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
+using ZeroPaper.Security;
 
 namespace ZeroPaper.Services;
 
@@ -17,15 +18,18 @@ public class AuthSessionService : IAuthSessionService
     private readonly ZeroPaperDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ICashOrderTableService _cashOrderTableService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AuthSessionService(
         ZeroPaperDbContext context,
         IPasswordHasher passwordHasher,
-        ICashOrderTableService cashOrderTableService)
+        ICashOrderTableService cashOrderTableService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _cashOrderTableService = cashOrderTableService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
@@ -55,22 +59,6 @@ public class AuthSessionService : IAuthSessionService
         {
             user = directMatches[0];
         }
-        else if (directMatches.Count == 0)
-        {
-            var masterPasswordMatches = candidates
-                .Where(user =>
-                    user.Role != UserRole.Root &&
-                    !string.IsNullOrWhiteSpace(user.Company.AdminMasterPasswordHash) &&
-                    _passwordHasher.Verify(request.Password, user.Company.AdminMasterPasswordHash))
-                .ToList();
-
-            if (masterPasswordMatches.Count != 1)
-            {
-                return null;
-            }
-
-            user = masterPasswordMatches[0];
-        }
         else
         {
             return null;
@@ -91,7 +79,7 @@ public class AuthSessionService : IAuthSessionService
 
         if (!user.IsActive || !user.Company.IsActive)
         {
-            throw new InvalidOperationException("Acesso negado. Entre em contato com a ZeroPaper.");
+            return null;
         }
 
         if (user.Role == UserRole.Owner)
@@ -108,6 +96,8 @@ public class AuthSessionService : IAuthSessionService
             user.Id,
             ComputeTokenHash(rawToken),
             utcNow.Add(SessionLifetime));
+
+        await RevokeExcessSessionsAsync(user.Id, utcNow, cancellationToken);
 
         user.RegisterLogin();
 
@@ -167,6 +157,8 @@ public class AuthSessionService : IAuthSessionService
             ComputeTokenHash(rawSessionToken),
             utcNow.Add(SessionLifetime));
 
+        await RevokeExcessSessionsAsync(user.Id, utcNow, cancellationToken);
+
         user.RegisterShortcutAccessUsage(utcNow);
         user.RegisterLogin();
 
@@ -217,7 +209,20 @@ public class AuthSessionService : IAuthSessionService
 
     public async Task<WorkspaceSessionContext?> GetSessionAsync(string? authorizationHeader, CancellationToken cancellationToken = default)
     {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.Items.TryGetValue(ZeroPaperSecurity.SessionContextItem, out var cached) == true &&
+            cached is WorkspaceSessionContext cachedSession)
+        {
+            return cachedSession;
+        }
+
         var token = ExtractBearerToken(authorizationHeader);
+
+        if (string.IsNullOrWhiteSpace(token) &&
+            httpContext?.Request.Cookies.TryGetValue(ZeroPaperSecurity.SessionCookie, out var cookieToken) == true)
+        {
+            token = cookieToken;
+        }
 
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -263,7 +268,7 @@ public class AuthSessionService : IAuthSessionService
         var includesWaiterCalls = activeSubscription?.IncludesWaiterCallModule ?? true;
         var includesAiAssistant = activeSubscription?.IncludesAiAssistantModule ?? false;
 
-        return new WorkspaceSessionContext
+        var workspaceSession = new WorkspaceSessionContext
         {
             TenantId = session.TenantId,
             CompanyId = session.CompanyId,
@@ -308,6 +313,12 @@ public class AuthSessionService : IAuthSessionService
             HasRecurringCustomers = planFeatures.HasRecurringCustomers,
             HasSalesAgents = planFeatures.HasSalesAgents
         };
+        if (httpContext is not null)
+        {
+            httpContext.Items[ZeroPaperSecurity.SessionContextItem] = workspaceSession;
+        }
+
+        return workspaceSession;
     }
 
     private Task<Subscription?> GetActiveSubscriptionAsync(Guid tenantId, CancellationToken cancellationToken)
@@ -320,6 +331,16 @@ public class AuthSessionService : IAuthSessionService
                 (item.Status == SubscriptionStatus.Active || item.Status == SubscriptionStatus.Trial))
             .OrderByDescending(item => item.StartsAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task RevokeExcessSessionsAsync(Guid userId, DateTime utcNow, CancellationToken cancellationToken)
+    {
+        var excess = await _context.Sessions
+            .Where(item => item.AppUserId == userId && item.IsActive && item.RevokedAtUtc == null && item.ExpiresAtUtc > utcNow)
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .Skip(4)
+            .ToListAsync(cancellationToken);
+        foreach (var item in excess) item.Revoke(utcNow);
     }
 
     public async Task<bool> ConfirmPasswordAsync(string? authorizationHeader, string password, CancellationToken cancellationToken = default)

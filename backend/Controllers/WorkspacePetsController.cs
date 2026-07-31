@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ZeroPaper.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.Domain.Enums;
 using ZeroPaper.DTOs.Workspace;
@@ -8,6 +10,7 @@ using ZeroPaper.Services.Models;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[Authorize(Policy = ZeroPaperSecurity.WorkspacePolicy)]
 [Route("api/workspace/pets")]
 public sealed class WorkspacePetsController : ControllerBase
 {

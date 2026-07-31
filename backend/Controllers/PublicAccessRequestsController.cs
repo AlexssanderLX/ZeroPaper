@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Public;
 using ZeroPaper.Services.Interfaces;
@@ -6,6 +7,8 @@ using ZeroPaper.Services.Interfaces;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[RequestSizeLimit(64 * 1024)]
 [Route("api/public/access-requests")]
 public class PublicAccessRequestsController : ControllerBase
 {

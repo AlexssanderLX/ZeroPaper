@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ZeroPaper.Security;
 using ZeroPaper.DTOs.Admin;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
@@ -6,6 +8,7 @@ using ZeroPaper.Services.Models;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[Authorize(Policy = ZeroPaperSecurity.RootPolicy)]
 [Route("api/admin/dashboard")]
 public class AdminDashboardController : ControllerBase
 {

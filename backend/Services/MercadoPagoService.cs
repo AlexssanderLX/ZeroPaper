@@ -321,9 +321,8 @@ public class MercadoPagoService : IMercadoPagoService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Falha ao trocar o codigo do Mercado Pago. Status {Status}. Corpo: {Body}",
-                    (int)response.StatusCode,
-                    payload);
+                    "Falha ao trocar o codigo do Mercado Pago. Status {Status}.",
+                    (int)response.StatusCode);
                 return null;
             }
 
@@ -400,9 +399,8 @@ public class MercadoPagoService : IMercadoPagoService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Falha ao renovar token Mercado Pago. Status {Status}. Corpo: {Body}",
-                    (int)response.StatusCode,
-                    payload);
+                    "Falha ao renovar token Mercado Pago. Status {Status}.",
+                    (int)response.StatusCode);
                 return null;
             }
 
@@ -478,10 +476,9 @@ public class MercadoPagoService : IMercadoPagoService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Falha ao criar preferencia Mercado Pago para pedido {OrderId}. Status {Status}. Corpo: {Body}",
+                    "Falha ao criar preferencia Mercado Pago para pedido {OrderId}. Status {Status}.",
                     order.Id,
-                    (int)response.StatusCode,
-                    responsePayload);
+                    (int)response.StatusCode);
                 return null;
             }
 
@@ -511,10 +508,9 @@ public class MercadoPagoService : IMercadoPagoService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Falha ao consultar pagamento Mercado Pago {PaymentId}. Status {Status}. Corpo: {Body}",
+                    "Falha ao consultar pagamento Mercado Pago {PaymentId}. Status {Status}.",
                     paymentId,
-                    (int)response.StatusCode,
-                    payload);
+                    (int)response.StatusCode);
                 return null;
             }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.Repositories.Interfaces;
@@ -7,6 +8,8 @@ using ZeroPaper.Services.Interfaces;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[RequestSizeLimit(256 * 1024)]
 [Route("api/public/tables")]
 public class PublicOrderingController : ControllerBase
 {
@@ -90,7 +93,7 @@ public class PublicOrderingController : ControllerBase
     [ProducesResponseType(typeof(PublicDeliveryCustomerProfileDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDeliveryCustomerProfileAsync(
         string publicCode,
-        [FromQuery] string? token,
+        [FromHeader(Name = "X-ZP-Public-Token")] string? token,
         CancellationToken cancellationToken)
     {
         return Ok(await _workspaceService.GetPublicDeliveryCustomerProfileAsync(publicCode, token, cancellationToken));

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("api/public/segments")]
 public class PublicSegmentsController : ControllerBase
 {
@@ -19,7 +21,7 @@ public class PublicSegmentsController : ControllerBase
     /// Configurado em appsettings via "Segments:{key}:Available".
     /// </summary>
     [HttpGet]
-    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult GetAvailability()
     {
         var keys = new[] { "restaurant", "retail", "petshop", "technical", "auto", "custom" };

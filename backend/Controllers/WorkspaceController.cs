@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ZeroPaper.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Workspace;
 using ZeroPaper.DTOs.Workspace.Reports;
@@ -9,6 +11,7 @@ using ZeroPaper.Services.Reports;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[Authorize(Policy = ZeroPaperSecurity.WorkspacePolicy)]
 [Route("api/workspace")]
 public class WorkspaceController : ControllerBase
 {

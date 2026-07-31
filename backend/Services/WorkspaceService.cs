@@ -3895,7 +3895,6 @@ public class WorkspaceService : IWorkspaceService
             .Where(item => item.Id == session.CompanyId && item.IsActive)
             .Select(item => new
             {
-                item.AdminMasterPasswordHash,
                 OwnerPasswordHash = item.Users
                     .Where(user => user.Role == UserRole.Owner && user.IsActive)
                     .Select(user => user.PasswordHash)
@@ -3906,10 +3905,7 @@ public class WorkspaceService : IWorkspaceService
 
         var ownerPasswordMatches = !string.IsNullOrWhiteSpace(companySecurity.OwnerPasswordHash) &&
             _passwordHasher.Verify(password, companySecurity.OwnerPasswordHash);
-        var masterPasswordMatches = !string.IsNullOrWhiteSpace(companySecurity.AdminMasterPasswordHash) &&
-            _passwordHasher.Verify(password, companySecurity.AdminMasterPasswordHash);
-
-        if (!ownerPasswordMatches && !masterPasswordMatches)
+        if (!ownerPasswordMatches)
         {
             throw new InvalidOperationException("Senha protegida incorreta.");
         }
