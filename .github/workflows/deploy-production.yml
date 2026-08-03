@@ -28,6 +28,7 @@ concurrency:
 jobs:
   deploy:
     name: Build and Deploy
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     environment: production
@@ -42,6 +43,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
