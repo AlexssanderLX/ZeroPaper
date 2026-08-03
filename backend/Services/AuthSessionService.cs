@@ -77,7 +77,7 @@ public class AuthSessionService : IAuthSessionService
             return null;
         }
 
-        if (!user.IsActive || !user.Company.IsActive)
+        if (!user.IsActive || !user.Company.IsActive || user.Company.BusinessSegment != BusinessSegment.Restaurant)
         {
             return null;
         }
@@ -142,7 +142,9 @@ public class AuthSessionService : IAuthSessionService
             return null;
         }
 
-        if (!user.IsActive || !user.Company.IsActive || !user.HasActiveShortcutAccess(utcNow))
+        if (!user.IsActive || !user.Company.IsActive ||
+            user.Company.BusinessSegment != BusinessSegment.Restaurant ||
+            !user.HasActiveShortcutAccess(utcNow))
         {
             throw new InvalidOperationException("Atalho expirado ou indisponivel. Entre com email e senha.");
         }

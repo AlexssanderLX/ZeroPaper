@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
 import { RestaurantSignupForm } from "@/components/restaurant-signup-form";
 import { ElectricBg } from "@/components/electric-bg";
@@ -8,6 +9,10 @@ export const dynamic = "force-dynamic";
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plano?: string; segmento?: string }> }) {
   const params = await searchParams;
+  if (params.segmento && params.segmento !== "restaurante") {
+    redirect("/segmentos");
+  }
+
   const segment: 1 | 2 = params.segmento === "petshop" ? 2 : 1;
   const segmentKey = segment === 2 ? "petshop" : "restaurante";
   const segmentLabel = segment === 2 ? "Pet shop" : "Restaurante";

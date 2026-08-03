@@ -8,6 +8,7 @@ using ZeroPaper.Security;
 namespace ZeroPaper.Controllers;
 
 [ApiController]
+[RequestSizeLimit(16 * 1024)]
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {

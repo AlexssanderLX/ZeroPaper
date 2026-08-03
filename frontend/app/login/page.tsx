@@ -1,10 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { BrandMark } from "@/components/brand-mark";
 import { LoginAccessForm } from "@/components/login-access-form";
 import { ElectricBg } from "@/components/electric-bg";
 
 const loginMarks = ["Unidade", "Root", "Recuperacao"];
 const loginEntries = ["Identificacao", "Sessao", "Painel"];
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function LoginPage() {
   return (

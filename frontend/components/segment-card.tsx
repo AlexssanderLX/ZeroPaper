@@ -57,10 +57,11 @@ type Props = {
   description: string;
   modules: string[];
   available: boolean;
+  unavailableLabel?: string;
   href: string;
 };
 
-export function SegmentCard({ segKey, name, description, modules, available, href }: Props) {
+export function SegmentCard({ segKey, name, description, modules, available, unavailableLabel = "Indisponivel", href }: Props) {
   return (
     <article className={`zp-lp-seg-card zp-lp-reveal${available ? " is-available" : " is-unavailable"}`}>
       <div className="zp-lp-seg-head">
@@ -68,7 +69,7 @@ export function SegmentCard({ segKey, name, description, modules, available, hre
           {segmentIconMap[segKey] ?? segmentIconMap.custom}
         </span>
         <span className={`zp-lp-seg-status ${available ? "zp-lp-status-available" : "zp-lp-status-unavailable"}`}>
-          {available ? "Disponível" : "Indisponível"}
+          {available ? "Disponível" : unavailableLabel}
         </span>
       </div>
 
@@ -88,12 +89,9 @@ export function SegmentCard({ segKey, name, description, modules, available, hre
           Ver planos →
         </Link>
       ) : (
-        <a
-          href={`/contato?assunto=${encodeURIComponent(name)}`}
-          className="zp-lp-seg-cta zp-lp-seg-cta-muted"
-        >
-          Entrar em lista de espera →
-        </a>
+        <span className="zp-lp-seg-cta zp-lp-seg-cta-muted" aria-disabled="true">
+          {unavailableLabel}
+        </span>
       )}
     </article>
   );

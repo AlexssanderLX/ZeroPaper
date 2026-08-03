@@ -15,6 +15,11 @@ public sealed class PublicCommercialPlansController : ControllerBase
     [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public ActionResult<IReadOnlyList<PublicCommercialPlanDto>> Get([FromQuery] BusinessSegment segment)
     {
+        if (segment != BusinessSegment.Restaurant)
+        {
+            return NotFound();
+        }
+
         var plans = SegmentCommercialPlanCatalog.GetPlans(segment);
         return Ok(plans.Select(plan => new PublicCommercialPlanDto
         {

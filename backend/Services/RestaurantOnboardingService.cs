@@ -57,6 +57,11 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         RestaurantOnboardingRequestDto request,
         CancellationToken cancellationToken = default)
     {
+        if (request.BusinessSegment != BusinessSegment.Restaurant)
+        {
+            throw new InvalidOperationException("Este segmento ainda esta em desenvolvimento.");
+        }
+
         var normalizedOwnerEmail = NormalizeEmail(request.OwnerEmail);
         var lockKey = normalizedOwnerEmail;
         var signupLock = SignupLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));

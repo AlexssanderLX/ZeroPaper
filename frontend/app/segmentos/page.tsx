@@ -54,6 +54,7 @@ export default async function SegmentosPage() {
               description={seg.description}
               modules={seg.modules}
               available={availability.get(seg.key) ?? false}
+              unavailableLabel={seg.key === "petshop" ? "Em desenvolvimento" : "Indisponivel"}
               href={seg.href}
             />
           ))}
