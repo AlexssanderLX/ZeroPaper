@@ -908,6 +908,14 @@ select {
   padding: 12px 0 32px;
 }
 
+.page-shell.app-shell.workspace-app-shell {
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
 .hero-panel,
 .surface-card {
   background: var(--surface);
@@ -21018,6 +21026,14 @@ select {
   border-radius: 24px;
   background: #f5eee7;
   box-shadow: 0 24px 60px rgba(35, 20, 14, 0.16);
+}
+
+.workspace-app-shell .workspace-shell-layout {
+  height: 100dvh;
+  min-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .owner-lobby-mobile-tab {

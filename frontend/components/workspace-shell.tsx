@@ -374,7 +374,7 @@ export function WorkspaceShell({
 
 
   return (
-    <main className="page-shell app-shell">
+    <main className="page-shell app-shell workspace-app-shell">
       <section className={`owner-lobby-layout workspace-shell-layout ${isSidebarOpen ? "is-sidebar-open" : ""}`}>
         {isSidebarOpen ? (
           <button
