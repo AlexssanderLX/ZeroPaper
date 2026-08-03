@@ -346,6 +346,29 @@ app.Use(async (context, next) =>
 });
 
 app.UseCors("frontend");
+
+// Catalog images and company logos are rendered on anonymous ordering pages.
+// Serve only these known public upload areas before the fallback authorization
+// policy; private uploads continue through the authenticated pipeline below.
+foreach (var publicUploadArea in new[] { "logos", "menu", "menu-categories" })
+{
+    var publicUploadPath = Path.Combine(uploadsPath, publicUploadArea);
+    Directory.CreateDirectory(publicUploadPath);
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(publicUploadPath),
+        RequestPath = $"/uploads/{publicUploadArea}",
+        OnPrepareResponse = staticFileContext =>
+        {
+            staticFileContext.Context.Response.Headers.CacheControl = "public, max-age=86400";
+            staticFileContext.Context.Response.Headers.ContentDisposition =
+                $"inline; filename=\"{Path.GetFileName(staticFileContext.File.Name).Replace("\"", string.Empty)}\"";
+            staticFileContext.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        }
+    });
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
