@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppSession } from "@/components/app-session-provider";
+import { useWorkspace } from "@/components/workspace-context";
 import { WaiterCallMonitor } from "@/components/waiter-call-monitor";
 import {
   ApiError,
@@ -11,12 +12,10 @@ import {
   getAiAssistantQuickStatus,
   getCompanySettings,
   getPrintingSettings,
-  getWorkspaceOverview,
   updateAiAssistantQuickStatus,
   updatePrintingSettings,
   type AiAssistantQuickStatus,
   type PrintingSettings,
-  type WorkspaceOverview,
 } from "@/lib/api";
 import { isPortalModuleAvailable, isPortalModuleForSegment, ownerModules } from "@/lib/owner-portal";
 
@@ -32,11 +31,10 @@ export function WorkspaceShell({
   showAlertCard?: boolean;
 }) {
   const { session, clearSession } = useAppSession();
+  const { overview } = useWorkspace();
   const pathname = usePathname();
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState("");
-  const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
-  const [overviewLoaded, setOverviewLoaded] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [aiQuickStatus, setAiQuickStatus] = useState<AiAssistantQuickStatus | null>(null);
   const [printingQuickStatus, setPrintingQuickStatus] = useState<PrintingSettings | null>(null);
@@ -68,40 +66,7 @@ export function WorkspaceShell({
     };
   }, [session.token]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    void (async () => {
-      try {
-        const workspaceOverview = await getWorkspaceOverview(session.token);
-
-        if (isMounted) {
-          setOverview(workspaceOverview);
-          setOverviewLoaded(true);
-        }
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          await clearSession();
-          return;
-        }
-
-        if (isMounted) {
-          setOverview(null);
-          setOverviewLoaded(true);
-        }
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [clearSession, session.token]);
-
   const capabilityAccess = useMemo(() => {
-    if (!overview) {
-      return null;
-    }
-
     return {
       ...overview,
       hasCustomerProfiles: overview.capabilities?.hasCustomerProfiles ?? overview.hasCustomerProfiles,
@@ -122,7 +87,7 @@ export function WorkspaceShell({
   useEffect(() => {
     let isMounted = true;
 
-    if (!overviewLoaded || !overview?.includesAiAssistantModule) {
+    if (!overview.includesAiAssistantModule) {
       setAiQuickStatus(null);
       return;
     }
@@ -149,12 +114,12 @@ export function WorkspaceShell({
     return () => {
       isMounted = false;
     };
-  }, [clearSession, overview, overviewLoaded, session.token]);
+  }, [clearSession, overview, session.token]);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!overviewLoaded || !overview?.includesPrintingModule) {
+    if (!overview.includesPrintingModule) {
       setPrintingQuickStatus(null);
       return;
     }
@@ -181,12 +146,12 @@ export function WorkspaceShell({
     return () => {
       isMounted = false;
     };
-  }, [clearSession, overview, overviewLoaded, session.token]);
+  }, [clearSession, overview, session.token]);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!overviewLoaded || overview?.businessSegment !== 1 || !overview.includesCashModule) {
+    if (overview.businessSegment !== 1 || !overview.includesCashModule) {
       setCashOrderAccessUrl("");
       return;
     }
@@ -208,11 +173,11 @@ export function WorkspaceShell({
     return () => {
       isMounted = false;
     };
-  }, [clearSession, overview, overviewLoaded, session.token]);
+  }, [clearSession, overview, session.token]);
 
   const visibleModules = useMemo(() => {
     const modules = ownerModules.filter((module) => {
-        if (!isPortalModuleForSegment(module, overview?.businessSegment)) {
+        if (!isPortalModuleForSegment(module, overview.businessSegment)) {
           return false;
         }
 
@@ -220,46 +185,28 @@ export function WorkspaceShell({
           return true;
         }
 
-        if (!overviewLoaded || !overview) {
-          return false;
-        }
-
         return isPortalModuleAvailable(module, capabilityAccess);
       });
 
-    if (overview?.businessSegment === 2) {
+    if (overview.businessSegment === 2) {
       const petOrder = ["agenda", "atendimentos-pet", "tutores", "animais", "cardapio", "atendimento", "pagamentos", "relatorios", "analise-vendas", "ajustes"];
       return [...modules].sort((left, right) => petOrder.indexOf(left.slug) - petOrder.indexOf(right.slug));
     }
 
     return modules;
-  }, [capabilityAccess, overview, overviewLoaded]);
+  }, [capabilityAccess, overview]);
   const mainSidebarSlugs = ["pedidos", "caixa", "agenda", "atendimentos-pet"];
   const operationModules = visibleModules.filter((module) => mainSidebarSlugs.includes(module.slug));
   const configurationModules = visibleModules.filter((module) => !mainSidebarSlugs.includes(module.slug));
-  const isPetShop = overview?.businessSegment === 2;
+  const isPetShop = overview.businessSegment === 2;
 
   useEffect(() => {
-    if (!overviewLoaded || !overview) {
-      return;
-    }
-
-    if (isPetShop && pathname === "/app") {
-      router.replace("/app/agenda");
-      return;
-    }
-
     const requestedSlug = pathname.match(/^\/app\/([^/]+)/)?.[1];
-    const restaurantOnlyRoutes = new Set(["caixa", "confirmacoes-pix", "cupons", "entrega", "estoque", "finalizados", "implantacao", "mesas", "pedidos", "vendedores"]);
-    if (isPetShop && requestedSlug && restaurantOnlyRoutes.has(requestedSlug)) {
-      router.replace("/app/agenda");
-      return;
-    }
     const requestedModule = requestedSlug ? ownerModules.find((module) => module.slug === requestedSlug) : null;
     if (requestedModule && !visibleModules.some((module) => module.slug === requestedModule.slug)) {
       router.replace(isPetShop ? "/app/agenda" : "/app");
     }
-  }, [isPetShop, overview, overviewLoaded, pathname, router, visibleModules]);
+  }, [isPetShop, overview, pathname, router, visibleModules]);
 
   async function handleSignOut() {
     const confirmed = window.confirm("Tem certeza que deseja sair?");
