@@ -189,7 +189,7 @@ export function WorkspaceShell({
       });
 
     if (overview.businessSegment === 2) {
-      const petOrder = ["agenda", "atendimentos-pet", "tutores", "animais", "cardapio", "atendimento", "pagamentos", "relatorios", "analise-vendas", "ajustes"];
+      const petOrder = ["agenda", "atendimentos-pet", "horarios-pet", "tutores", "animais", "cardapio", "atendimento", "pagamentos", "relatorios", "analise-vendas", "ajustes"];
       return [...modules].sort((left, right) => petOrder.indexOf(left.slug) - petOrder.indexOf(right.slug));
     }
 

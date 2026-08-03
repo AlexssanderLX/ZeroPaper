@@ -153,6 +153,13 @@ export const ownerModules: PortalModule[] = [
   },
   // Pet Shop modules
   {
+    slug: "horarios-pet",
+    title: "Horarios de atendimento",
+    eyebrow: "Pet Shop",
+    featureKey: "hasAppointments",
+    segments: ["petshop"],
+  },
+  {
     slug: "tutores",
     title: "Tutores",
     eyebrow: "Pet Shop",

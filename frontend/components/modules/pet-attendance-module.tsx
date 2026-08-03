@@ -370,9 +370,10 @@ export function PetAttendanceModule({ token, onUnauthorized }: { token: string; 
         <div className="hero-stack">
           <h1>Atendimentos do dia</h1>
         </div>
-        <div className="toolbar-actions compact">
+        <div className="ps-date-nav">
           <input
             type="date"
+            className="ps-date-input"
             value={selectedDate}
             onChange={(e) => {
               setSelectedDate(e.target.value);
@@ -385,7 +386,7 @@ export function PetAttendanceModule({ token, onUnauthorized }: { token: string; 
       {errorMessage && <p className="error-message">{errorMessage}</p>}
 
       {/* Summary badges */}
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+      <div className="ps-stat-chips-row">
         {[
           { label: "Solicitados", count: counts.requested },
           { label: "Confirmados", count: counts.confirmed },
@@ -393,17 +394,9 @@ export function PetAttendanceModule({ token, onUnauthorized }: { token: string; 
           { label: "Concluidos", count: counts.completed },
           { label: "Cancelados/Ausencia", count: counts.cancelled },
         ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              padding: "0.5rem 0.75rem",
-              borderRadius: 8,
-              background: "var(--color-surface-secondary, #f5f5f5)",
-              fontSize: "0.875em",
-            }}
-          >
+          <span key={s.label} className="ps-stat-chip">
             <strong>{s.count}</strong> {s.label}
-          </div>
+          </span>
         ))}
       </div>
 
@@ -421,16 +414,15 @@ export function PetAttendanceModule({ token, onUnauthorized }: { token: string; 
               className="simple-list-item simple-list-item--clickable"
               onClick={() => void handleSelect(appt)}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
+              <div className="ps-entity-row">
+                <div className="ps-entity-main">
                   <strong>{escapeText(appt.petName)}</strong>
-                  <br />
-                  <span className="body-copy">
+                  <span className="ps-entity-meta">
                     {escapeText(appt.serviceName)}
-                    {appt.assignedUserName && ` — ${escapeText(appt.assignedUserName)}`}
+                    {appt.assignedUserName && ` · ${escapeText(appt.assignedUserName)}`}
                   </span>
                 </div>
-                <span className="body-copy">{statusLabel(appt.status)}</span>
+                <span className="ps-entity-meta">{statusLabel(appt.status)}</span>
               </div>
             </li>
           ))}

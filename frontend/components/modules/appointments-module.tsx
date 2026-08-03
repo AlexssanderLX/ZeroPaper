@@ -3,10 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import {
   createAppointment,
-  createAppointmentBlock,
-  deleteAppointmentBlock,
   getAppointmentAvailability,
-  getAppointmentBlocks,
   getAppointmentHistory,
   getAppointmentSettings,
   getAppointments,
@@ -17,9 +14,7 @@ import {
   rescheduleAppointment,
   updateAppointmentAssignee,
   updateAppointmentNotes,
-  updateAppointmentSettings,
   updateAppointmentStatus,
-  type AppointmentBlockDto,
   type AppointmentDto,
   type AppointmentHistoryEntryDto,
   type AppointmentSettingsDto,
@@ -33,7 +28,7 @@ import {
 } from "@/lib/api";
 import { formatCurrency, formatDateTime, handleApiError, type AsyncVoid } from "@/components/modules/module-utils";
 
-type View = "calendar" | "detail" | "create" | "reschedule" | "settings" | "blocks";
+type View = "calendar" | "detail" | "create" | "reschedule";
 
 function statusLabel(s: AppointmentStatus) {
   const map: Record<number, string> = {
@@ -133,26 +128,8 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
   const [rescheduleSlot, setRescheduleSlot] = useState("");
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
-  // Settings
+  // Settings — loaded only for timezone display
   const [settings, setSettings] = useState<AppointmentSettingsDto | null>(null);
-  const [settingsForm, setSettingsForm] = useState({
-    serviceDays: "1,2,3,4,5,6",
-    startTime: "08:00",
-    endTime: "18:00",
-    slotIntervalMinutes: "30",
-  });
-  const [settingsSaving, setSettingsSaving] = useState(false);
-
-  // Blocks
-  const [blocks, setBlocks] = useState<AppointmentBlockDto[]>([]);
-  const [blocksLoading, setBlocksLoading] = useState(false);
-  const [blockForm, setBlockForm] = useState({
-    assignedUserId: "",
-    startsAtUtc: "",
-    endsAtUtc: "",
-    reason: "",
-  });
-  const [blockSaving, setBlockSaving] = useState(false);
 
   const tz = settings?.timeZone;
 
@@ -186,6 +163,7 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
   useEffect(() => {
     void loadAppointments();
     void loadSupport();
+    void loadSettings();
   }, [token]);
 
   function navigateDay(delta: number) {
@@ -459,84 +437,13 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
     }
   }
 
-  // Settings
+  // Settings — load only for timezone
   async function loadSettings() {
     try {
       const s = await getAppointmentSettings(token);
       setSettings(s);
-      setSettingsForm({
-        serviceDays: s.serviceDays,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        slotIntervalMinutes: String(s.slotIntervalMinutes),
-      });
     } catch {
       // Non-critical
-    }
-  }
-
-  async function handleSaveSettings(e: FormEvent) {
-    e.preventDefault();
-    setSettingsSaving(true);
-    setErrorMessage("");
-    try {
-      const updated = await updateAppointmentSettings(token, {
-        serviceDays: settingsForm.serviceDays,
-        startTime: settingsForm.startTime,
-        endTime: settingsForm.endTime,
-        slotIntervalMinutes: Number(settingsForm.slotIntervalMinutes),
-      });
-      setSettings(updated);
-      setSuccessMessage("Configuracoes salvas.");
-    } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel salvar as configuracoes.");
-    } finally {
-      setSettingsSaving(false);
-    }
-  }
-
-  // Blocks
-  async function loadBlocks() {
-    const range = getWeekRange(selectedDate);
-    setBlocksLoading(true);
-    try {
-      const data = await getAppointmentBlocks(token, range);
-      setBlocks(data);
-    } catch {
-      // Non-critical
-    } finally {
-      setBlocksLoading(false);
-    }
-  }
-
-  async function handleCreateBlock(e: FormEvent) {
-    e.preventDefault();
-    setBlockSaving(true);
-    setErrorMessage("");
-    try {
-      const newBlock = await createAppointmentBlock(token, {
-        assignedUserId: blockForm.assignedUserId || null,
-        startsAtUtc: new Date(blockForm.startsAtUtc).toISOString(),
-        endsAtUtc: new Date(blockForm.endsAtUtc).toISOString(),
-        reason: blockForm.reason.trim() || null,
-      });
-      setBlocks((prev) => [...prev, newBlock]);
-      setBlockForm({ assignedUserId: "", startsAtUtc: "", endsAtUtc: "", reason: "" });
-      setSuccessMessage("Bloqueio criado.");
-    } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel criar o bloqueio.");
-    } finally {
-      setBlockSaving(false);
-    }
-  }
-
-  async function handleDeleteBlock(blockId: string) {
-    if (!window.confirm("Remover este bloqueio?")) return;
-    try {
-      await deleteAppointmentBlock(token, blockId);
-      setBlocks((prev) => prev.filter((b) => b.id !== blockId));
-    } catch (error) {
-      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel remover o bloqueio.");
     }
   }
 
@@ -615,170 +522,6 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
   }
 
   // ─── Settings view ───────────────────────────────────────────────────────────
-  if (view === "settings") {
-    return (
-      <section className="surface-card workspace-summary-card module-summary-card simple-module-summary">
-        <div className="workspace-summary-head">
-          <div className="hero-stack">
-            <h1>Configuracoes da agenda</h1>
-          </div>
-          <div className="toolbar-actions compact">
-            <button type="button" className="secondary-button" onClick={() => setView("calendar")}>
-              Voltar
-            </button>
-          </div>
-        </div>
-
-        {errorMessage && <p className="error-message">{errorMessage}</p>}
-        {successMessage && <p className="success-message">{successMessage}</p>}
-
-        <form onSubmit={handleSaveSettings} className="settings-form">
-          <div className="form-field">
-            <label htmlFor="ag-days">Dias de servico (DayOfWeek separados por virgula, 0=Dom...6=Sab)</label>
-            <input
-              id="ag-days"
-              type="text"
-              value={settingsForm.serviceDays}
-              onChange={(e) => setSettingsForm((p) => ({ ...p, serviceDays: e.target.value }))}
-              placeholder="1,2,3,4,5,6"
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="ag-start">Horario de inicio</label>
-            <input
-              id="ag-start"
-              type="time"
-              value={settingsForm.startTime}
-              onChange={(e) => setSettingsForm((p) => ({ ...p, startTime: e.target.value }))}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="ag-end">Horario de termino</label>
-            <input
-              id="ag-end"
-              type="time"
-              value={settingsForm.endTime}
-              onChange={(e) => setSettingsForm((p) => ({ ...p, endTime: e.target.value }))}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="ag-interval">Intervalo de slots (minutos)</label>
-            <input
-              id="ag-interval"
-              type="number"
-              min="15"
-              max="120"
-              step="15"
-              value={settingsForm.slotIntervalMinutes}
-              onChange={(e) => setSettingsForm((p) => ({ ...p, slotIntervalMinutes: e.target.value }))}
-            />
-          </div>
-          <div className="toolbar-actions">
-            <button type="submit" className="primary-button" disabled={settingsSaving}>
-              {settingsSaving ? "Salvando..." : "Salvar"}
-            </button>
-          </div>
-        </form>
-      </section>
-    );
-  }
-
-  // ─── Blocks view ─────────────────────────────────────────────────────────────
-  if (view === "blocks") {
-    return (
-      <section className="surface-card workspace-summary-card module-summary-card simple-module-summary">
-        <div className="workspace-summary-head">
-          <div className="hero-stack">
-            <h1>Bloqueios de agenda</h1>
-          </div>
-          <div className="toolbar-actions compact">
-            <button type="button" className="secondary-button" onClick={() => setView("calendar")}>
-              Voltar
-            </button>
-          </div>
-        </div>
-
-        {errorMessage && <p className="error-message">{errorMessage}</p>}
-        {successMessage && <p className="success-message">{successMessage}</p>}
-
-        <form onSubmit={handleCreateBlock} className="settings-form">
-          <h2>Novo bloqueio</h2>
-          <div className="form-field">
-            <label htmlFor="bl-prof">Profissional (vazio = toda a agenda)</label>
-            <select
-              id="bl-prof"
-              value={blockForm.assignedUserId}
-              onChange={(e) => setBlockForm((p) => ({ ...p, assignedUserId: e.target.value }))}
-            >
-              <option value="">Toda a agenda</option>
-              {professionals.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="bl-start">Inicio</label>
-            <input
-              id="bl-start"
-              type="datetime-local"
-              required
-              value={blockForm.startsAtUtc}
-              onChange={(e) => setBlockForm((p) => ({ ...p, startsAtUtc: e.target.value }))}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="bl-end">Fim</label>
-            <input
-              id="bl-end"
-              type="datetime-local"
-              required
-              value={blockForm.endsAtUtc}
-              onChange={(e) => setBlockForm((p) => ({ ...p, endsAtUtc: e.target.value }))}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="bl-reason">Motivo</label>
-            <input
-              id="bl-reason"
-              type="text"
-              value={blockForm.reason}
-              onChange={(e) => setBlockForm((p) => ({ ...p, reason: e.target.value }))}
-            />
-          </div>
-          <div className="toolbar-actions">
-            <button type="submit" className="primary-button" disabled={blockSaving}>
-              {blockSaving ? "Criando..." : "Criar bloqueio"}
-            </button>
-          </div>
-        </form>
-
-        {blocksLoading && <p className="workspace-inline-loading">Carregando bloqueios...</p>}
-        {!blocksLoading && blocks.length === 0 && <p className="body-copy">Nenhum bloqueio ativo.</p>}
-        {!blocksLoading && blocks.length > 0 && (
-          <ul className="simple-list" style={{ marginTop: "1rem" }}>
-            {blocks.map((b) => (
-              <li key={b.id} className="simple-list-item" style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <strong>{formatDateTime(b.startsAtUtc)}</strong> ate {formatDateTime(b.endsAtUtc)}
-                  {b.reason && <span> — {escapeText(b.reason)}</span>}
-                </div>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => void handleDeleteBlock(b.id)}
-                >
-                  Remover
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    );
-  }
-
   // ─── Create view ─────────────────────────────────────────────────────────────
   if (view === "create") {
     return (
@@ -1200,30 +943,6 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
           <h1>Agenda</h1>
         </div>
         <div className="toolbar-actions compact">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => {
-              void loadSettings();
-              setErrorMessage("");
-              setSuccessMessage("");
-              setView("settings");
-            }}
-          >
-            Configuracoes
-          </button>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => {
-              void loadBlocks();
-              setErrorMessage("");
-              setSuccessMessage("");
-              setView("blocks");
-            }}
-          >
-            Bloqueios
-          </button>
           <button type="button" className="primary-button" onClick={openCreate}>
             Novo agendamento
           </button>
@@ -1233,7 +952,7 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
       {errorMessage && <p className="error-message">{errorMessage}</p>}
       {successMessage && <p className="success-message">{successMessage}</p>}
 
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+      <div className="ps-cal-toolbar">
         <button
           type="button"
           className={calendarMode === "day" ? "primary-button" : "secondary-button"}
@@ -1249,29 +968,31 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
           Semana
         </button>
 
-        <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+        <div className="ps-date-nav">
           <button
             type="button"
-            className="secondary-button"
+            className="ps-nav-btn"
+            aria-label="Anterior"
             onClick={() => (calendarMode === "day" ? navigateDay(-1) : navigateWeek(-1))}
           >
-            &lsaquo;
+            ‹
           </button>
           <input
             type="date"
+            className="ps-date-input"
             value={selectedDate}
             onChange={(e) => {
               setSelectedDate(e.target.value);
               void loadAppointments(e.target.value, calendarMode, filterProfessional);
             }}
-            style={{ border: "none", background: "transparent", fontWeight: 600 }}
           />
           <button
             type="button"
-            className="secondary-button"
+            className="ps-nav-btn"
+            aria-label="Próximo"
             onClick={() => (calendarMode === "day" ? navigateDay(1) : navigateWeek(1))}
           >
-            &rsaquo;
+            ›
           </button>
         </div>
 
@@ -1282,7 +1003,7 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
               setFilterProfessional(e.target.value);
               void loadAppointments(selectedDate, calendarMode, e.target.value);
             }}
-            className="secondary-button"
+            className="ps-select"
           >
             <option value="">Todos os profissionais</option>
             {professionals.map((p) => (
@@ -1310,15 +1031,18 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
                   className="simple-list-item simple-list-item--clickable"
                   onClick={() => void handleSelectAppointment(appt)}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div>
-                      <strong>{formatTimeUtc(appt.startsAtUtc, tz)}</strong> —{" "}
-                      {escapeText(appt.petName)} &middot; {escapeText(appt.serviceName)}
-                      {appt.assignedUserName && (
-                        <span style={{ color: "var(--color-muted)" }}> [{escapeText(appt.assignedUserName)}]</span>
-                      )}
+                  <div className="ps-entity-row">
+                    <div className="ps-entity-main">
+                      <strong>{escapeText(appt.petName)}</strong>
+                      <span className="ps-entity-meta">
+                        {escapeText(appt.serviceName)}
+                        {appt.assignedUserName && ` · ${escapeText(appt.assignedUserName)}`}
+                      </span>
                     </div>
-                    <span className="body-copy">{statusLabel(appt.status)}</span>
+                    <div className="ps-entity-aside">
+                      <span className="ps-time-badge">{formatTimeUtc(appt.startsAtUtc, tz)}</span>
+                      <span className="ps-entity-meta">{statusLabel(appt.status)}</span>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -1347,8 +1071,13 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
                         className="simple-list-item simple-list-item--clickable"
                         onClick={() => void handleSelectAppointment(appt)}
                       >
-                        <strong>{formatTimeUtc(appt.startsAtUtc, tz)}</strong> — {escapeText(appt.petName)} &middot;{" "}
-                        {escapeText(appt.serviceName)} &middot; {statusLabel(appt.status)}
+                        <div className="ps-entity-row">
+                          <div className="ps-entity-main">
+                            <strong>{escapeText(appt.petName)}</strong>
+                            <span className="ps-entity-meta">{escapeText(appt.serviceName)} · {statusLabel(appt.status)}</span>
+                          </div>
+                          <span className="ps-time-badge">{formatTimeUtc(appt.startsAtUtc, tz)}</span>
+                        </div>
                       </li>
                     ))}
                 </ul>

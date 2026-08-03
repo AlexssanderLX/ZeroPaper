@@ -40597,3 +40597,468 @@ html[data-perf="lite"] * {
 .priv-mtoc-item-active .priv-mtoc-n {
   color: #6ddf9d;
 }
+
+/* ─── Pet Shop module helpers ─────────────────────────────────────── */
+
+/* Dark-context overrides for inputs inside surface-card (workspace shell) */
+.surface-card .form-field input,
+.surface-card .form-field select,
+.surface-card .form-field textarea {
+  background: rgba(255, 248, 242, 0.07);
+  color: var(--text);
+  border-color: rgba(244, 227, 214, 0.16);
+  box-shadow: none;
+}
+.surface-card .form-field input::placeholder,
+.surface-card .form-field textarea::placeholder {
+  color: var(--muted);
+}
+.surface-card .form-field input:focus,
+.surface-card .form-field select:focus,
+.surface-card .form-field textarea:focus {
+  border-color: rgba(196, 92, 48, 0.5);
+  background: rgba(255, 248, 242, 0.1);
+  box-shadow: 0 0 0 3px rgba(196, 92, 48, 0.12);
+}
+.surface-card .form-field input:disabled,
+.surface-card .form-field select:disabled {
+  background: rgba(255, 248, 242, 0.04);
+  color: var(--muted);
+}
+.surface-card .form-field label {
+  color: var(--muted);
+}
+
+/* List items inside surface-card: subtle dark cards instead of bright white */
+.surface-card .simple-list-item {
+  background: rgba(255, 248, 242, 0.06);
+  border-color: rgba(244, 227, 214, 0.1);
+  box-shadow: none;
+}
+.surface-card .simple-list-item:hover {
+  background: rgba(255, 248, 242, 0.1);
+}
+.surface-card .simple-list-item strong {
+  color: var(--text);
+}
+.surface-card .simple-list-item span,
+.surface-card .simple-list-item p {
+  color: var(--muted);
+}
+
+/* Search bar — dark-themed for workspace context */
+.ps-search-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.ps-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 227, 214, 0.14);
+  background: rgba(255, 248, 242, 0.07);
+  color: var(--text);
+  outline: none;
+  font: inherit;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+.ps-search-input::placeholder {
+  color: var(--muted);
+}
+.ps-search-input:focus {
+  border-color: rgba(196, 92, 48, 0.5);
+  background: rgba(255, 248, 242, 0.1);
+  box-shadow: 0 0 0 3px rgba(196, 92, 48, 0.1);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.badge-active {
+  background: rgba(92, 134, 92, 0.18);
+  color: #4a8a4a;
+}
+.badge-inactive {
+  background: rgba(155, 64, 43, 0.14);
+  color: #9b402b;
+}
+
+/* Entity row — inner layout for list items */
+.ps-entity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ps-entity-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.ps-entity-main strong {
+  font-size: 1rem;
+  color: var(--text);
+  display: block;
+}
+.ps-entity-meta {
+  font-size: 0.86rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.ps-entity-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Appointment time badge */
+.ps-time-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 10px;
+  background: rgba(197, 138, 82, 0.14);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Calendar toolbar */
+.ps-cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.ps-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 248, 242, 0.06);
+  border: 1px solid rgba(244, 227, 214, 0.12);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+.ps-date-input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  outline: none;
+}
+.ps-date-input:focus {
+  background: rgba(255, 248, 242, 0.08);
+}
+.ps-nav-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  line-height: 1;
+  transition: background 140ms ease;
+}
+.ps-nav-btn:hover {
+  background: rgba(255, 248, 242, 0.1);
+}
+.ps-select {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 227, 214, 0.14);
+  background: rgba(255, 248, 242, 0.07);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+.ps-select option {
+  background: var(--background-secondary);
+  color: var(--text);
+}
+.ps-select:focus {
+  border-color: rgba(196, 92, 48, 0.5);
+}
+
+/* Tab navigation */
+.ps-tab-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(244, 227, 214, 0.1);
+  padding-bottom: 0;
+  margin-bottom: 4px;
+}
+.ps-tab-btn {
+  padding: 10px 18px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: 0;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.ps-tab-btn:hover {
+  color: var(--text);
+}
+.ps-tab-btn.is-active {
+  color: var(--text);
+  border-bottom-color: rgba(197, 138, 82, 0.9);
+}
+
+/* Slot duration pills */
+.ps-slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ps-slot-btn {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 227, 214, 0.14);
+  background: rgba(255, 248, 242, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.ps-slot-btn:hover {
+  background: rgba(255, 248, 242, 0.1);
+}
+.ps-slot-btn.is-on {
+  background: rgba(197, 138, 82, 0.22);
+  border-color: rgba(197, 138, 82, 0.45);
+  color: #ffd08f;
+}
+
+/* Block form inside hrs-block */
+.ps-block-form {
+  display: grid;
+  gap: 14px;
+}
+.ps-block-list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.ps-refresh-btn {
+  font-size: 0.78rem !important;
+  padding: 6px 12px !important;
+  min-height: unset !important;
+}
+
+/* Form field wrapper — same as .field-group */
+.form-field {
+  display: grid;
+  gap: 8px;
+}
+.form-field label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--card-title);
+}
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(91, 66, 52, 0.12);
+  background: rgba(249, 240, 232, 0.92);
+  color: var(--text-dark);
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: rgba(196, 92, 48, 0.55);
+  box-shadow: 0 0 0 4px rgba(196, 92, 48, 0.12);
+}
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: #8a766b;
+}
+.form-field input:disabled,
+.form-field select:disabled {
+  opacity: 1;
+  color: #6b5b53;
+  background: rgba(236, 225, 216, 0.88);
+}
+
+/* Form container — same as .module-form */
+.settings-form {
+  display: grid;
+  gap: 14px;
+}
+
+/* Primary CTA button — matches .primary-link look but as <button> */
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-weight: 700;
+  background: var(--background-deep);
+  color: #fff8f2;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.primary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Secondary / ghost button — matches .ghost-link look */
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-weight: 700;
+  border: 1px solid rgba(244, 227, 214, 0.24);
+  cursor: pointer;
+  background: rgba(250, 243, 236, 0.22);
+  color: var(--text);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.secondary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.secondary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Feedback banners */
+.error-message {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(155, 64, 43, 0.1);
+  font-size: 0.93rem;
+  line-height: 1.5;
+  color: #9b402b;
+}
+.success-message {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(53, 89, 59, 0.1);
+  font-size: 0.93rem;
+  line-height: 1.5;
+  color: #35593b;
+}
+
+/* Simple list — same as .module-card-list */
+.simple-list {
+  display: grid;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.simple-list-item {
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(109, 83, 67, 0.14);
+  background: rgba(255, 251, 247, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.simple-list-item p,
+.simple-list-item span {
+  color: var(--card-text);
+}
+.simple-list-item strong {
+  color: var(--card-title);
+}
+.simple-list-item--clickable {
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.simple-list-item--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* Loading alias */
+.workspace-inline-loading {
+  margin: 0;
+  color: var(--card-text);
+}
+
+/* Status summary stat chips for today's dashboard */
+.ps-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  background: rgba(109, 83, 67, 0.07);
+  color: var(--card-text);
+  border: 1px solid rgba(109, 83, 67, 0.12);
+}
+.ps-stat-chip strong {
+  font-size: 1rem;
+  color: var(--card-title);
+}
+.ps-stat-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* Pet module inline grid for two-column layouts */
+.ps-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 560px) {
+  .ps-inline-grid { grid-template-columns: 1fr; }
+  .primary-button,
+  .secondary-button { width: 100%; }
+}

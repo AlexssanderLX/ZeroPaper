@@ -341,13 +341,13 @@ export function PetCustomersModule({ token, onUnauthorized }: { token: string; o
       {errorMessage && <p className="error-message">{errorMessage}</p>}
       {successMessage && <p className="success-message">{successMessage}</p>}
 
-      <form onSubmit={handleSearch} className="toolbar-actions compact" style={{ marginBottom: "1rem" }}>
+      <form onSubmit={handleSearch} className="ps-search-row">
         <input
           type="search"
+          className="ps-search-input"
           placeholder="Buscar por nome ou telefone..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          style={{ flex: 1 }}
         />
         <button type="submit" className="secondary-button">
           Buscar
@@ -364,10 +364,12 @@ export function PetCustomersModule({ token, onUnauthorized }: { token: string; o
         <ul className="simple-list">
           {customers.map((c) => (
             <li key={c.id} className="simple-list-item simple-list-item--clickable" onClick={() => void handleSelectCustomer(c)}>
-              <div>
-                <strong>{escapeText(c.name)}</strong>
-                <br />
-                <span className="body-copy">{c.phoneNumber}</span>
+              <div className="ps-entity-row">
+                <div className="ps-entity-main">
+                  <strong>{escapeText(c.name)}</strong>
+                  <span className="ps-entity-meta">{c.phoneNumber}</span>
+                </div>
+                <span className="ps-entity-meta">›</span>
               </div>
             </li>
           ))}
