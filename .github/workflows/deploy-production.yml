@@ -70,6 +70,16 @@ jobs:
             --runtime linux-x64 \
             --self-contained true \
             --output .codex-deploy/backend-release
+          dotnet tool install dotnet-ef \
+            --tool-path .codex-deploy/dotnet-tools \
+            --version 8.0.22
+          .codex-deploy/dotnet-tools/dotnet-ef migrations script \
+            20260630043611_AddSalesAgents \
+            --idempotent \
+            --project backend/ZeroPaper.csproj \
+            --startup-project backend/ZeroPaper.csproj \
+            --configuration Release \
+            --output .codex-deploy/backend-release/zeropaper-migrations.sql
           tar -C .codex-deploy/backend-release -czf .codex-deploy/zeropaper-backend.tar.gz .
 
       - name: Install frontend dependencies
@@ -156,8 +166,67 @@ jobs:
             rm -rf /tmp/zeropaper-backend-new
             mkdir -p /tmp/zeropaper-backend-new
             tar -xzf /tmp/zeropaper-backend-new.tar.gz -C /tmp/zeropaper-backend-new
+            test -s /tmp/zeropaper-backend-new/zeropaper-migrations.sql
+
+            DB_AUTH_FILE="$(mktemp)"
+            export DB_AUTH_FILE
+            chmod 600 "$DB_AUTH_FILE"
+            trap 'rm -f "${DB_AUTH_FILE:-}"' EXIT
+            DB_NAME="$(python3 - <<'PYTHON'
+          import os
+
+          raw_connection = None
+          with open("/etc/zeropaper/backend.env", encoding="utf-8") as source:
+              for raw_line in source:
+                  line = raw_line.strip()
+                  if line.startswith("ConnectionStrings__DefaultConnection="):
+                      raw_connection = line.split("=", 1)[1].strip()
+                      break
+
+          if not raw_connection:
+              raise SystemExit("ConnectionStrings__DefaultConnection was not found")
+
+          parts = {}
+          for piece in raw_connection.split(";"):
+              if "=" in piece:
+                  key, value = piece.split("=", 1)
+                  parts[key.strip().lower().replace(" ", "")] = value.strip()
+
+          def get(*keys, default=""):
+              return next((parts[key] for key in keys if key in parts), default)
+
+          def quote(value):
+              return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+          with open(os.environ["DB_AUTH_FILE"], "w", encoding="utf-8") as target:
+              target.write("[client]\n")
+              target.write(f"host={quote(get('server', 'host', default='127.0.0.1'))}\n")
+              target.write(f"port={get('port', default='3306')}\n")
+              target.write(f"user={quote(get('userid', 'uid', 'user'))}\n")
+              target.write(f"password={quote(get('password', 'pwd'))}\n")
+
+          print(get("database", "initialcatalog"))
+          PYTHON
+          )"
+            test -n "$DB_NAME"
+
+            mariadb-dump --defaults-extra-file="$DB_AUTH_FILE" \
+              --single-transaction --routines --triggers --events --hex-blob \
+              "$DB_NAME" | gzip -1 > "$BACKUP_DIR/database.sql.gz"
+            gzip -t "$BACKUP_DIR/database.sql.gz"
+            chmod 600 "$BACKUP_DIR/database.sql.gz"
 
             systemctl stop zeropaper-backend
+            if ! mariadb --defaults-extra-file="$DB_AUTH_FILE" "$DB_NAME" \
+              < /tmp/zeropaper-backend-new/zeropaper-migrations.sql; then
+              echo "Database migration failed; restarting the previous backend release."
+              systemctl start zeropaper-backend
+              exit 1
+            fi
+            rm -f "$DB_AUTH_FILE"
+            unset DB_AUTH_FILE
+            trap - EXIT
+            rm -f /tmp/zeropaper-backend-new/zeropaper-migrations.sql
             rm -rf /opt/zeropaper/backend
             mv /tmp/zeropaper-backend-new /opt/zeropaper/backend
             chown -R zeropaper:zeropaper /opt/zeropaper/backend
@@ -202,6 +271,13 @@ jobs:
             done
 
             echo "$name smoke failed. Expected $expected, got $status."
+            if [ "$name" = "Backend" ]; then
+              systemctl status zeropaper-backend --no-pager -l || true
+              journalctl -u zeropaper-backend -n 80 --no-pager || true
+            else
+              systemctl status zeropaper-frontend --no-pager -l || true
+              journalctl -u zeropaper-frontend -n 80 --no-pager || true
+            fi
             return 1
           }
 
