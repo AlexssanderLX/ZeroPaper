@@ -64,6 +64,9 @@ jobs:
 
       - name: Publish backend artifact
         if: ${{ inputs.scope == 'all' || inputs.scope == 'backend' }}
+        env:
+          # Design-time only: dotnet-ef parses the model but does not open this connection.
+          ConnectionStrings__DefaultConnection: Server=127.0.0.1;Port=3306;Database=zeropaper_migrations;User=migrations;Password=migrations
         run: |
           dotnet publish backend/ZeroPaper.csproj \
             --configuration Release \
