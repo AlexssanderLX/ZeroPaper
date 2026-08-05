@@ -5488,14 +5488,15 @@ select {
 
 .admin-pending-card h3 {
   margin: 0;
-  color: var(--card-title);
+  color: #fff7ee;
   font-size: clamp(1.05rem, 1vw + 0.8rem, 1.35rem);
+  font-weight: 900;
   line-height: 1.05;
 }
 
 .admin-pending-card .entity-head p {
   margin-top: 3px;
-  color: var(--card-text);
+  color: rgba(255, 247, 238, 0.68);
   font-size: 0.9rem;
 }
 

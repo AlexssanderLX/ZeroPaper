@@ -148,14 +148,6 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function normalizeAdminConfirmation(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
 function createPlanDraft(company: AdminCompanyFlow): PlanDraft {
   return {
     planName: company.planName,
@@ -744,15 +736,6 @@ export function AdminSignupCodeManager() {
       }
 
       if (sensitiveAction.type === "delete-company" || sensitiveAction.type === "reject-signup") {
-        if (sensitiveAction.type === "delete-company") {
-          const typedName = normalizeAdminConfirmation(hardDeleteConfirmationText);
-          const expectedName = normalizeAdminConfirmation(sensitiveAction.company.restaurantName);
-          if (typedName !== expectedName) {
-            setConfirmErrorMessage(`Digite o nome da empresa: ${sensitiveAction.company.restaurantName}`);
-            return;
-          }
-        }
-
         setProcessingKey(`company:${sensitiveAction.company.companyId}`);
         await deleteAdminCompany(session.token, sensitiveAction.company.companyId, {
           password: confirmPassword,
@@ -1711,26 +1694,6 @@ export function AdminSignupCodeManager() {
                 </div>
               ) : null}
 
-              {sensitiveAction.type === "delete-company" ? (
-                <div className="module-empty-state">
-                  <strong>Confirmacao da empresa</strong>
-                  <p>
-                    Digite o nome para liberar o botao: <strong>{sensitiveAction.company.restaurantName}</strong>.
-                    Os dados historicos ficam guardados, mas a unidade e os owners deixam de acessar.
-                  </p>
-                  <div className="field-group">
-                    <label htmlFor="deleteCompanyConfirmation">Nome da empresa</label>
-                    <input
-                      id="deleteCompanyConfirmation"
-                      value={hardDeleteConfirmationText}
-                      onChange={(event) => setHardDeleteConfirmationText(event.currentTarget.value)}
-                      placeholder={sensitiveAction.company.restaurantName}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-              ) : null}
-
               <div className="field-group">
                 <label htmlFor="confirmPassword">Sua senha root</label>
                 <input
@@ -1750,11 +1713,7 @@ export function AdminSignupCodeManager() {
                 <button
                   className="primary-link button-link"
                   type="submit"
-                  disabled={
-                    confirmingSensitiveAction ||
-                    (sensitiveAction.type === "delete-company" &&
-                      normalizeAdminConfirmation(hardDeleteConfirmationText) !== normalizeAdminConfirmation(sensitiveAction.company.restaurantName))
-                  }
+                  disabled={confirmingSensitiveAction}
                 >
                   {confirmingSensitiveAction ? "Validando..." : getSensitiveActionCopy(sensitiveAction).buttonLabel}
                 </button>
