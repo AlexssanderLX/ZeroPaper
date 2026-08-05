@@ -32,6 +32,7 @@ import {
   type UpdateAdminCompanyPlanPayload,
 } from "@/lib/api";
 import { useAppSession } from "@/components/app-session-provider";
+import { AdminPlatformBillingPanel } from "@/components/admin-platform-billing-panel";
 
 const GENERATED_CODE_KEY = "zp.admin.generated-code";
 const GENERATED_CODE_TTL_MS = 5 * 60 * 1000;
@@ -381,7 +382,7 @@ function getSensitiveActionCopy(action: SensitiveAction | null) {
   }
 }
 
-type AdminSection = "overview" | "empresas" | "acessos" | "codigos";
+type AdminSection = "overview" | "empresas" | "acessos" | "cobrancas" | "codigos";
 
 export function AdminSignupCodeManager() {
   const router = useRouter();
@@ -957,6 +958,7 @@ export function AdminSignupCodeManager() {
     { key: "overview", label: "Visao geral", hint: "Resumo e alertas", badge: alerts.length || undefined },
     { key: "empresas", label: "Empresas", hint: "Operacao, plano, IA e senha master", badge: companies.length || undefined },
     { key: "acessos", label: "Acessos", hint: "Quem pode entrar", badge: pendingSignupUsers.length || undefined },
+    { key: "cobrancas", label: "Cobrancas", hint: "Conta e assinaturas" },
     { key: "codigos", label: "Codigos", hint: "Codigos de cadastro legados", badge: codes.length || undefined },
   ];
 
@@ -964,6 +966,7 @@ export function AdminSignupCodeManager() {
     overview: { title: "Visao geral", copy: "Resumo operacional das unidades, uso de IA e o que precisa de atencao agora." },
     empresas: { title: "Empresas", copy: "Central de operacao: fluxo do dia, plano, IA e senha master por unidade." },
     acessos: { title: "Acessos", copy: "Controle quem consegue entrar em cada empresa. Crie owners, libere logins e bloqueie contas sem mexer nos pedidos." },
+    cobrancas: { title: "Cobrancas", copy: "Configure a conta que recebe as mensalidades e gere assinaturas recorrentes por empresa." },
     codigos: { title: "Codigos de cadastro", copy: "Codigos legados de liberacao. Remova os que nao usa mais." },
   };
   const activeMeta = sectionMeta[activeSection];
@@ -1211,6 +1214,10 @@ export function AdminSignupCodeManager() {
                 )}
               </section>
             </>
+          ) : null}
+
+          {activeSection === "cobrancas" ? (
+            <AdminPlatformBillingPanel token={session.token} companies={companies} />
           ) : null}
 
       {activeSection === "overview" ? (

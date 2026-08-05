@@ -180,6 +180,11 @@ builder.Services.AddScoped<IAdminSignupCodeService, AdminSignupCodeService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAdminOwnerService, AdminOwnerService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddHttpClient<IPlatformBillingService, PlatformBillingService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.mercadopago.com/", UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(20);
+});
 builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestNotificationService>();
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();

@@ -79,6 +79,9 @@ public class AdminCompanyFlowDto
     public DateTime? LastOrderAtUtc { get; set; }
     public bool HasMasterPassword { get; set; }
     public DateTime? MasterPasswordRotatedAtUtc { get; set; }
+    public string? PlatformBillingStatus { get; set; }
+    public string? PlatformBillingCheckoutUrl { get; set; }
+    public DateTime? PlatformBillingStatusUpdatedAtUtc { get; set; }
 }
 
 public class AdminCompanyPlanUpdateDto

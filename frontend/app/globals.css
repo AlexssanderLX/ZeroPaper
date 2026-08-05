@@ -2658,6 +2658,16 @@ select {
   outline-offset: 1px;
 }
 
+.admin-billing-stack,
+.admin-billing-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-billing-form {
+  max-width: 760px;
+}
+
 .button-link {
   border: 0;
   cursor: pointer;

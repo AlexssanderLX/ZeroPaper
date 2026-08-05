@@ -49,6 +49,7 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<AppointmentStatusHistory> AppointmentStatusHistories => Set<AppointmentStatusHistory>();
     public DbSet<AppointmentBlock> AppointmentBlocks => Set<AppointmentBlock>();
+    public DbSet<PlatformBillingConfiguration> PlatformBillingConfigurations => Set<PlatformBillingConfiguration>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -69,6 +70,19 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.IsActive).IsRequired();
 
             entity.HasIndex(x => x.Identifier).IsUnique();
+        });
+
+        modelBuilder.Entity<PlatformBillingConfiguration>(entity =>
+        {
+            entity.ToTable("platformbillingconfigurations");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Provider).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.AccessTokenCipherText).HasColumnType("longtext").IsRequired();
+            entity.Property(x => x.AccountUserId).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.AccountEmail).HasMaxLength(180);
+            entity.Property(x => x.LiveMode).IsRequired();
+            entity.Property(x => x.UpdatedByUserId).IsRequired();
+            entity.HasIndex(x => x.Provider).IsUnique();
         });
 
         modelBuilder.Entity<Company>(entity =>
@@ -391,6 +405,9 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.IncludesPrintingModule).IsRequired();
             entity.Property(x => x.IncludesWaiterCallModule).IsRequired();
             entity.Property(x => x.IncludesAiAssistantModule).IsRequired();
+            entity.Property(x => x.MercadoPagoPreapprovalId).HasMaxLength(120);
+            entity.Property(x => x.MercadoPagoCheckoutUrl).HasColumnType("text");
+            entity.Property(x => x.MercadoPagoStatus).HasMaxLength(40);
             entity.Property(x => x.Status)
                 .HasConversion<int>()
                 .IsRequired();

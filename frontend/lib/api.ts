@@ -877,6 +877,9 @@ export type AdminCompanyFlow = {
   lastOrderAtUtc?: string | null;
   hasMasterPassword: boolean;
   masterPasswordRotatedAtUtc?: string | null;
+  platformBillingStatus?: string | null;
+  platformBillingCheckoutUrl?: string | null;
+  platformBillingStatusUpdatedAtUtc?: string | null;
 };
 
 export type AdminDashboard = {
@@ -884,6 +887,25 @@ export type AdminDashboard = {
   codes: SignupCode[];
   users: AdminUser[];
   companies: AdminCompanyFlow[];
+};
+
+export type AdminPlatformBillingStatus = {
+  configured: boolean;
+  provider: string;
+  accountUserId?: string | null;
+  accountEmail?: string | null;
+  liveMode: boolean;
+  updatedAtUtc?: string | null;
+};
+
+export type AdminSubscriptionCheckout = {
+  companyId: string;
+  subscriptionId: string;
+  planName: string;
+  monthlyPrice: number;
+  mercadoPagoStatus?: string | null;
+  checkoutUrl?: string | null;
+  statusUpdatedAtUtc?: string | null;
 };
 
 export type AdminSensitiveActionPayload = {
@@ -1381,6 +1403,41 @@ export function getPublicCommercialPlans(segment: 1 | 2) {
 
 export function getAdminDashboard(token: string) {
   return apiRequest<AdminDashboard>("/api/admin/dashboard", { token });
+}
+
+export function getAdminPlatformBilling(token: string) {
+  return apiRequest<AdminPlatformBillingStatus>("/api/admin/platform-billing", { token });
+}
+
+export function configureAdminPlatformBilling(token: string, payload: { accessToken: string; password: string }) {
+  return apiRequest<AdminPlatformBillingStatus>("/api/admin/platform-billing/mercadopago", {
+    method: "PUT",
+    token,
+    body: payload,
+  });
+}
+
+export function disconnectAdminPlatformBilling(token: string, password: string) {
+  return apiRequest<void>("/api/admin/platform-billing/mercadopago", {
+    method: "DELETE",
+    token,
+    body: { password },
+  });
+}
+
+export function createAdminSubscriptionCheckout(token: string, companyId: string, password: string) {
+  return apiRequest<AdminSubscriptionCheckout>(`/api/admin/platform-billing/companies/${companyId}/checkout`, {
+    method: "POST",
+    token,
+    body: { password },
+  });
+}
+
+export function syncAdminSubscription(token: string, companyId: string) {
+  return apiRequest<AdminSubscriptionCheckout>(`/api/admin/platform-billing/companies/${companyId}/sync`, {
+    method: "POST",
+    token,
+  });
 }
 
 export function getSignupCodes(token: string) {

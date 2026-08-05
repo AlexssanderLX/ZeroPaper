@@ -187,6 +187,21 @@ public class AdminDashboardService : IAdminDashboardService
                     .OrderByDescending(subscription => subscription.StartsAtUtc)
                     .Select(subscription => (bool?)subscription.IncludesAiAssistantModule)
                     .FirstOrDefault() ?? false,
+                PlatformBillingStatus = _context.Subscriptions
+                    .Where(subscription => subscription.TenantId == item.TenantId && subscription.IsActive)
+                    .OrderByDescending(subscription => subscription.StartsAtUtc)
+                    .Select(subscription => subscription.MercadoPagoStatus)
+                    .FirstOrDefault(),
+                PlatformBillingCheckoutUrl = _context.Subscriptions
+                    .Where(subscription => subscription.TenantId == item.TenantId && subscription.IsActive)
+                    .OrderByDescending(subscription => subscription.StartsAtUtc)
+                    .Select(subscription => subscription.MercadoPagoCheckoutUrl)
+                    .FirstOrDefault(),
+                PlatformBillingStatusUpdatedAtUtc = _context.Subscriptions
+                    .Where(subscription => subscription.TenantId == item.TenantId && subscription.IsActive)
+                    .OrderByDescending(subscription => subscription.StartsAtUtc)
+                    .Select(subscription => subscription.MercadoPagoStatusUpdatedAtUtc)
+                    .FirstOrDefault(),
                 IsCompanyActive = item.IsActive,
                 TablesCount = item.Tables.Count(table => table.IsActive && !table.IsDeliveryChannel),
                 MenuItemsCount = item.MenuItems.Count(menuItem => menuItem.IsActive),
