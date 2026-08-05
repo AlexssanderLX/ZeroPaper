@@ -50,6 +50,7 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<AppointmentStatusHistory> AppointmentStatusHistories => Set<AppointmentStatusHistory>();
     public DbSet<AppointmentBlock> AppointmentBlocks => Set<AppointmentBlock>();
     public DbSet<PlatformBillingConfiguration> PlatformBillingConfigurations => Set<PlatformBillingConfiguration>();
+    public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -83,6 +84,17 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.LiveMode).IsRequired();
             entity.Property(x => x.UpdatedByUserId).IsRequired();
             entity.HasIndex(x => x.Provider).IsUnique();
+        });
+
+        modelBuilder.Entity<SubscriptionPayment>(entity =>
+        {
+            entity.ToTable("subscriptionpayments");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Source).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.ExternalPaymentId).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Amount).HasPrecision(10, 2).IsRequired();
+            entity.HasIndex(x => new { x.Source, x.ExternalPaymentId }).IsUnique();
+            entity.HasIndex(x => new { x.SubscriptionId, x.PaidAtUtc });
         });
 
         modelBuilder.Entity<Company>(entity =>
@@ -408,6 +420,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.MercadoPagoPreapprovalId).HasMaxLength(120);
             entity.Property(x => x.MercadoPagoCheckoutUrl).HasColumnType("text");
             entity.Property(x => x.MercadoPagoStatus).HasMaxLength(40);
+            entity.Property(x => x.CheckoutConfirmationTokenHash).HasMaxLength(128);
             entity.Property(x => x.Status)
                 .HasConversion<int>()
                 .IsRequired();

@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -22,19 +23,25 @@ public sealed class PlatformBillingService : IPlatformBillingService
     private readonly IDataProtector _protector;
     private readonly HttpClient _httpClient;
     private readonly PublicAppOptions _publicAppOptions;
+    private readonly IBillingNotificationService _billingNotificationService;
+    private readonly ILogger<PlatformBillingService> _logger;
 
     public PlatformBillingService(
         ZeroPaperDbContext context,
         IPasswordHasher passwordHasher,
         IDataProtectionProvider dataProtectionProvider,
         HttpClient httpClient,
-        IOptions<PublicAppOptions> publicAppOptions)
+        IOptions<PublicAppOptions> publicAppOptions,
+        IBillingNotificationService billingNotificationService,
+        ILogger<PlatformBillingService> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _protector = dataProtectionProvider.CreateProtector("ZeroPaper.PlatformBilling.MercadoPago.AccessToken.v1");
         _httpClient = httpClient;
         _publicAppOptions = publicAppOptions.Value;
+        _billingNotificationService = billingNotificationService;
+        _logger = logger;
     }
 
     public async Task<AdminPlatformBillingStatusDto> GetStatusAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
@@ -130,9 +137,115 @@ public sealed class PlatformBillingService : IPlatformBillingService
         var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Get, $"preapproval/{Uri.EscapeDataString(subscription.MercadoPagoPreapprovalId)}", Unprotect(configuration.AccessTokenCipherText), null, cancellationToken)
             ?? throw new InvalidOperationException("Nao foi possivel consultar a assinatura no Mercado Pago.");
         subscription.UpdateMercadoPagoStatus(response.Status ?? "unknown", DateTime.UtcNow);
+        await ProcessApprovedPaymentsAsync(company, subscription, configuration, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return MapCheckout(companyId, subscription);
     }
+
+    public async Task<AdminSubscriptionCheckoutDto> CreateSignupCheckoutAsync(Guid subscriptionId, Guid companyId, string ownerEmail, CancellationToken cancellationToken = default)
+    {
+        var configuration = await GetRequiredConfigurationAsync(cancellationToken);
+        var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken)
+            ?? throw new KeyNotFoundException("Empresa nao encontrada.");
+        var subscription = await _context.Subscriptions.FirstOrDefaultAsync(item => item.Id == subscriptionId && item.TenantId == company.TenantId, cancellationToken)
+            ?? throw new KeyNotFoundException("Plano nao encontrado.");
+        if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId)) return MapCheckout(companyId, subscription);
+        var rawConfirmationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        subscription.SetCheckoutConfirmationTokenHash(ComputeTokenHash(rawConfirmationToken));
+        var payload = new
+        {
+            reason = $"{subscription.PlanName} - {company.TradeName}", external_reference = subscription.Id.ToString(), payer_email = ownerEmail,
+            auto_recurring = new { frequency = 1, frequency_type = "months", transaction_amount = subscription.MonthlyPrice, currency_id = "BRL" },
+            back_url = $"{GetPublicBaseUrl()}/cadastro/confirmacao?pagamento={rawConfirmationToken}"
+        };
+        var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval", Unprotect(configuration.AccessTokenCipherText), payload, cancellationToken, subscription.Id.ToString())
+            ?? throw new InvalidOperationException("O Mercado Pago nao retornou a assinatura criada.");
+        if (string.IsNullOrWhiteSpace(response.Id) || string.IsNullOrWhiteSpace(response.InitPoint)) throw new InvalidOperationException("O Mercado Pago nao retornou o checkout.");
+        subscription.RegisterMercadoPagoCheckout(response.Id, response.InitPoint, response.Status ?? "pending", DateTime.UtcNow);
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapCheckout(companyId, subscription);
+    }
+
+    public async Task<SubscriptionPaymentConfirmationDto> ConfirmSignupPaymentAsync(string confirmationToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(confirmationToken) || confirmationToken.Length != 64) throw new ArgumentException("Confirmacao invalida.");
+        var hash = ComputeTokenHash(confirmationToken);
+        var subscription = await _context.Subscriptions.FirstOrDefaultAsync(item => item.CheckoutConfirmationTokenHash == hash && item.IsActive, cancellationToken)
+            ?? throw new KeyNotFoundException("Confirmacao nao encontrada.");
+        var company = await _context.Companies.FirstAsync(item => item.TenantId == subscription.TenantId && item.IsActive, cancellationToken);
+        var configuration = await GetRequiredConfigurationAsync(cancellationToken);
+        var paid = await ProcessApprovedPaymentsAsync(company, subscription, configuration, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return BuildConfirmation(subscription, paid);
+    }
+
+    public async Task<SubscriptionPaymentConfirmationDto> MarkManualPaymentAsync(WorkspaceSessionContext session, Guid companyId, AdminSensitiveActionRequestDto request, CancellationToken cancellationToken = default)
+    {
+        await ValidateRootPasswordAsync(session, request.Password, cancellationToken);
+        var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken) ?? throw new KeyNotFoundException("Empresa nao encontrada.");
+        var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
+        var owner = await _context.Users.FirstAsync(item => item.CompanyId == companyId && item.Role == UserRole.Owner, cancellationToken);
+        var payment = new SubscriptionPayment(company.TenantId, subscription.Id, "manual", Guid.NewGuid().ToString("N"), subscription.MonthlyPrice, DateTime.UtcNow, session.UserId);
+        subscription.RegisterPaidMonth(payment.PaidAtUtc); owner.Activate();
+        await _context.SubscriptionPayments.AddAsync(payment, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        await NotifySafelyAsync(company, owner, subscription, payment, cancellationToken);
+        return BuildConfirmation(subscription, true);
+    }
+
+    public async Task<DateTime?> RefreshTenantPaidAccessAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var subscription = await _context.Subscriptions.Where(item => item.TenantId == tenantId && item.IsActive)
+            .OrderByDescending(item => item.StartsAtUtc).FirstOrDefaultAsync(cancellationToken);
+        if (subscription is null || string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId)) return subscription?.PaidThroughUtc;
+        var configuration = await GetConfigurationAsync(cancellationToken);
+        if (configuration is null) return subscription.PaidThroughUtc;
+        var company = await _context.Companies.FirstAsync(item => item.TenantId == tenantId && item.IsActive, cancellationToken);
+        await ProcessApprovedPaymentsAsync(company, subscription, configuration, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return subscription.PaidThroughUtc;
+    }
+
+    private async Task<bool> ProcessApprovedPaymentsAsync(Company company, Subscription subscription, PlatformBillingConfiguration configuration, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId)) return false;
+        var search = await SendAsync<AuthorizedPaymentSearch>(HttpMethod.Get, $"authorized_payments/search?preapproval_id={Uri.EscapeDataString(subscription.MercadoPagoPreapprovalId)}", Unprotect(configuration.AccessTokenCipherText), null, cancellationToken);
+        var owner = await _context.Users.FirstAsync(item => item.CompanyId == company.Id && item.Role == UserRole.Owner, cancellationToken);
+        var activated = false;
+        foreach (var invoice in (search?.Results ?? []).OrderBy(item => item.DebitDate ?? item.DateCreated ?? DateTime.MaxValue))
+        {
+            if (!string.Equals(invoice.Payment?.Status, "approved", StringComparison.OrdinalIgnoreCase) || invoice.Payment?.Id is null) continue;
+            var externalId = invoice.Payment.Id.Value.ToString();
+            if (await _context.SubscriptionPayments.AnyAsync(item => item.Source == "mercadopago" && item.ExternalPaymentId == externalId, cancellationToken)) continue;
+            if (invoice.TransactionAmount < subscription.MonthlyPrice || !string.Equals(invoice.CurrencyId, "BRL", StringComparison.OrdinalIgnoreCase)) continue;
+            var paidAt = invoice.DebitDate ?? invoice.DateCreated ?? DateTime.UtcNow;
+            var payment = new SubscriptionPayment(company.TenantId, subscription.Id, "mercadopago", externalId, invoice.TransactionAmount, paidAt);
+            subscription.RegisterPaidMonth(paidAt); owner.Activate();
+            await _context.SubscriptionPayments.AddAsync(payment, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            await NotifySafelyAsync(company, owner, subscription, payment, cancellationToken);
+            activated = true;
+        }
+        return activated || subscription.HasPaidAccess(DateTime.UtcNow);
+    }
+
+    private async Task NotifySafelyAsync(Company company, AppUser owner, Subscription subscription, SubscriptionPayment payment, CancellationToken cancellationToken)
+    {
+        try { await _billingNotificationService.SendPaymentConfirmedAsync(company, owner, subscription, payment, cancellationToken); }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Payment {PaymentId} was applied, but its billing notification email failed.", payment.ExternalPaymentId);
+        }
+    }
+
+    private static SubscriptionPaymentConfirmationDto BuildConfirmation(Subscription subscription, bool paid) => new()
+    {
+        Paid = paid, AccessActive = subscription.HasPaidAccess(DateTime.UtcNow), PaidThroughUtc = subscription.PaidThroughUtc,
+        Message = paid ? "Pagamento confirmado. Seu acesso esta liberado." : "Pagamento ainda em processamento. Tente novamente em alguns instantes."
+    };
+
+    private string GetPublicBaseUrl() => (_publicAppOptions.BaseUrl ?? "https://zeropaperflow.com.br").TrimEnd('/');
+    private static string ComputeTokenHash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
     private async Task<T?> SendAsync<T>(HttpMethod method, string path, string token, object? payload, CancellationToken cancellationToken, string? idempotencyKey = null)
     {
@@ -211,4 +324,14 @@ public sealed class PlatformBillingService : IPlatformBillingService
         [JsonPropertyName("init_point")] public string? InitPoint { get; set; }
         public string? Status { get; set; }
     }
+    private sealed class AuthorizedPaymentSearch { public List<AuthorizedPayment> Results { get; set; } = []; }
+    private sealed class AuthorizedPayment
+    {
+        [JsonPropertyName("transaction_amount"), JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)] public decimal TransactionAmount { get; set; }
+        [JsonPropertyName("currency_id")] public string? CurrencyId { get; set; }
+        [JsonPropertyName("debit_date")] public DateTime? DebitDate { get; set; }
+        [JsonPropertyName("date_created")] public DateTime? DateCreated { get; set; }
+        public AuthorizedPaymentDetail? Payment { get; set; }
+    }
+    private sealed class AuthorizedPaymentDetail { public long? Id { get; set; } public string? Status { get; set; } }
 }

@@ -28,6 +28,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IAccessRequestNotificationService _accessRequestNotificationService;
     private readonly ICashOrderTableService _cashOrderTableService;
+    private readonly IPlatformBillingService _platformBillingService;
 
     public RestaurantOnboardingService(
         ZeroPaperDbContext context,
@@ -39,7 +40,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         IAccessRequestNotificationService accessRequestNotificationService,
-        ICashOrderTableService cashOrderTableService)
+        ICashOrderTableService cashOrderTableService,
+        IPlatformBillingService platformBillingService)
     {
         _context = context;
         _tenantRepository = tenantRepository;
@@ -51,6 +53,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         _passwordHasher = passwordHasher;
         _accessRequestNotificationService = accessRequestNotificationService;
         _cashOrderTableService = cashOrderTableService;
+        _platformBillingService = platformBillingService;
     }
 
     public async Task<RestaurantOnboardingResponseDto> CreateAsync(
@@ -61,6 +64,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         {
             throw new InvalidOperationException("Este segmento ainda esta em desenvolvimento.");
         }
+        if (!request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase) &&
+            !request.RegistrationFlow.Equals("pre_registration", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Fluxo de cadastro invalido.", nameof(request.RegistrationFlow));
 
         var normalizedOwnerEmail = NormalizeEmail(request.OwnerEmail);
         var lockKey = normalizedOwnerEmail;
@@ -69,7 +75,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         await signupLock.WaitAsync(cancellationToken);
         try
         {
-            var existingSignup = await FindExistingSignupAsync(normalizedOwnerEmail, cancellationToken);
+            var existingSignup = await FindExistingSignupAsync(normalizedOwnerEmail, request.RegistrationFlow, cancellationToken);
             if (existingSignup is not null)
             {
                 return existingSignup;
@@ -138,6 +144,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 DateTime.UtcNow,
                 SubscriptionStatus.Active);
             subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
+            if (signupCode is not null) subscription.RegisterPaidMonth(DateTime.UtcNow);
 
             var qrCodeAccess = request.BusinessSegment == BusinessSegment.Restaurant
                 ? new QrCodeAccess(tenant.Id, company.Id, "Entrada principal do restaurante", $"/r/{accessSlug}/menu")
@@ -166,8 +173,13 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             {
                 await _cashOrderTableService.EnsureAsync(tenant.Id, company.Id, cancellationToken);
             }
+            string? checkoutUrl = null;
+            if (signupCode is null && request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase))
+            {
+                checkoutUrl = (await _platformBillingService.CreateSignupCheckoutAsync(subscription.Id, company.Id, owner.Email, cancellationToken)).CheckoutUrl;
+            }
 
-            return BuildResponse(tenant, company, owner, subscription, selectedPlan.Key, signupCode is null);
+            return BuildResponse(tenant, company, owner, subscription, selectedPlan.Key, signupCode is null, checkoutUrl);
         }
         finally
         {
@@ -179,7 +191,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         }
     }
 
-    private async Task<RestaurantOnboardingResponseDto?> FindExistingSignupAsync(string ownerEmail, CancellationToken cancellationToken)
+    private async Task<RestaurantOnboardingResponseDto?> FindExistingSignupAsync(string ownerEmail, string registrationFlow, CancellationToken cancellationToken)
     {
         var owner = await _context.Users
             .AsNoTracking()
@@ -200,6 +212,10 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             .OrderByDescending(item => item.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
+        string? checkoutUrl = null;
+        if (!owner.IsActive && registrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase) && subscription is not null)
+            checkoutUrl = (await _platformBillingService.CreateSignupCheckoutAsync(subscription.Id, owner.CompanyId, owner.Email, cancellationToken)).CheckoutUrl;
+
         return new RestaurantOnboardingResponseDto
         {
             TenantIdentifier = owner.Tenant.Identifier,
@@ -210,6 +226,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             PlanKey = CommercialPlanCatalog.TryResolve(subscription?.PlanName, out var plan) ? plan.Key : string.Empty,
             BusinessSegment = (int)owner.Company.BusinessSegment,
             RequiresApproval = !owner.IsActive,
+            CheckoutUrl = checkoutUrl,
             Message = owner.IsActive
                 ? "Cadastro ja existe e esta liberado para login."
                 : "Pre-cadastro ja recebido. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
@@ -222,7 +239,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         AppUser owner,
         Subscription subscription,
         string planKey,
-        bool requiresApproval)
+        bool requiresApproval,
+        string? checkoutUrl)
     {
         return new RestaurantOnboardingResponseDto
         {
@@ -234,8 +252,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             PlanKey = planKey,
             BusinessSegment = (int)company.BusinessSegment,
             RequiresApproval = requiresApproval,
+            CheckoutUrl = checkoutUrl,
             Message = requiresApproval
-                ? "Pre-cadastro enviado. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
+                ? checkoutUrl is not null ? "Cadastro criado. Conclua o pagamento para liberar o acesso automaticamente." : "Pre-cadastro enviado. A ZeroPaper vai liberar o login e entrar em contato pelo telefone ou email informado."
                 : "Cadastro liberado."
         };
     }

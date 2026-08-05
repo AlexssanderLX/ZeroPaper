@@ -186,6 +186,7 @@ builder.Services.AddHttpClient<IPlatformBillingService, PlatformBillingService>(
     client.Timeout = TimeSpan.FromSeconds(20);
 });
 builder.Services.AddScoped<IAccessRequestNotificationService, SmtpAccessRequestNotificationService>();
+builder.Services.AddScoped<IBillingNotificationService, SmtpBillingNotificationService>();
 builder.Services.AddScoped<IRestaurantOnboardingService, RestaurantOnboardingService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ISalesAgentService, SalesAgentService>();

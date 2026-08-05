@@ -730,6 +730,7 @@ export type RestaurantSignupPayload = {
   ownerEmail: string;
   ownerPassword: string;
   contactPhone: string;
+  registrationFlow: "pay_now" | "pre_registration";
 };
 
 export type RestaurantSignupResult = {
@@ -741,6 +742,14 @@ export type RestaurantSignupResult = {
   planKey: string;
   businessSegment: number;
   requiresApproval: boolean;
+  message: string;
+  checkoutUrl?: string | null;
+};
+
+export type SubscriptionPaymentConfirmation = {
+  paid: boolean;
+  accessActive: boolean;
+  paidThroughUtc?: string | null;
   message: string;
 };
 
@@ -880,6 +889,7 @@ export type AdminCompanyFlow = {
   platformBillingStatus?: string | null;
   platformBillingCheckoutUrl?: string | null;
   platformBillingStatusUpdatedAtUtc?: string | null;
+  paidThroughUtc?: string | null;
 };
 
 export type AdminDashboard = {
@@ -1438,6 +1448,16 @@ export function syncAdminSubscription(token: string, companyId: string) {
     method: "POST",
     token,
   });
+}
+
+export function markAdminSubscriptionPaid(token: string, companyId: string, password: string) {
+  return apiRequest<SubscriptionPaymentConfirmation>(`/api/admin/platform-billing/companies/${companyId}/mark-paid`, {
+    method: "POST", token, body: { password },
+  });
+}
+
+export function confirmPublicSubscriptionPayment(confirmationToken: string) {
+  return apiRequest<SubscriptionPaymentConfirmation>(`/api/public/platform-billing/confirm/${encodeURIComponent(confirmationToken)}`, { method: "POST" });
 }
 
 export function getSignupCodes(token: string) {

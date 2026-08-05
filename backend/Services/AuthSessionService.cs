@@ -19,17 +19,20 @@ public class AuthSessionService : IAuthSessionService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ICashOrderTableService _cashOrderTableService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IPlatformBillingService _platformBillingService;
 
     public AuthSessionService(
         ZeroPaperDbContext context,
         IPasswordHasher passwordHasher,
         ICashOrderTableService cashOrderTableService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IPlatformBillingService platformBillingService)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _cashOrderTableService = cashOrderTableService;
         _httpContextAccessor = httpContextAccessor;
+        _platformBillingService = platformBillingService;
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
@@ -83,7 +86,8 @@ public class AuthSessionService : IAuthSessionService
         {
             if (user.Role == UserRole.Owner && user.LastLoginAtUtc is null)
             {
-                throw new AccountPendingApprovalException();
+                await _platformBillingService.RefreshTenantPaidAccessAsync(user.TenantId, cancellationToken);
+                if (!user.IsActive) throw new AccountPendingApprovalException();
             }
 
             throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
@@ -92,6 +96,20 @@ public class AuthSessionService : IAuthSessionService
         if (!user.Company.IsActive || user.Company.BusinessSegment != BusinessSegment.Restaurant)
         {
             throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
+        }
+
+        if (user.Role != UserRole.Root)
+        {
+            var paidThroughUtc = await _context.Subscriptions
+                .Where(item => item.TenantId == user.TenantId && item.IsActive)
+                .OrderByDescending(item => item.StartsAtUtc)
+                .Select(item => item.PaidThroughUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= DateTime.UtcNow)
+            {
+                paidThroughUtc = await _platformBillingService.RefreshTenantPaidAccessAsync(user.TenantId, cancellationToken);
+                if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= DateTime.UtcNow) throw new SubscriptionExpiredException();
+            }
         }
 
         if (user.Role == UserRole.Owner)
@@ -259,6 +277,25 @@ public class AuthSessionService : IAuthSessionService
         if (session is null || !session.AppUser.IsActive || !session.Company.IsActive || !session.IsAvailable(utcNow))
         {
             return null;
+        }
+
+        if (session.AppUser.Role != UserRole.Root)
+        {
+            var paidThroughUtc = await _context.Subscriptions
+                .Where(item => item.TenantId == session.TenantId && item.IsActive)
+                .OrderByDescending(item => item.StartsAtUtc)
+                .Select(item => item.PaidThroughUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= utcNow)
+            {
+                paidThroughUtc = await _platformBillingService.RefreshTenantPaidAccessAsync(session.TenantId, cancellationToken);
+                if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= utcNow)
+                {
+                    session.Revoke(utcNow);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    return null;
+                }
+            }
         }
 
         if (!session.LastSeenAtUtc.HasValue || session.LastSeenAtUtc.Value <= utcNow.AddMinutes(-5))

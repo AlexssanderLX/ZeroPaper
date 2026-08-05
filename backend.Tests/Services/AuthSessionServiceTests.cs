@@ -4,6 +4,7 @@ using ZeroPaper.Data;
 using ZeroPaper.Domain.Entities;
 using ZeroPaper.Domain.Enums;
 using ZeroPaper.DTOs.Auth;
+using ZeroPaper.DTOs.Admin;
 using ZeroPaper.Services;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
@@ -122,7 +123,7 @@ public sealed class AuthSessionServiceTests
     }
 
     private static AuthSessionService CreateService(ZeroPaperDbContext context, IPasswordHasher hasher) =>
-        new(context, hasher, new NoOpCashOrderTableService(), new HttpContextAccessor());
+        new(context, hasher, new NoOpCashOrderTableService(), new HttpContextAccessor(), new NoOpPlatformBillingService());
 
     private sealed class NoOpCashOrderTableService : ICashOrderTableService
     {
@@ -130,5 +131,18 @@ public sealed class AuthSessionServiceTests
             throw new InvalidOperationException("Pending login must not initialize a cash table.");
 
         public Task EnsureForActiveOwnersAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class NoOpPlatformBillingService : IPlatformBillingService
+    {
+        public Task<DateTime?> RefreshTenantPaidAccessAsync(Guid tenantId, CancellationToken cancellationToken = default) => Task.FromResult<DateTime?>(null);
+        public Task<AdminPlatformBillingStatusDto> GetStatusAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AdminPlatformBillingStatusDto> ConfigureAsync(WorkspaceSessionContext session, ConfigureAdminPlatformBillingRequestDto request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task DisconnectAsync(WorkspaceSessionContext session, AdminSensitiveActionRequestDto request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AdminSubscriptionCheckoutDto> CreateSubscriptionCheckoutAsync(WorkspaceSessionContext session, Guid companyId, AdminSensitiveActionRequestDto request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AdminSubscriptionCheckoutDto> SyncSubscriptionAsync(WorkspaceSessionContext session, Guid companyId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<AdminSubscriptionCheckoutDto> CreateSignupCheckoutAsync(Guid subscriptionId, Guid companyId, string ownerEmail, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<SubscriptionPaymentConfirmationDto> ConfirmSignupPaymentAsync(string confirmationToken, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<SubscriptionPaymentConfirmationDto> MarkManualPaymentAsync(WorkspaceSessionContext session, Guid companyId, AdminSensitiveActionRequestDto request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

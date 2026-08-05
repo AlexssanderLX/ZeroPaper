@@ -54,4 +54,7 @@ public class RestaurantOnboardingRequestDto
 
     [Range(1, 500)]
     public int MaxUsers { get; set; } = 5;
+
+    [MaxLength(20)]
+    public string RegistrationFlow { get; set; } = "pre_registration";
 }

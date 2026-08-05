@@ -25,3 +25,11 @@ public sealed class AdminSubscriptionCheckoutDto
     public string? CheckoutUrl { get; set; }
     public DateTime? StatusUpdatedAtUtc { get; set; }
 }
+
+public sealed class SubscriptionPaymentConfirmationDto
+{
+    public bool Paid { get; set; }
+    public bool AccessActive { get; set; }
+    public DateTime? PaidThroughUtc { get; set; }
+    public string Message { get; set; } = string.Empty;
+}

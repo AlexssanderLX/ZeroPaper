@@ -52,6 +52,8 @@ public class Subscription : TenantOwnedEntity
     public string? MercadoPagoCheckoutUrl { get; private set; }
     public string? MercadoPagoStatus { get; private set; }
     public DateTime? MercadoPagoStatusUpdatedAtUtc { get; private set; }
+    public DateTime? PaidThroughUtc { get; private set; }
+    public string? CheckoutConfirmationTokenHash { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
 
@@ -157,4 +159,21 @@ public class Subscription : TenantOwnedEntity
         MercadoPagoStatusUpdatedAtUtc = occurredAtUtc;
         Touch();
     }
+
+    public void SetCheckoutConfirmationTokenHash(string tokenHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
+        CheckoutConfirmationTokenHash = tokenHash.Trim();
+        Touch();
+    }
+
+    public DateTime RegisterPaidMonth(DateTime paidAtUtc)
+    {
+        var basis = PaidThroughUtc.HasValue && PaidThroughUtc.Value > paidAtUtc ? PaidThroughUtc.Value : paidAtUtc;
+        PaidThroughUtc = basis.AddMonths(1);
+        Reactivate();
+        return PaidThroughUtc.Value;
+    }
+
+    public bool HasPaidAccess(DateTime utcNow) => PaidThroughUtc.HasValue && PaidThroughUtc.Value > utcNow;
 }

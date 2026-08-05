@@ -82,6 +82,7 @@ public class AdminCompanyFlowDto
     public string? PlatformBillingStatus { get; set; }
     public string? PlatformBillingCheckoutUrl { get; set; }
     public DateTime? PlatformBillingStatusUpdatedAtUtc { get; set; }
+    public DateTime? PaidThroughUtc { get; set; }
 }
 
 public class AdminCompanyPlanUpdateDto

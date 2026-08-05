@@ -1,8 +1,10 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 using ZeroPaper.Data;
 using ZeroPaper.Domain.Entities;
 using ZeroPaper.Domain.Enums;
@@ -59,6 +61,35 @@ public sealed class PlatformBillingServiceTests
         Assert.Empty(context.PlatformBillingConfigurations);
     }
 
+    [Fact]
+    public async Task ApprovedMercadoPagoInvoice_ActivatesOnceAndGrantsOneMonth()
+    {
+        await using var context = CreateContext();
+        var (_, rootSession, hasher) = await SeedRootAsync(context);
+        var handler = new SubscriptionFlowHandler();
+        var service = CreateService(context, hasher, handler);
+        await service.ConfigureAsync(rootSession, new ConfigureAdminPlatformBillingRequestDto { AccessToken = AccessToken, Password = "root-password" });
+
+        var tenantId = Guid.NewGuid();
+        var company = new Company(tenantId, "Paid Company", "Paid Company", $"paid-{Guid.NewGuid():N}");
+        var owner = new AppUser(tenantId, company.Id, "Paid Owner", "payer@example.com", hasher.Hash("password"), UserRole.Owner);
+        owner.Deactivate();
+        var subscription = new Subscription(tenantId, "ZeroPaper Operacao", 120m, 5, DateTime.UtcNow, SubscriptionStatus.Active);
+        context.AddRange(company, owner, subscription);
+        await context.SaveChangesAsync();
+
+        await service.CreateSignupCheckoutAsync(subscription.Id, company.Id, owner.Email);
+        var first = await service.ConfirmSignupPaymentAsync(handler.ConfirmationToken!);
+        var paidThrough = first.PaidThroughUtc;
+        var second = await service.ConfirmSignupPaymentAsync(handler.ConfirmationToken!);
+
+        Assert.True(first.AccessActive);
+        Assert.True(second.AccessActive);
+        Assert.Equal(paidThrough, second.PaidThroughUtc);
+        Assert.True(owner.IsActive);
+        Assert.Single(context.SubscriptionPayments);
+    }
+
     private static ZeroPaperDbContext CreateContext() => new(new DbContextOptionsBuilder<ZeroPaperDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
@@ -89,7 +120,9 @@ public sealed class PlatformBillingServiceTests
             hasher,
             new EphemeralDataProtectionProvider(),
             client,
-            Options.Create(new PublicAppOptions { BaseUrl = "https://zeropaperflow.com.br" }));
+            Options.Create(new PublicAppOptions { BaseUrl = "https://zeropaperflow.com.br" }),
+            new NoOpBillingNotificationService(),
+            NullLogger<PlatformBillingService>.Instance);
     }
 
     private sealed class StubHandler(HttpStatusCode status, string body) : HttpMessageHandler
@@ -105,5 +138,29 @@ public sealed class PlatformBillingServiceTests
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
             });
         }
+    }
+
+    private sealed class SubscriptionFlowHandler : HttpMessageHandler
+    {
+        public string? ConfirmationToken { get; private set; }
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            string body;
+            if (request.RequestUri!.AbsolutePath.EndsWith("/users/me")) body = "{\"id\":123456,\"email\":\"billing@example.com\"}";
+            else if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/preapproval"))
+            {
+                var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var backUrl = payload.RootElement.GetProperty("back_url").GetString()!;
+                ConfirmationToken = new Uri(backUrl).Query.Split("pagamento=")[1];
+                body = "{\"id\":\"preapproval-1\",\"init_point\":\"https://mercadopago.example/checkout\",\"status\":\"pending\"}";
+            }
+            else body = "{\"results\":[{\"transaction_amount\":\"120.00\",\"currency_id\":\"BRL\",\"debit_date\":\"2026-08-05T12:00:00Z\",\"payment\":{\"id\":998877,\"status\":\"approved\"}}]}";
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+        }
+    }
+
+    private sealed class NoOpBillingNotificationService : ZeroPaper.Services.Interfaces.IBillingNotificationService
+    {
+        public Task SendPaymentConfirmedAsync(Company company, AppUser owner, Subscription subscription, SubscriptionPayment payment, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

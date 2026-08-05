@@ -63,6 +63,14 @@ public sealed class AdminPlatformBillingController : ControllerBase
         return session is null ? Unauthorized() : Ok(await _billingService.SyncSubscriptionAsync(session, companyId, cancellationToken));
     }
 
+    [HttpPost("companies/{companyId:guid}/mark-paid")]
+    [EnableRateLimiting("sensitive-write")]
+    public async Task<IActionResult> MarkPaidAsync(Guid companyId, [FromBody] AdminSensitiveActionRequestDto request, CancellationToken cancellationToken)
+    {
+        var session = await GetSessionAsync(cancellationToken);
+        return session is null ? Unauthorized() : Ok(await _billingService.MarkManualPaymentAsync(session, companyId, request, cancellationToken));
+    }
+
     private Task<WorkspaceSessionContext?> GetSessionAsync(CancellationToken cancellationToken) =>
         _authSessionService.GetSessionAsync(Request.Headers.Authorization.ToString(), cancellationToken);
 }

@@ -11,4 +11,5 @@ public class RestaurantOnboardingResponseDto
     public int BusinessSegment { get; init; }
     public bool RequiresApproval { get; init; }
     public string Message { get; init; } = string.Empty;
+    public string? CheckoutUrl { get; init; }
 }

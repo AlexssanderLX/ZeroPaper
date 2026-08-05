@@ -58,6 +58,12 @@ export function LoginAccessForm() {
             return;
           }
 
+          if (error instanceof ApiError && error.code === "SUBSCRIPTION_EXPIRED") {
+            setIsAccessDenied(false);
+            setErrorMessage(error.message);
+            return;
+          }
+
           if (error instanceof ApiError && error.status === 403) {
             setIsAccessDenied(true);
             setErrorMessage("Acesso negado. Entre em contato com a ZeroPaper.");

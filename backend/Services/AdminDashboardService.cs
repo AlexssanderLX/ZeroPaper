@@ -202,7 +202,13 @@ public class AdminDashboardService : IAdminDashboardService
                     .OrderByDescending(subscription => subscription.StartsAtUtc)
                     .Select(subscription => subscription.MercadoPagoStatusUpdatedAtUtc)
                     .FirstOrDefault(),
-                IsCompanyActive = item.IsActive,
+                PaidThroughUtc = _context.Subscriptions
+                    .Where(subscription => subscription.TenantId == item.TenantId && subscription.IsActive)
+                    .OrderByDescending(subscription => subscription.StartsAtUtc)
+                    .Select(subscription => subscription.PaidThroughUtc)
+                    .FirstOrDefault(),
+                IsCompanyActive = item.IsActive && _context.Subscriptions.Any(subscription =>
+                    subscription.TenantId == item.TenantId && subscription.IsActive && subscription.PaidThroughUtc > utcNow),
                 TablesCount = item.Tables.Count(table => table.IsActive && !table.IsDeliveryChannel),
                 MenuItemsCount = item.MenuItems.Count(menuItem => menuItem.IsActive),
                 StockItemsCount = item.StockItems.Count(stockItem => stockItem.IsActive),

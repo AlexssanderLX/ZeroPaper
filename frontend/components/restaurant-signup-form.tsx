@@ -22,6 +22,8 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
     const ownerEmail = String(formData.get("ownerEmail") ?? "").trim().toLowerCase();
     const contactPhone = String(formData.get("contactPhone") ?? "").trim();
     const ownerPassword = String(formData.get("ownerPassword") ?? "").trim();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const registrationFlow = submitter?.value === "pay_now" ? "pay_now" : "pre_registration";
 
     if (!businessName || !ownerName || !ownerEmail || !contactPhone || !ownerPassword) {
       setErrorMessage("Preencha todos os campos para continuar.");
@@ -37,7 +39,7 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
     isSubmittingRef.current = true;
 
     try {
-      await createRestaurantSignup({
+      const response = await createRestaurantSignup({
         businessSegment: segment,
         planKey: selectedPlan.key,
         restaurantName: businessName,
@@ -46,7 +48,12 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
         ownerEmail,
         ownerPassword,
         contactPhone,
+        registrationFlow,
       });
+      if (response.checkoutUrl) {
+        window.location.assign(response.checkoutUrl);
+        return;
+      }
       router.push(`/cadastro/confirmacao?segmento=${segment === 2 ? "petshop" : "restaurante"}`);
     } catch (error) {
       isSubmittingRef.current = false;
@@ -92,7 +99,10 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
         <input id="ownerPassword" name="ownerPassword" type="password" placeholder="Crie uma senha" minLength={6} {...requiredProps} />
       </div>
       {errorMessage ? <p className="form-feedback" role="alert">{errorMessage}</p> : null}
-      <button className="primary-link button-link signup-submit" type="submit" disabled={isSubmitting}>
+      <button className="primary-link button-link signup-submit" type="submit" value="pay_now" disabled={isSubmitting}>
+        {isSubmitting ? "Processando..." : `Pagar e liberar — ${shortPlanName}`}
+      </button>
+      <button className="ghost-link button-link signup-submit" type="submit" value="pre_registration" disabled={isSubmitting}>
         {isSubmitting ? "Enviando..." : `Solicitar acesso — ${shortPlanName}`}
       </button>
       <p className="signup-form-hint">O plano, valor e modulos serao confirmados com seguranca pelo servidor.</p>

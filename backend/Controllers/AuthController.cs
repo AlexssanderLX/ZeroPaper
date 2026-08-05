@@ -68,6 +68,13 @@ public class AuthController : ControllerBase
             problem.Extensions["code"] = AccountPendingApprovalException.ErrorCode;
             return StatusCode(StatusCodes.Status403Forbidden, problem);
         }
+        catch (SubscriptionExpiredException exception)
+        {
+            _loginAttempts.Reset(HttpContext, request.Email);
+            var problem = new ProblemDetails { Title = "Mensalidade vencida", Detail = exception.Message, Status = StatusCodes.Status402PaymentRequired };
+            problem.Extensions["code"] = SubscriptionExpiredException.ErrorCode;
+            return StatusCode(StatusCodes.Status402PaymentRequired, problem);
+        }
         catch (InvalidOperationException exception)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
