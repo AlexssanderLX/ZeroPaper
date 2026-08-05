@@ -141,8 +141,8 @@ export default function Home() {
           </p>
 
           <div className="zpld-ctas zpld-anim-6">
-            <Link className="zpld-btn-primary" href="/segmentos/restaurantes">
-              Comecar agora
+            <Link className="zpld-btn-primary" href="/segmentos">
+              Escolher segmento
             </Link>
             <a className="zpld-btn-ghost" href="#como-funciona">
               Como funciona
@@ -325,12 +325,12 @@ export default function Home() {
       ══════════════════════════════════════════════════════ */}
       <section className="zpld-final-cta zp-lp-reveal" aria-labelledby="zpld-cta-title">
         <div className="zpld-final-inner">
-          <span>Comece agora</span>
+          <span>Encontre seu segmento</span>
           <h2 id="zpld-cta-title">Seu negocio organizado a partir de hoje.</h2>
           <p>Configure em minutos. Sem contrato, sem taxa de adesao.</p>
           <div className="zpld-ctas">
-            <Link className="zpld-btn-primary" href="/segmentos/restaurantes">
-              Criar conta agora
+            <Link className="zpld-btn-primary" href="/segmentos">
+              Escolher segmento
             </Link>
             <Link className="zpld-btn-ghost" href="/segmentos">
               Ver segmentos
