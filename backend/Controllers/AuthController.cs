@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using ZeroPaper.DTOs.Auth;
 using ZeroPaper.Services.Interfaces;
+using ZeroPaper.Services.Models;
 using ZeroPaper.Security;
 
 namespace ZeroPaper.Controllers;
@@ -54,6 +55,18 @@ public class AuthController : ControllerBase
                 Detail = exception.Message,
                 Status = StatusCodes.Status400BadRequest
             });
+        }
+        catch (AccountPendingApprovalException exception)
+        {
+            _loginAttempts.Reset(HttpContext, request.Email);
+            var problem = new ProblemDetails
+            {
+                Title = "Cadastro em análise",
+                Detail = exception.Message,
+                Status = StatusCodes.Status403Forbidden
+            };
+            problem.Extensions["code"] = AccountPendingApprovalException.ErrorCode;
+            return StatusCode(StatusCodes.Status403Forbidden, problem);
         }
         catch (InvalidOperationException exception)
         {

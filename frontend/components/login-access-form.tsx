@@ -11,6 +11,7 @@ export function LoginAccessForm() {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState("");
   const [isAccessDenied, setIsAccessDenied] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,6 +52,12 @@ export function LoginAccessForm() {
           savePortalSession(session);
           router.replace(profile === "admin" ? "/admin" : "/app");
         } catch (error) {
+          if (error instanceof ApiError && error.code === "ACCOUNT_PENDING_APPROVAL") {
+            setIsAccessDenied(false);
+            setErrorMessage(error.message);
+            return;
+          }
+
           if (error instanceof ApiError && error.status === 403) {
             setIsAccessDenied(true);
             setErrorMessage("Acesso negado. Entre em contato com a ZeroPaper.");
@@ -110,19 +117,31 @@ export function LoginAccessForm() {
           <span>Senha</span>
           <span className="field-requirement">Obrigatorio</span>
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Sua senha"
-          required
-          autoComplete="current-password"
-          onInvalid={handleRequiredInvalid}
-          onInput={clearRequiredMessage}
-        />
+        <div className="password-input-wrap">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Sua senha"
+            required
+            autoComplete="current-password"
+            onInvalid={handleRequiredInvalid}
+            onInput={clearRequiredMessage}
+          />
+          <button
+            className="password-visibility-button"
+            type="button"
+            aria-controls="password"
+            aria-label={showPassword ? "Ocultar senha" : "Ver senha"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? "Ocultar" : "Ver"}
+          </button>
+        </div>
       </div>
 
-      {errorMessage ? <p className="form-feedback">{errorMessage}</p> : null}
+      {errorMessage ? <p className="form-feedback" role="alert">{errorMessage}</p> : null}
 
       {isAccessDenied ? (
         <a

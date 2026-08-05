@@ -2624,6 +2624,40 @@ select {
   box-shadow: 0 0 0 4px rgba(196, 92, 48, 0.12);
 }
 
+.password-input-wrap {
+  position: relative;
+}
+
+.field-group .password-input-wrap input {
+  padding-right: 78px;
+}
+
+.password-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  min-width: 48px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  opacity: 0.78;
+}
+
+.password-visibility-button:hover,
+.password-visibility-button:focus-visible {
+  background: rgba(109, 223, 157, 0.12);
+  opacity: 1;
+  outline: 2px solid rgba(109, 223, 157, 0.35);
+  outline-offset: 1px;
+}
+
 .button-link {
   border: 0;
   cursor: pointer;

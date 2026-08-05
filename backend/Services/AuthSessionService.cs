@@ -77,9 +77,21 @@ public class AuthSessionService : IAuthSessionService
             return null;
         }
 
-        if (!user.IsActive || !user.Company.IsActive || user.Company.BusinessSegment != BusinessSegment.Restaurant)
+        // Only reveal the pending state after the submitted password matched exactly.
+        // This keeps unknown accounts and invalid passwords indistinguishable.
+        if (!user.IsActive)
         {
-            return null;
+            if (user.Role == UserRole.Owner && user.LastLoginAtUtc is null)
+            {
+                throw new AccountPendingApprovalException();
+            }
+
+            throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
+        }
+
+        if (!user.Company.IsActive || user.Company.BusinessSegment != BusinessSegment.Restaurant)
+        {
+            throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
         }
 
         if (user.Role == UserRole.Owner)

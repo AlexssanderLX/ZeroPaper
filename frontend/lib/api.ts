@@ -17,11 +17,13 @@ type FileDownloadResult = {
 
 export class ApiError extends Error {
   status: number;
+  code?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -1038,15 +1040,17 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
 
   if (!response.ok) {
     let message = "Nao foi possivel concluir a requisicao.";
+    let code: string | undefined;
 
     try {
-      const errorBody = (await response.json()) as { detail?: string; title?: string; message?: string };
+      const errorBody = (await response.json()) as { code?: string; detail?: string; title?: string; message?: string };
       message = errorBody.detail || errorBody.message || errorBody.title || message;
+      code = errorBody.code;
     } catch {
-      message = response.statusText || message;
+      if (response.statusText) message = response.statusText;
     }
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, code);
   }
 
   if (response.status === 204) {
