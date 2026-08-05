@@ -104,24 +104,22 @@ public sealed class PlatformBillingService : IPlatformBillingService
             ?? throw new InvalidOperationException("A empresa nao possui owner para a cobranca.");
         var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
         if (subscription.MonthlyPrice <= 0) throw new InvalidOperationException("O plano precisa ter valor mensal maior que zero.");
-        if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId))
+        if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId) || !string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalPlanId))
             throw new InvalidOperationException("Essa empresa ja possui uma assinatura Mercado Pago. Sincronize o status em vez de gerar outra cobranca.");
 
         var payload = new
         {
             reason = $"{subscription.PlanName} - {company.TradeName}",
             external_reference = subscription.Id.ToString(),
-            payer_email = ownerEmail,
             auto_recurring = new { frequency = 1, frequency_type = "months", transaction_amount = subscription.MonthlyPrice, currency_id = "BRL" },
-            back_url = BuildBackUrl(),
-            status = "pending"
+            back_url = BuildBackUrl()
         };
-        var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval", accessToken, payload, cancellationToken, subscription.Id.ToString())
+        var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval_plan", accessToken, payload, cancellationToken, subscription.Id.ToString())
             ?? throw new InvalidOperationException("O Mercado Pago nao retornou a assinatura criada.");
         if (string.IsNullOrWhiteSpace(response.Id) || string.IsNullOrWhiteSpace(response.InitPoint))
             throw new InvalidOperationException("O Mercado Pago nao retornou o link de pagamento da assinatura.");
 
-        subscription.RegisterMercadoPagoCheckout(response.Id, response.InitPoint, response.Status ?? "pending", DateTime.UtcNow);
+        subscription.RegisterMercadoPagoPlanCheckout(response.Id, response.InitPoint, response.Status ?? "active", DateTime.UtcNow);
         await _context.SaveChangesAsync(cancellationToken);
         return MapCheckout(companyId, subscription);
     }
@@ -133,6 +131,7 @@ public sealed class PlatformBillingService : IPlatformBillingService
         var company = await _context.Companies.AsNoTracking().FirstOrDefaultAsync(item => item.Id == companyId, cancellationToken)
             ?? throw new KeyNotFoundException("Empresa nao encontrada.");
         var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
+        await ResolvePreapprovalFromPlanAsync(subscription, configuration, cancellationToken);
         if (string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId))
             throw new InvalidOperationException("Essa empresa ainda nao possui assinatura Mercado Pago.");
         var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Get, $"preapproval/{Uri.EscapeDataString(subscription.MercadoPagoPreapprovalId)}", Unprotect(configuration.AccessTokenCipherText), null, cancellationToken)
@@ -150,20 +149,19 @@ public sealed class PlatformBillingService : IPlatformBillingService
             ?? throw new KeyNotFoundException("Empresa nao encontrada.");
         var subscription = await _context.Subscriptions.FirstOrDefaultAsync(item => item.Id == subscriptionId && item.TenantId == company.TenantId, cancellationToken)
             ?? throw new KeyNotFoundException("Plano nao encontrado.");
-        if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId)) return MapCheckout(companyId, subscription);
+        if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId) || !string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalPlanId)) return MapCheckout(companyId, subscription);
         var rawConfirmationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         subscription.SetCheckoutConfirmationTokenHash(ComputeTokenHash(rawConfirmationToken));
         var payload = new
         {
-            reason = $"{subscription.PlanName} - {company.TradeName}", external_reference = subscription.Id.ToString(), payer_email = ownerEmail,
+            reason = $"{subscription.PlanName} - {company.TradeName}", external_reference = subscription.Id.ToString(),
             auto_recurring = new { frequency = 1, frequency_type = "months", transaction_amount = subscription.MonthlyPrice, currency_id = "BRL" },
-            back_url = $"{GetPublicBaseUrl()}/cadastro/confirmacao?pagamento={rawConfirmationToken}",
-            status = "pending"
+            back_url = $"{GetPublicBaseUrl()}/cadastro/confirmacao?pagamento={rawConfirmationToken}"
         };
-        var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval", Unprotect(configuration.AccessTokenCipherText), payload, cancellationToken, subscription.Id.ToString())
+        var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval_plan", Unprotect(configuration.AccessTokenCipherText), payload, cancellationToken, subscription.Id.ToString())
             ?? throw new InvalidOperationException("O Mercado Pago nao retornou a assinatura criada.");
         if (string.IsNullOrWhiteSpace(response.Id) || string.IsNullOrWhiteSpace(response.InitPoint)) throw new InvalidOperationException("O Mercado Pago nao retornou o checkout.");
-        subscription.RegisterMercadoPagoCheckout(response.Id, response.InitPoint, response.Status ?? "pending", DateTime.UtcNow);
+        subscription.RegisterMercadoPagoPlanCheckout(response.Id, response.InitPoint, response.Status ?? "active", DateTime.UtcNow);
         await _context.SaveChangesAsync(cancellationToken);
         return MapCheckout(companyId, subscription);
     }
@@ -176,6 +174,7 @@ public sealed class PlatformBillingService : IPlatformBillingService
             ?? throw new KeyNotFoundException("Confirmacao nao encontrada.");
         var company = await _context.Companies.FirstAsync(item => item.TenantId == subscription.TenantId && item.IsActive, cancellationToken);
         var configuration = await GetRequiredConfigurationAsync(cancellationToken);
+        await ResolvePreapprovalFromPlanAsync(subscription, configuration, cancellationToken);
         var paid = await ProcessApprovedPaymentsAsync(company, subscription, configuration, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return BuildConfirmation(subscription, paid);
@@ -203,6 +202,7 @@ public sealed class PlatformBillingService : IPlatformBillingService
         var configuration = await GetConfigurationAsync(cancellationToken);
         if (configuration is null) return subscription.PaidThroughUtc;
         var company = await _context.Companies.FirstAsync(item => item.TenantId == tenantId && item.IsActive, cancellationToken);
+        await ResolvePreapprovalFromPlanAsync(subscription, configuration, cancellationToken);
         await ProcessApprovedPaymentsAsync(company, subscription, configuration, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return subscription.PaidThroughUtc;
@@ -229,6 +229,19 @@ public sealed class PlatformBillingService : IPlatformBillingService
             activated = true;
         }
         return activated || subscription.HasPaidAccess(DateTime.UtcNow);
+    }
+
+    private async Task ResolvePreapprovalFromPlanAsync(Subscription subscription, PlatformBillingConfiguration configuration, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId) || string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalPlanId)) return;
+        var planId = Uri.EscapeDataString(subscription.MercadoPagoPreapprovalPlanId);
+        var search = await SendAsync<PreapprovalSearch>(HttpMethod.Get, $"preapproval/search?preapproval_plan_id={planId}", Unprotect(configuration.AccessTokenCipherText), null, cancellationToken);
+        var match = search?.Results.FirstOrDefault(item =>
+            !string.IsNullOrWhiteSpace(item.Id) &&
+            string.Equals(item.PreapprovalPlanId, subscription.MercadoPagoPreapprovalPlanId, StringComparison.Ordinal));
+        if (match is null) return;
+        subscription.RegisterMercadoPagoCheckout(match.Id!, subscription.MercadoPagoCheckoutUrl!, match.Status ?? "pending", DateTime.UtcNow);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task NotifySafelyAsync(Company company, AppUser owner, Subscription subscription, SubscriptionPayment payment, CancellationToken cancellationToken)
@@ -365,6 +378,13 @@ public sealed class PlatformBillingService : IPlatformBillingService
         public string? Id { get; set; }
         [JsonPropertyName("init_point")] public string? InitPoint { get; set; }
         public string? Status { get; set; }
+    }
+    private sealed class PreapprovalSearch { public List<PreapprovalSearchItem> Results { get; set; } = []; }
+    private sealed class PreapprovalSearchItem
+    {
+        public string? Id { get; set; }
+        public string? Status { get; set; }
+        [JsonPropertyName("preapproval_plan_id")] public string? PreapprovalPlanId { get; set; }
     }
     private sealed class AuthorizedPaymentSearch { public List<AuthorizedPayment> Results { get; set; } = []; }
     private sealed class AuthorizedPayment

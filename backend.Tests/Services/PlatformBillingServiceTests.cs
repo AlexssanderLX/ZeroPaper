@@ -147,14 +147,16 @@ public sealed class PlatformBillingServiceTests
         {
             string body;
             if (request.RequestUri!.AbsolutePath.EndsWith("/users/me")) body = "{\"id\":123456,\"email\":\"billing@example.com\"}";
-            else if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/preapproval"))
+            else if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/preapproval_plan"))
             {
                 var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
-                Assert.Equal("pending", payload.RootElement.GetProperty("status").GetString());
+                Assert.False(payload.RootElement.TryGetProperty("payer_email", out _));
                 var backUrl = payload.RootElement.GetProperty("back_url").GetString()!;
                 ConfirmationToken = new Uri(backUrl).Query.Split("pagamento=")[1];
-                body = "{\"id\":\"preapproval-1\",\"init_point\":\"https://mercadopago.example/checkout\",\"status\":\"pending\"}";
+                body = "{\"id\":\"plan-1\",\"init_point\":\"https://mercadopago.example/checkout\",\"status\":\"active\"}";
             }
+            else if (request.RequestUri.AbsolutePath.EndsWith("/preapproval/search"))
+                body = "{\"results\":[{\"id\":\"preapproval-1\",\"preapproval_plan_id\":\"plan-1\",\"status\":\"authorized\"}]}";
             else body = "{\"results\":[{\"transaction_amount\":\"120.00\",\"currency_id\":\"BRL\",\"debit_date\":\"2026-08-05T12:00:00Z\",\"payment\":{\"id\":998877,\"status\":\"approved\"}}]}";
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
         }

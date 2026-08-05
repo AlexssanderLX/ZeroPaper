@@ -418,6 +418,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.IncludesWaiterCallModule).IsRequired();
             entity.Property(x => x.IncludesAiAssistantModule).IsRequired();
             entity.Property(x => x.MercadoPagoPreapprovalId).HasMaxLength(120);
+            entity.Property(x => x.MercadoPagoPreapprovalPlanId).HasMaxLength(120);
             entity.Property(x => x.MercadoPagoCheckoutUrl).HasColumnType("text");
             entity.Property(x => x.MercadoPagoStatus).HasMaxLength(40);
             entity.Property(x => x.CheckoutConfirmationTokenHash).HasMaxLength(128);

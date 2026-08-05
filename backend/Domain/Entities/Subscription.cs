@@ -49,6 +49,7 @@ public class Subscription : TenantOwnedEntity
     public DateTime? EndsAtUtc { get; private set; }
     public SubscriptionStatus Status { get; private set; }
     public string? MercadoPagoPreapprovalId { get; private set; }
+    public string? MercadoPagoPreapprovalPlanId { get; private set; }
     public string? MercadoPagoCheckoutUrl { get; private set; }
     public string? MercadoPagoStatus { get; private set; }
     public DateTime? MercadoPagoStatusUpdatedAtUtc { get; private set; }
@@ -148,6 +149,15 @@ public class Subscription : TenantOwnedEntity
         ArgumentException.ThrowIfNullOrWhiteSpace(preapprovalId);
         ArgumentException.ThrowIfNullOrWhiteSpace(checkoutUrl);
         MercadoPagoPreapprovalId = preapprovalId.Trim();
+        MercadoPagoCheckoutUrl = checkoutUrl.Trim();
+        UpdateMercadoPagoStatus(status, occurredAtUtc);
+    }
+
+    public void RegisterMercadoPagoPlanCheckout(string preapprovalPlanId, string checkoutUrl, string status, DateTime occurredAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(preapprovalPlanId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkoutUrl);
+        MercadoPagoPreapprovalPlanId = preapprovalPlanId.Trim();
         MercadoPagoCheckoutUrl = checkoutUrl.Trim();
         UpdateMercadoPagoStatus(status, occurredAtUtc);
     }
