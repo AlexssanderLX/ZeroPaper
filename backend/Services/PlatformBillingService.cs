@@ -261,8 +261,48 @@ public sealed class PlatformBillingService : IPlatformBillingService
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
+        {
+            var providerError = ExtractProviderError(body);
+            _logger.LogWarning(
+                "Mercado Pago rejected {Method} {Path} with status {StatusCode}. Provider error: {ProviderError}",
+                method.Method,
+                path,
+                (int)response.StatusCode,
+                providerError);
             throw new InvalidOperationException($"Mercado Pago recusou a operacao ({(int)response.StatusCode}). Confira a credencial e os dados da conta.");
+        }
         return JsonSerializer.Deserialize<T>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    }
+
+    private static string ExtractProviderError(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+            var parts = new List<string>();
+            if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                parts.Add(message.GetString()!);
+            if (root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
+                parts.Add(error.GetString()!);
+            if (root.TryGetProperty("cause", out var causes) && causes.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var cause in causes.EnumerateArray().Take(3))
+                {
+                    if (cause.TryGetProperty("code", out var code)) parts.Add($"code={code}");
+                    if (cause.TryGetProperty("description", out var description) && description.ValueKind == JsonValueKind.String)
+                        parts.Add(description.GetString()!);
+                }
+            }
+
+            if (parts.Count == 0) return "unspecified";
+            var result = string.Join(" | ", parts).ReplaceLineEndings(" ");
+            return result[..Math.Min(result.Length, 500)];
+        }
+        catch (JsonException)
+        {
+            return "unparseable response";
+        }
     }
 
     private async Task ValidateRootPasswordAsync(WorkspaceSessionContext session, string password, CancellationToken cancellationToken)
