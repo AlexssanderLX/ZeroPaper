@@ -5500,6 +5500,20 @@ select {
   font-size: 0.9rem;
 }
 
+.admin-owner-card .entity-head h3 {
+  color: #fff7ee;
+  font-weight: 900;
+}
+
+.admin-owner-card .entity-head p,
+.admin-owner-card .admin-meta-line span {
+  color: rgba(255, 247, 238, 0.72);
+}
+
+.admin-owner-visibility-toggle {
+  justify-self: start;
+}
+
 .admin-pending-card .status-chip {
   min-width: auto;
   padding: 7px 11px;

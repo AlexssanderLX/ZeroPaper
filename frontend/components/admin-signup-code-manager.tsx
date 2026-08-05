@@ -401,6 +401,7 @@ export function AdminSignupCodeManager() {
   const [pageMessage, setPageMessage] = useState("");
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [showInactiveOwners, setShowInactiveOwners] = useState(false);
 
   const codes = dashboard?.codes ?? [];
   const users = dashboard?.users ?? [];
@@ -439,6 +440,10 @@ export function AdminSignupCodeManager() {
     [users],
   );
   const pendingSignupUsers = sortedUsers.filter((user) => user.role !== "Root" && !user.isActive);
+  const inactiveOwnerCount = owners.filter((owner) => !owner.isActive || !owner.isCompanyActive).length;
+  const visibleOwners = showInactiveOwners
+    ? owners
+    : owners.filter((owner) => owner.isActive && owner.isCompanyActive);
   const ownerCountsByCompany = useMemo(() => {
     return owners.reduce<Record<string, { total: number; active: number }>>((accumulator, owner) => {
       const currentValue = accumulator[owner.companyId] ?? { total: 0, active: 0 };
@@ -1385,22 +1390,32 @@ export function AdminSignupCodeManager() {
           <div className="module-section-head">
             <div>
               <span className="eyebrow">Controle de owners</span>
-              <strong>{owners.length} owners</strong>
+              <strong>{visibleOwners.length} owners exibidos</strong>
             </div>
             <p className="admin-section-copy">
               Owners sao os donos da empresa. Desativar bloqueia o login sem apagar pedidos.
             </p>
           </div>
 
+          {inactiveOwnerCount > 0 ? (
+            <button
+              className="ghost-link button-link admin-owner-visibility-toggle"
+              type="button"
+              onClick={() => setShowInactiveOwners((currentValue) => !currentValue)}
+            >
+              {showInactiveOwners ? "Ocultar bloqueados" : `Mostrar bloqueados (${inactiveOwnerCount})`}
+            </button>
+          ) : null}
+
           {loading ? (
             <p className="loading-state">Carregando owners...</p>
-          ) : owners.length === 0 ? (
+          ) : visibleOwners.length === 0 ? (
             <div className="module-empty-state">
-              <strong>Nenhum owner cadastrado.</strong>
+              <strong>Nenhum owner ativo para exibir.</strong>
             </div>
           ) : (
             <div className="module-card-list admin-scroll-list">
-              {owners.map((owner) => {
+              {visibleOwners.map((owner) => {
                 const isEnabled = owner.isActive && owner.isCompanyActive;
                 const isProcessing = processingKey === `owner:${owner.id}`;
                 const accessLabel = owner.hasActiveSession ? "Acesso aberto" : "Sem sessao aberta";
@@ -1409,7 +1424,7 @@ export function AdminSignupCodeManager() {
                 const isLastActiveOwnerInCompany = owner.isActive && companyOwnerCount.active <= 1;
 
                 return (
-                  <article key={owner.id} className="module-entity-card interactive-card">
+                  <article key={owner.id} className="module-entity-card interactive-card admin-owner-card">
                     <div className="entity-head">
                       <div>
                         <h3>{owner.fullName}</h3>
