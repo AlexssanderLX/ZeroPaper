@@ -150,6 +150,7 @@ public sealed class PlatformBillingServiceTests
             else if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/preapproval"))
             {
                 var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                Assert.Equal("pending", payload.RootElement.GetProperty("status").GetString());
                 var backUrl = payload.RootElement.GetProperty("back_url").GetString()!;
                 ConfirmationToken = new Uri(backUrl).Query.Split("pagamento=")[1];
                 body = "{\"id\":\"preapproval-1\",\"init_point\":\"https://mercadopago.example/checkout\",\"status\":\"pending\"}";

@@ -113,7 +113,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
             external_reference = subscription.Id.ToString(),
             payer_email = ownerEmail,
             auto_recurring = new { frequency = 1, frequency_type = "months", transaction_amount = subscription.MonthlyPrice, currency_id = "BRL" },
-            back_url = BuildBackUrl()
+            back_url = BuildBackUrl(),
+            status = "pending"
         };
         var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval", accessToken, payload, cancellationToken, subscription.Id.ToString())
             ?? throw new InvalidOperationException("O Mercado Pago nao retornou a assinatura criada.");
@@ -156,7 +157,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
         {
             reason = $"{subscription.PlanName} - {company.TradeName}", external_reference = subscription.Id.ToString(), payer_email = ownerEmail,
             auto_recurring = new { frequency = 1, frequency_type = "months", transaction_amount = subscription.MonthlyPrice, currency_id = "BRL" },
-            back_url = $"{GetPublicBaseUrl()}/cadastro/confirmacao?pagamento={rawConfirmationToken}"
+            back_url = $"{GetPublicBaseUrl()}/cadastro/confirmacao?pagamento={rawConfirmationToken}",
+            status = "pending"
         };
         var response = await SendAsync<MercadoPagoPreapproval>(HttpMethod.Post, "preapproval", Unprotect(configuration.AccessTokenCipherText), payload, cancellationToken, subscription.Id.ToString())
             ?? throw new InvalidOperationException("O Mercado Pago nao retornou a assinatura criada.");

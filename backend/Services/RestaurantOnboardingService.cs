@@ -165,7 +165,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            if (signupCode is null)
+            if (signupCode is null && !request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase))
             {
                 await NotifyPendingApprovalAsync(request, subscription, cancellationToken);
             }
