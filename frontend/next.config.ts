@@ -46,6 +46,16 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   output: "standalone",
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  async rewrites() {
+    if (!isDevelopment) return [];
+
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://127.0.0.1:5097/api/:path*",
+      },
+    ];
+  },
   async headers() {
     return [
       {
