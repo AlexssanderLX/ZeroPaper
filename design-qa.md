@@ -16,6 +16,8 @@
 - O login não apresenta overflow horizontal no viewport móvel.
 - O cadastro em modo de indisponibilidade da API preserva o mesmo tema e não apresenta overflow.
 - Build de produção concluído, incluindo lint e checagem de tipos do Next.js.
+- A revisão de contraste operacional cobre explicitamente mesas, caixa e cozinha: dados principais usam `#f4fbfa` e textos auxiliares usam `#a9bec0` sobre `#151919`.
+- Contraste calculado: 16,90:1 para dados principais e 9,13:1 para textos auxiliares, ambos acima do requisito WCAG AA para texto normal.
 
 ## Limitação controlada
 
@@ -23,7 +25,8 @@
 
 ## Pendências
 
-- Nenhuma diferença P0, P1 ou P2 encontrada no escopo solicitado.
+- As capturas `codex-clipboard-10803c96-a2c7-4883-b6bc-2c63d9cb3e77.png`, `codex-clipboard-f888241d-4699-42be-bafa-90f1551d9abc.png`, `codex-clipboard-97348379-9985-41d3-b922-1190eb05c0e7.png` e `codex-clipboard-1929be86-a9a8-40b7-83ac-fbbfcc6be1b4.png` revelaram contraste insuficiente em dados operacionais; os seletores específicos foram corrigidos.
+- Nenhuma diferença P0, P1 ou P2 permanece no escopo solicitado.
 - P3: posições dos elementos decorativos animados variam entre capturas por projeto.
 
 final result: passed

@@ -41865,3 +41865,60 @@ html[data-perf="lite"] * {
 .zp-signup-sales-page :is(.zp-signup-selected-plan, .zp-signup-plan-switch a),
 .zp-signup-segment-context { border-color: rgba(255,255,255,.1); background: #121616; color: var(--system-text); }
 .zp-signup-sales-page .zp-signup-plan-switch a.is-active { border-color: rgba(255,190,101,.52); background: #1a150e; box-shadow: 0 0 0 3px rgba(255,190,101,.08); }
+
+/* Contrast pass for operational data on dark surfaces. */
+.page-shell.app-shell .table-list-card .table-preview-stat span,
+.page-shell.app-shell .table-list-card .table-ready-note p,
+.page-shell.app-shell .table-list-card .table-alert-sound-copy p {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .table-list-card .table-preview-stat strong,
+.page-shell.app-shell .table-list-card .table-alert-sound-copy strong {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .table-list-card .table-ready-note,
+.page-shell.app-shell .table-list-card .table-alert-sound-card {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #151919;
+}
+
+.page-shell.app-shell .table-list-card .table-alert-sound-card .button-link,
+.page-shell.app-shell .table-list-card .table-download-button {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .cash-focus-panel .cash-view-panel-head small,
+.page-shell.app-shell .cash-focus-panel .cash-column-inline-count,
+.page-shell.app-shell .cash-focus-panel .cash-quick-empty p,
+.page-shell.app-shell .kitchen-focus-panel .module-empty-state p,
+.page-shell.app-shell .module-list-card > .module-empty-state p {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .cash-focus-panel .cash-column-inline-total,
+.page-shell.app-shell .cash-focus-panel .cash-quick-empty strong,
+.page-shell.app-shell .kitchen-focus-panel .module-empty-state strong,
+.page-shell.app-shell .module-list-card > .module-empty-state strong {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .cash-focus-panel .cash-search-field label {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .cash-flow-tabs .owner-flow-tab-button span,
+.page-shell.app-shell .cash-flow-tabs .owner-flow-tab-button strong {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .cash-flow-tabs .owner-flow-tab-button.is-active span,
+.page-shell.app-shell .cash-flow-tabs .owner-flow-tab-button.is-active strong {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-flow-empty strong,
+.page-shell.app-shell .owner-flow-empty span {
+  color: #a9bec0;
+}
