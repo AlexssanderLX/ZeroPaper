@@ -32,7 +32,7 @@
   align-items: center;
   margin-top: 12px;
   padding: 14px 16px;
-  border: 1px solid rgba(109, 223, 157, 0.2);
+  border: 1px solid rgba(66, 217, 168, 0.2);
   border-radius: 16px;
   background: rgba(6, 14, 10, 0.88);
   color: #fffaf4;
@@ -2232,10 +2232,10 @@ select {
 }
 
 .zp-signup-plan-switch a.is-active .zp-plan-badge {
-  background: linear-gradient(135deg, rgba(243, 201, 105, 0.28), rgba(197, 138, 82, 0.18));
-  color: #f3c969;
+  background: linear-gradient(135deg, rgba(235, 168, 105, 0.28), rgba(210, 145, 85, 0.18));
+  color: #eba869;
   box-shadow: none;
-  border: 1px solid rgba(243, 201, 105, 0.24);
+  border: 1px solid rgba(235, 168, 105, 0.24);
 }
 
 /* Plan row shown inside the form card */
@@ -2247,9 +2247,9 @@ select {
   padding: 14px 16px;
   margin-bottom: 4px;
   border-radius: 16px;
-  border: 1px solid rgba(109, 223, 157, 0.16);
+  border: 1px solid rgba(66, 217, 168, 0.16);
   background:
-    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.09), transparent 44%),
+    radial-gradient(circle at 100% 0%, rgba(210, 145, 85, 0.09), transparent 44%),
     rgba(6, 16, 12, 0.88);
 }
 
@@ -22376,17 +22376,17 @@ select {
 .zp-auth-neon-page,
 .zp-signup-sales-page,
 .page-shell.app-shell {
-  --system-bg: #060a07;
-  --system-panel: rgba(8, 16, 12, 0.92);
-  --system-panel-soft: rgba(109, 223, 157, 0.05);
-  --system-line: rgba(109, 223, 157, 0.18);
-  --system-text: #f2faf4;
-  --system-muted: #8eab98;
-  --system-gold: #d4a843;
-  --system-gold-bright: #f3c969;
-  --system-green: #6ddf9d;
-  --system-brown: #0c1810;
-  --system-copper: #48805e;
+  --system-bg: #060c0a;
+  --system-panel: rgba(7, 18, 14, 0.92);
+  --system-panel-soft: rgba(66, 217, 168, 0.05);
+  --system-line: rgba(66, 217, 168, 0.18);
+  --system-text: #eef8f4;
+  --system-muted: #7ea898;
+  --system-gold: #d29155;
+  --system-gold-bright: #eba869;
+  --system-green: #42d9a8;
+  --system-brown: #0a1812;
+  --system-copper: #3a7858;
 }
 
 .zp-auth-neon-page,
@@ -22403,10 +22403,10 @@ select {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(ellipse at 14% 10%, rgba(109, 223, 157, 0.13), transparent 42%),
-    radial-gradient(ellipse at 86% 14%, rgba(212, 168, 67, 0.11), transparent 38%),
-    radial-gradient(ellipse at 50% 92%, rgba(80, 160, 110, 0.06), transparent 40%),
-    linear-gradient(160deg, #040808 0%, #060b06 48%, #080700 100%);
+    radial-gradient(ellipse at 14% 10%, rgba(66, 217, 168, 0.14), transparent 42%),
+    radial-gradient(ellipse at 86% 14%, rgba(210, 145, 85, 0.12), transparent 38%),
+    radial-gradient(ellipse at 50% 92%, rgba(42, 140, 105, 0.06), transparent 40%),
+    linear-gradient(160deg, #050c09 0%, #07100c 48%, #090806 100%);
 }
 
 .zp-auth-neon-page::after,
@@ -22436,15 +22436,15 @@ select {
 .zp-signup-sales-page .surface-card,
 .page-shell.app-shell .surface-card,
 .admin-modal-backdrop .surface-card {
-  border-color: rgba(109, 223, 157, 0.22);
+  border-color: rgba(66, 217, 168, 0.22);
   background:
-    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.10), transparent 32%),
-    radial-gradient(circle at 10% 90%, rgba(109, 223, 157, 0.09), transparent 40%),
-    linear-gradient(180deg, rgba(16, 38, 26, 0.97), rgba(10, 24, 16, 0.97));
+    radial-gradient(circle at 100% 0%, rgba(210, 145, 85, 0.10), transparent 32%),
+    radial-gradient(circle at 10% 90%, rgba(66, 217, 168, 0.09), transparent 40%),
+    linear-gradient(180deg, rgba(14, 36, 26, 0.97), rgba(8, 22, 16, 0.97));
   color: var(--system-text);
   box-shadow:
     0 24px 68px rgba(0, 0, 0, 0.38),
-    0 0 0 1px rgba(109, 223, 157, 0.06),
+    0 0 0 1px rgba(66, 217, 168, 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
@@ -22486,8 +22486,8 @@ select {
 .zp-signup-sales-page .surface-card .eyebrow,
 .page-shell.app-shell .surface-card .eyebrow,
 .admin-modal-backdrop .surface-card .eyebrow {
-  border-color: rgba(212, 168, 67, 0.24);
-  background: rgba(212, 168, 67, 0.08);
+  border-color: rgba(210, 145, 85, 0.26);
+  background: rgba(210, 145, 85, 0.09);
   color: var(--system-gold-bright);
   box-shadow: none;
 }
@@ -22504,10 +22504,10 @@ select {
 .admin-modal-backdrop .module-empty-state,
 .admin-modal-backdrop .admin-plan-summary-card,
 .admin-modal-backdrop .admin-plan-toggle {
-  border-color: rgba(109, 223, 157, 0.14);
+  border-color: rgba(66, 217, 168, 0.14);
   background:
-    radial-gradient(circle at 100% 0%, rgba(109, 223, 157, 0.06), transparent 36%),
-    rgba(109, 223, 157, 0.03);
+    radial-gradient(circle at 100% 0%, rgba(66, 217, 168, 0.06), transparent 36%),
+    rgba(66, 217, 168, 0.03);
   color: var(--system-text);
 }
 
@@ -22519,8 +22519,8 @@ select {
 .page-shell.app-shell .field-group select,
 .admin-modal-backdrop .field-group input,
 .admin-modal-backdrop .field-group select {
-  border-color: rgba(109, 223, 157, 0.18);
-  background: rgba(109, 223, 157, 0.05);
+  border-color: rgba(66, 217, 168, 0.18);
+  background: rgba(66, 217, 168, 0.05);
   color: var(--system-text);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -22542,17 +22542,17 @@ select {
 .page-shell.app-shell .field-group select:focus,
 .admin-modal-backdrop .field-group input:focus,
 .admin-modal-backdrop .field-group select:focus {
-  border-color: rgba(212, 168, 67, 0.7);
+  border-color: rgba(210, 145, 85, 0.72);
   box-shadow:
-    0 0 0 4px rgba(212, 168, 67, 0.12),
-    0 0 28px rgba(212, 168, 67, 0.09);
+    0 0 0 4px rgba(210, 145, 85, 0.13),
+    0 0 28px rgba(210, 145, 85, 0.09);
 }
 
 .zp-auth-neon-page .field-requirement,
 .zp-signup-sales-page .field-requirement,
 .page-shell.app-shell .field-requirement,
 .admin-modal-backdrop .field-requirement {
-  background: rgba(212, 168, 67, 0.12);
+  background: rgba(210, 145, 85, 0.12);
   color: var(--system-gold-bright);
 }
 
@@ -22560,14 +22560,14 @@ select {
 .zp-signup-sales-page .primary-link,
 .page-shell.app-shell .primary-link,
 .admin-modal-backdrop .primary-link {
-  border: 1px solid rgba(243, 201, 105, 0.22);
+  border: 1px solid rgba(235, 168, 105, 0.22);
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.5), transparent 32%),
-    linear-gradient(135deg, #f3c969, #d4a843);
-  color: #10150b;
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.44), transparent 32%),
+    linear-gradient(135deg, #eba869, #d29155);
+  color: #0e1409;
   box-shadow:
-    0 14px 30px rgba(212, 168, 67, 0.2),
-    0 0 28px rgba(212, 168, 67, 0.13);
+    0 14px 30px rgba(210, 145, 85, 0.22),
+    0 0 28px rgba(210, 145, 85, 0.13);
 }
 
 .zp-auth-neon-page .ghost-link,
@@ -22583,82 +22583,82 @@ select {
 .zp-signup-sales-page .ghost-link:hover,
 .page-shell.app-shell .ghost-link:hover,
 .admin-modal-backdrop .ghost-link:hover {
-  border-color: rgba(255, 192, 120, 0.3);
+  border-color: rgba(235, 168, 105, 0.28);
   background: rgba(255, 248, 238, 0.1);
 }
 
 .zp-signup-sales-page .zp-signup-selected-plan {
-  border-color: rgba(109, 223, 157, 0.2);
+  border-color: rgba(66, 217, 168, 0.2);
   background:
-    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.1), transparent 34%),
-    radial-gradient(circle at 0% 100%, rgba(109, 223, 157, 0.07), transparent 38%),
+    radial-gradient(circle at 100% 0%, rgba(210, 145, 85, 0.10), transparent 34%),
+    radial-gradient(circle at 0% 100%, rgba(66, 217, 168, 0.07), transparent 38%),
     rgba(6, 16, 12, 0.82);
 }
 
 .zp-signup-sales-page .zp-signup-plan-switch a {
-  border-color: rgba(109, 223, 157, 0.15);
+  border-color: rgba(66, 217, 168, 0.15);
   background: rgba(6, 14, 10, 0.76);
   color: var(--system-text);
   transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.14s ease;
 }
 .zp-signup-sales-page .zp-signup-plan-switch a:hover {
-  border-color: rgba(109, 223, 157, 0.38);
+  border-color: rgba(66, 217, 168, 0.38);
   background: rgba(8, 22, 15, 0.92);
-  box-shadow: 0 4px 20px rgba(109, 223, 157, 0.10);
+  box-shadow: 0 4px 20px rgba(66, 217, 168, 0.10);
   transform: translateY(-1px);
 }
 
 .zp-signup-sales-page .zp-signup-plan-switch a.is-active {
-  border-color: rgba(212, 168, 67, 0.58);
+  border-color: rgba(210, 145, 85, 0.58);
   background:
-    radial-gradient(ellipse at 0% 0%, rgba(212, 168, 67, 0.14), transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(109, 223, 157, 0.10), transparent 40%),
+    radial-gradient(ellipse at 0% 0%, rgba(210, 145, 85, 0.14), transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(66, 217, 168, 0.10), transparent 40%),
     rgba(7, 20, 14, 0.96);
   box-shadow:
-    0 6px 28px rgba(109, 223, 157, 0.12),
-    inset 0 1px 0 rgba(243, 201, 105, 0.1);
+    0 6px 28px rgba(66, 217, 168, 0.12),
+    inset 0 1px 0 rgba(235, 168, 105, 0.1);
 }
 
 .zp-auth-neon-page .login-stage-orb {
-  background: radial-gradient(circle, rgba(109, 223, 157, 0.18), transparent 72%);
+  background: radial-gradient(circle, rgba(66, 217, 168, 0.18), transparent 72%);
 }
 
 .zp-auth-neon-page .login-stage-window-main,
 .zp-auth-neon-page .login-stage-window-chip {
-  border-color: rgba(109, 223, 157, 0.18);
+  border-color: rgba(66, 217, 168, 0.18);
   background:
-    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.09), transparent 34%),
-    linear-gradient(180deg, rgba(8, 20, 14, 0.98), rgba(4, 11, 8, 0.98));
+    radial-gradient(circle at 100% 0%, rgba(210, 145, 85, 0.09), transparent 34%),
+    linear-gradient(180deg, rgba(8, 22, 16, 0.98), rgba(4, 13, 9, 0.98));
 }
 
 .zp-auth-neon-page .login-stage-window-accent {
-  border-color: rgba(212, 168, 67, 0.28);
+  border-color: rgba(210, 145, 85, 0.28);
   background:
-    radial-gradient(circle at 0% 100%, rgba(197, 138, 82, 0.12), transparent 42%),
-    linear-gradient(160deg, #f3c969, #d4a843);
-  color: #10150b;
+    radial-gradient(circle at 0% 100%, rgba(210, 145, 85, 0.12), transparent 42%),
+    linear-gradient(135deg, #eba869, #d29155);
+  color: #0e1409;
 }
 
 .zp-auth-neon-page .login-stage-window-accent strong,
 .zp-auth-neon-page .login-stage-window-accent p {
-  color: #10150b;
+  color: #0e1409;
 }
 
 .zp-auth-neon-page .login-stage-rail span {
-  border-color: rgba(109, 223, 157, 0.16);
-  background: rgba(109, 223, 157, 0.06);
+  border-color: rgba(66, 217, 168, 0.16);
+  background: rgba(66, 217, 168, 0.06);
   color: var(--system-text);
 }
 
 .zp-auth-neon-page .login-stage-rail span::before {
-  background: linear-gradient(180deg, #f3c969, #d4a843);
-  box-shadow: 0 0 0 4px rgba(212, 168, 67, 0.12);
+  background: linear-gradient(180deg, #eba869, #d29155);
+  box-shadow: 0 0 0 4px rgba(210, 145, 85, 0.12);
 }
 
 .zp-auth-neon-page .login-form-shell::before {
   background:
-    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(109, 223, 157, 0.03), transparent 32%);
+    radial-gradient(circle at 100% 0%, rgba(210, 145, 85, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(66, 217, 168, 0.03), transparent 32%);
 }
 
 .page-shell.app-shell {
