@@ -27,7 +27,28 @@ public class RestaurantOnboardingController : ControllerBase
         [FromBody] RestaurantOnboardingRequestDto request,
         CancellationToken cancellationToken)
     {
-        var response = await _restaurantOnboardingService.CreateAsync(request, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, response);
+        try
+        {
+            var response = await _restaurantOnboardingService.CreateAsync(request, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, response);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Cadastro invalido",
+                Detail = exception.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Pagamento indisponivel",
+                Detail = exception.Message,
+                Status = StatusCodes.Status409Conflict
+            });
+        }
     }
 }

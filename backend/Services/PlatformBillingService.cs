@@ -66,7 +66,12 @@ public sealed class PlatformBillingService : IPlatformBillingService
 
         var configuration = await GetConfigurationAsync(cancellationToken);
         var encryptedToken = _protector.Protect(accessToken);
-        var liveMode = accessToken.StartsWith("APP_USR-", StringComparison.OrdinalIgnoreCase);
+        // Mercado Pago test users can also expose tokens with the APP_USR prefix.
+        // The account returned by /users/me is the source of truth for identifying
+        // the well-known test-user domain; relying on the token prefix alone caused
+        // production checkouts to mix a test collector with a real payer.
+        var liveMode = accessToken.StartsWith("APP_USR-", StringComparison.OrdinalIgnoreCase) &&
+            !IsTestAccountEmail(account.Email);
         if (configuration is null)
         {
             configuration = new PlatformBillingConfiguration(encryptedToken, account.Id.Value.ToString(), account.Email, liveMode, session.UserId);
@@ -102,6 +107,7 @@ public sealed class PlatformBillingService : IPlatformBillingService
         var ownerEmail = await _context.Users.Where(item => item.CompanyId == companyId && item.Role == UserRole.Owner)
             .OrderByDescending(item => item.IsActive).Select(item => item.Email).FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("A empresa nao possui owner para a cobranca.");
+        EnsureProductionCheckoutAccount(configuration, ownerEmail);
         var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
         if (subscription.MonthlyPrice <= 0) throw new InvalidOperationException("O plano precisa ter valor mensal maior que zero.");
         if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId) || !string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalPlanId))
@@ -145,6 +151,7 @@ public sealed class PlatformBillingService : IPlatformBillingService
     public async Task<AdminSubscriptionCheckoutDto> CreateSignupCheckoutAsync(Guid subscriptionId, Guid companyId, string ownerEmail, CancellationToken cancellationToken = default)
     {
         var configuration = await GetRequiredConfigurationAsync(cancellationToken);
+        EnsureProductionCheckoutAccount(configuration, ownerEmail);
         var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken)
             ?? throw new KeyNotFoundException("Empresa nao encontrada.");
         var subscription = await _context.Subscriptions.FirstOrDefaultAsync(item => item.Id == subscriptionId && item.TenantId == company.TenantId, cancellationToken)
@@ -262,6 +269,27 @@ public sealed class PlatformBillingService : IPlatformBillingService
     private string GetPublicBaseUrl() => (_publicAppOptions.BaseUrl ?? "https://zeropaperflow.com.br").TrimEnd('/');
     private static string ComputeTokenHash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
+    private static void EnsureProductionCheckoutAccount(PlatformBillingConfiguration configuration, string payerEmail)
+    {
+        if (!configuration.LiveMode || IsTestAccountEmail(configuration.AccountEmail))
+        {
+            throw new InvalidOperationException(
+                "O Mercado Pago da plataforma esta conectado a uma conta de teste. " +
+                "Configure no painel root o Access Token de producao de uma conta real antes de receber pagamentos.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(configuration.AccountEmail) &&
+            string.Equals(configuration.AccountEmail.Trim(), payerEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "A conta que recebe nao pode pagar a propria assinatura. Use outra conta ou outro meio de pagamento.");
+        }
+    }
+
+    private static bool IsTestAccountEmail(string? email) =>
+        !string.IsNullOrWhiteSpace(email) &&
+        email.Trim().EndsWith("@testuser.com", StringComparison.OrdinalIgnoreCase);
+
     private async Task<T?> SendAsync<T>(HttpMethod method, string path, string token, object? payload, CancellationToken cancellationToken, string? idempotencyKey = null)
     {
         using var request = new HttpRequestMessage(method, path);
@@ -282,6 +310,13 @@ public sealed class PlatformBillingService : IPlatformBillingService
                 path,
                 (int)response.StatusCode,
                 providerError);
+            if (providerError.Contains("Both payer and collector must be real or test users", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "O Mercado Pago recusou o pagamento porque a conta recebedora e o pagador pertencem a ambientes diferentes (teste e producao). " +
+                    "Configure uma conta real para receber pagamentos reais.");
+            }
+
             throw new InvalidOperationException($"Mercado Pago recusou a operacao ({(int)response.StatusCode}). Confira a credencial e os dados da conta.");
         }
         return JsonSerializer.Deserialize<T>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -357,7 +392,7 @@ public sealed class PlatformBillingService : IPlatformBillingService
         Configured = item is not null,
         AccountUserId = item?.AccountUserId,
         AccountEmail = item?.AccountEmail,
-        LiveMode = item?.LiveMode ?? false,
+        LiveMode = item is not null && item.LiveMode && !IsTestAccountEmail(item.AccountEmail),
         UpdatedAtUtc = item?.UpdatedAtUtc
     };
 

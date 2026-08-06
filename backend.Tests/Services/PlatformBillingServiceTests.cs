@@ -62,6 +62,51 @@ public sealed class PlatformBillingServiceTests
     }
 
     [Fact]
+    public async Task ConfigureAsync_TestUserWithAppUsrToken_IsNotClassifiedAsLive()
+    {
+        await using var context = CreateContext();
+        var (_, session, hasher) = await SeedRootAsync(context);
+        var handler = new StubHandler(HttpStatusCode.OK, "{\"id\":123456,\"email\":\"test_user_123@testuser.com\"}");
+        var service = CreateService(context, hasher, handler);
+
+        var status = await service.ConfigureAsync(session, new ConfigureAdminPlatformBillingRequestDto
+        {
+            AccessToken = AccessToken,
+            Password = "root-password"
+        });
+
+        Assert.True(status.Configured);
+        Assert.False(status.LiveMode);
+    }
+
+    [Fact]
+    public async Task CreateSignupCheckoutAsync_WithTestCollector_IsRejectedBeforeProviderCall()
+    {
+        await using var context = CreateContext();
+        var (_, rootSession, hasher) = await SeedRootAsync(context);
+        var handler = new StubHandler(HttpStatusCode.OK, "{\"id\":123456,\"email\":\"test_user_123@testuser.com\"}");
+        var service = CreateService(context, hasher, handler);
+        await service.ConfigureAsync(rootSession, new ConfigureAdminPlatformBillingRequestDto
+        {
+            AccessToken = AccessToken,
+            Password = "root-password"
+        });
+
+        var tenantId = Guid.NewGuid();
+        var company = new Company(tenantId, "Test Company", "Test Company", $"test-{Guid.NewGuid():N}");
+        var owner = new AppUser(tenantId, company.Id, "Owner", "payer@example.com", hasher.Hash("password"), UserRole.Owner);
+        var subscription = new Subscription(tenantId, "ZeroPaper Gestao", 180m, 8, DateTime.UtcNow, SubscriptionStatus.Active);
+        context.AddRange(company, owner, subscription);
+        await context.SaveChangesAsync();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateSignupCheckoutAsync(subscription.Id, company.Id, owner.Email));
+
+        Assert.Contains("conta de teste", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
     public async Task ApprovedMercadoPagoInvoice_ActivatesOnceAndGrantsOneMonth()
     {
         await using var context = CreateContext();
