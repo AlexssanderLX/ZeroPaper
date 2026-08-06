@@ -1,39 +1,29 @@
-# Design QA — Login brand palette
+# Design QA — tema de marca no app e cadastro
 
-- Source visual truth: `C:\Users\ALEXSS~1\AppData\Local\Temp\codex-clipboard-82dcc048-05f8-47e0-af6d-f0a1154c2766.png` and `C:\Users\ALEXSS~1\AppData\Local\Temp\codex-clipboard-953f110c-403a-40ae-afeb-c032de34e088.png`
-- Implementation screenshots: `C:\Users\Alexssander\Desktop\Programação\ZeroPaper\login-redesign-desktop.png` and `C:\Users\Alexssander\Desktop\Programação\ZeroPaper\login-redesign-mobile-viewport.png`
-- Comparison board: `C:\Users\Alexssander\Desktop\Programação\ZeroPaper\login-color-comparison.png`
-- Desktop source: 1559 x 729 px. Browser comparison region: 846 x 722 px at device scale factor 1, normalized to the corresponding left-side source crop.
-- Mobile viewport: 390 x 844 CSS px at device scale factor 1.
-- State: login empty form; email field focused for interaction-state verification.
+- Referência visual principal: `C:\Users\ALEXSS~1\AppData\Local\Temp\codex-clipboard-8fa923f0-5ca4-4d3c-9b1b-7798e9490318.png`
+- Referências das telas corrigidas: `codex-clipboard-f4239a9d-d202-4eb4-8519-afa426234892.png`, `codex-clipboard-f6c3616a-488d-4b75-847e-bd9efe75155b.png`, `codex-clipboard-7b5c090a-cf74-4f52-9817-61f11dc45eb0.png`, `codex-clipboard-8a0943da-afef-4610-8c04-e1a76cbeba0f.png` e `codex-clipboard-c3b0cb37-aa5c-4db8-9c60-a53f95c24463.png`.
+- Evidências locais: `.codex/qa/login-desktop-brand.png`, `.codex/qa/login-mobile-brand.png` e `.codex/qa/signup-neutral-fallback.png`.
+- Quadro de comparação: `.codex/qa/login-reference-comparison.png`.
+- Viewports verificados: 1559 x 729 px e 390 x 844 px.
 
-## Findings
+## Resultado
 
-- No actionable P0, P1, or P2 differences remain for the requested color redesign.
-- Typography and copy remain unchanged and preserve the existing hierarchy.
-- Spacing, layout rhythm, card dimensions, and responsive stacking remain unchanged.
-- Colors now map to the supplied logo: black/graphite foundation, turquoise security/focus accents, and gold primary action accents.
-- The supplied brand logo remains the real existing asset; no placeholder or reconstructed logo was introduced.
-- Mobile has no horizontal overflow (`390 px` viewport, `375 px` document width).
-- Focus state uses a visible turquoise border and four-pixel focus halo.
-- The only browser console warning was a development hydration warning caused by the browser-added `data-perf` attribute; no application runtime error was observed.
+- O preto/grafite do login agora é a superfície dominante no app e no cadastro.
+- Turquesa ficou reservado para foco, confirmação e estado positivo; dourado para ação principal e seleção.
+- Cards de pedidos, caixa, horários e cardápio deixaram de usar grandes preenchimentos verdes.
+- Estados destrutivos mantêm diferenciação vermelha e não foram neutralizados pelo novo tema.
+- Login e cadastro usam somente campos `type="password"`; os controles "Ver", "Mostrar" e "Ocultar" foram removidos.
+- O login não apresenta overflow horizontal no viewport móvel.
+- O cadastro em modo de indisponibilidade da API preserva o mesmo tema e não apresenta overflow.
+- Build de produção concluído, incluindo lint e checagem de tipos do Next.js.
 
-## Full-view comparison evidence
+## Limitação controlada
 
-The comparison board shows the former green-heavy rendering beside the redesigned black/graphite, turquoise, and gold rendering and the supplied logo palette. Composition, typography, and content are preserved while the dominant surface hue changes from green to neutral graphite.
+- A API local de planos não estava ativa durante a inspeção visual, portanto o cadastro foi renderizado no estado seguro de indisponibilidade. A estrutura completa do formulário foi validada pelo build e os mesmos seletores finais cobrem seus cards, planos, campos e botões.
 
-## Focused region comparison evidence
+## Pendências
 
-The login form was checked separately at mobile width. Input text, requirement badges, password visibility control, primary action, and secondary actions remain readable. The focused email field is clearly distinguishable without relying on gold alone.
-
-## Comparison history
-
-- Initial finding: green occupied the background, both cards, fields, borders, and decorative elements, overpowering the two-color brand identity.
-- Fix: introduced black and neutral graphite surfaces, assigned turquoise to trust/focus elements, and reserved gold for primary actions and selected highlights.
-- Post-fix evidence: desktop and mobile captures show balanced brand colors, preserved contrast, and no horizontal overflow.
-
-## Follow-up polish
-
-- P3: animation positions can vary slightly between screenshots because the decorative panels intentionally float.
+- Nenhuma diferença P0, P1 ou P2 encontrada no escopo solicitado.
+- P3: posições dos elementos decorativos animados variam entre capturas por projeto.
 
 final result: passed

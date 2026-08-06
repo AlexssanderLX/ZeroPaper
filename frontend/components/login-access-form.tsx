@@ -11,7 +11,6 @@ export function LoginAccessForm() {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState("");
   const [isAccessDenied, setIsAccessDenied] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,28 +122,16 @@ export function LoginAccessForm() {
           <span>Senha</span>
           <span className="field-requirement">Obrigatorio</span>
         </label>
-        <div className="password-input-wrap">
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Sua senha"
-            required
-            autoComplete="current-password"
-            onInvalid={handleRequiredInvalid}
-            onInput={clearRequiredMessage}
-          />
-          <button
-            className="password-visibility-button"
-            type="button"
-            aria-controls="password"
-            aria-label={showPassword ? "Ocultar senha" : "Ver senha"}
-            aria-pressed={showPassword}
-            onClick={() => setShowPassword((visible) => !visible)}
-          >
-            {showPassword ? "Ocultar" : "Ver"}
-          </button>
-        </div>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Sua senha"
+          required
+          autoComplete="current-password"
+          onInvalid={handleRequiredInvalid}
+          onInput={clearRequiredMessage}
+        />
       </div>
 
       {errorMessage ? <p className="form-feedback" role="alert">{errorMessage}</p> : null}

@@ -40615,6 +40615,380 @@ html[data-perf="lite"] * {
   line-height: 1.3;
 }
 .zpld-priv-toc-item:hover { background: rgba(109,223,157,0.08); color: var(--priv-green); }
+
+/* ============================================================
+   App theme — shared brand system from the login experience
+   Neutral surfaces; turquoise and gold are accents, not fills.
+   ============================================================ */
+.page-shell.app-shell {
+  --system-bg: #030505;
+  --system-panel: #0a0d0d;
+  --system-panel-soft: #101414;
+  --system-line: rgba(27, 226, 194, 0.22);
+  --system-text: #f4fbfa;
+  --system-muted: #9cb5b8;
+  --system-gold: #e6a04b;
+  --system-gold-bright: #ffbe65;
+  --system-green: #1be2c2;
+  --system-brown: #090b0b;
+  --system-copper: #bd7a2e;
+  background: #030505;
+}
+
+.page-shell.app-shell::before {
+  background: #030505;
+}
+
+.page-shell.app-shell::after {
+  opacity: 0.14;
+}
+
+.page-shell.app-shell .owner-lobby-layout,
+.page-shell.app-shell .workspace-app-main,
+.page-shell.app-shell .workspace-app-content {
+  background: #050707;
+}
+
+.page-shell.app-shell .owner-lobby-sidebar {
+  border-right-color: rgba(255, 190, 101, 0.16);
+  background: #090b0b;
+}
+
+.page-shell.app-shell .workspace-content-topbar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: #101313;
+}
+
+.page-shell.app-shell .surface-card,
+.page-shell.app-shell :is(
+  .module-entity-card,
+  .module-empty-state,
+  .owner-cash-strip,
+  .owner-order-modal,
+  .owner-order-detail-grid article,
+  .owner-order-detail-note,
+  .setup-progress-card,
+  .setup-next-card,
+  .setup-step-card,
+  .menu-category-form-card,
+  .menu-category-manager-card,
+  .menu-item-form-card-refined,
+  .menu-items-browser-card,
+  .stock-item-card,
+  .table-list-card,
+  .print-summary-card,
+  .print-profile-card,
+  .print-download-card,
+  .print-jobs-card,
+  .print-metric-card,
+  .settings-alert-toggle,
+  .settings-logo-panel,
+  .waiter-call-card,
+  .waiter-call-notice,
+  .waiter-call-summary
+) {
+  border-color: rgba(255, 190, 101, 0.18);
+  background: #0d1010;
+  color: var(--system-text);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.page-shell.app-shell :is(
+  .surface-card,
+  .module-entity-card,
+  .module-empty-state,
+  .setup-progress-card,
+  .setup-next-card,
+  .setup-step-card,
+  .menu-category-form-card,
+  .menu-category-manager-card,
+  .menu-item-form-card-refined,
+  .menu-items-browser-card,
+  .stock-item-card,
+  .table-list-card,
+  .print-summary-card,
+  .print-profile-card,
+  .print-download-card,
+  .print-jobs-card,
+  .settings-alert-toggle
+) :is(h1, h2, h3, h4, strong, em, label) {
+  color: var(--system-text);
+}
+
+.page-shell.app-shell :is(
+  .surface-card,
+  .module-entity-card,
+  .module-empty-state,
+  .setup-progress-card,
+  .setup-next-card,
+  .setup-step-card,
+  .menu-category-form-card,
+  .menu-category-manager-card,
+  .menu-item-form-card-refined,
+  .menu-items-browser-card,
+  .stock-item-card,
+  .table-list-card,
+  .print-summary-card,
+  .print-profile-card,
+  .print-download-card,
+  .print-jobs-card,
+  .settings-alert-toggle
+) :is(p, span, small) {
+  color: var(--system-muted);
+}
+
+.page-shell.app-shell :is(.owner-flow-column, .cash-focus-panel, .kitchen-focus-panel, .cash-quick-column) {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #0d1010;
+  color: var(--system-text);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+.page-shell.app-shell :is(.owner-flow-column-todo, .cash-quick-column-pending) {
+  border-color: rgba(255, 190, 101, 0.28);
+  background: #12100c;
+}
+
+.page-shell.app-shell :is(.owner-flow-column-ready, .cash-quick-column-paid) {
+  border-color: rgba(27, 226, 194, 0.28);
+  background: #0b1110;
+}
+
+.page-shell.app-shell :is(.owner-flow-column-charge, .owner-flow-column-finished, .cash-quick-column-finished) {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #101212;
+}
+
+.page-shell.app-shell :is(
+  .owner-flow-order-card,
+  .kitchen-order-card,
+  .cash-order-card,
+  .order-item-compact-card,
+  .cash-payment-state-card,
+  .cash-operation-card,
+  .cash-method-card,
+  .cash-summary-pill,
+  .setup-step-metric,
+  .table-preview-stat,
+  .table-ready-note,
+  .menu-category-manager-row,
+  .menu-item-image-placeholder,
+  .mini-chip
+) {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #151919;
+  color: var(--system-text);
+  box-shadow: none;
+}
+
+.page-shell.app-shell :is(
+  .owner-flow-order-card,
+  .kitchen-order-card,
+  .cash-order-card,
+  .order-item-compact-card,
+  .cash-payment-state-card,
+  .cash-operation-card,
+  .cash-method-card,
+  .cash-summary-pill,
+  .setup-step-metric,
+  .table-preview-stat,
+  .table-ready-note,
+  .menu-category-manager-row,
+  .menu-item-image-placeholder,
+  .mini-chip
+) :is(h2, h3, h4, strong, em, label) {
+  color: var(--system-text);
+}
+
+.page-shell.app-shell :is(
+  .owner-flow-order-card,
+  .kitchen-order-card,
+  .cash-order-card,
+  .order-item-compact-card,
+  .cash-payment-state-card,
+  .cash-operation-card,
+  .cash-method-card,
+  .cash-summary-pill,
+  .setup-step-metric,
+  .table-preview-stat,
+  .table-ready-note,
+  .menu-category-manager-row,
+  .menu-item-image-placeholder,
+  .mini-chip
+) :is(p, span, small) {
+  color: var(--system-muted);
+}
+
+.page-shell.app-shell .owner-menu-shell {
+  --mnu-text: #f4fbfa;
+  --mnu-muted: #9cb5b8;
+  --mnu-border: rgba(255, 255, 255, 0.11);
+  --mnu-surface: #121616;
+}
+
+.page-shell.app-shell :is(.mnu-cat-card, .mnu-empty, .mnu-product-card, .mnu-add-card, .mnu-linked-card) {
+  border-color: rgba(27, 226, 194, 0.2);
+  background: #0d1110;
+  box-shadow: none;
+}
+
+.page-shell.app-shell .mnu-cat-card.is-open {
+  border-color: rgba(255, 190, 101, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 190, 101, 0.1);
+}
+
+.page-shell.app-shell .hrs-summary-card,
+.page-shell.app-shell .hrs-day-btn,
+.page-shell.app-shell .owner-flow-tabs,
+.page-shell.app-shell .cash-flow-tabs .owner-flow-tab-button,
+.page-shell.app-shell .workspace-content-topbar .topbar-account-pill {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #141818;
+  color: var(--system-muted);
+}
+
+.page-shell.app-shell .hrs-day-btn.is-on,
+.page-shell.app-shell .owner-flow-tab-button.is-active,
+.page-shell.app-shell .cash-flow-tabs .owner-flow-tab-button.is-active {
+  border-color: rgba(255, 190, 101, 0.42);
+  background: #1a150e;
+  color: var(--system-gold-bright);
+}
+
+.page-shell.app-shell :is(input, select, textarea) {
+  border-color: rgba(156, 181, 184, 0.22);
+  background: #111616;
+  color: var(--system-text);
+}
+
+.page-shell.app-shell :is(input, select, textarea):focus {
+  border-color: rgba(27, 226, 194, 0.76);
+  box-shadow: 0 0 0 4px rgba(27, 226, 194, 0.11);
+}
+
+.page-shell.app-shell :is(.primary-link, .module-action-button-primary, .zpprint-btn.is-primary) {
+  border-color: rgba(255, 209, 139, 0.4);
+  background: #f0ad58;
+  color: #09110f;
+  box-shadow: 0 12px 26px rgba(230, 160, 75, 0.17);
+}
+
+.page-shell.app-shell :is(.primary-link, .module-action-button-primary, .zpprint-btn.is-primary):hover {
+  background: #ffc36f;
+}
+
+.page-shell.app-shell :is(.ghost-link, .button-link:not(.primary-link), .zpprint-btn.is-ghost) {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #151919;
+  color: #e8f2f2;
+  box-shadow: none;
+}
+
+.page-shell.app-shell :is(.ghost-link, .button-link:not(.primary-link), .zpprint-btn.is-ghost):hover {
+  border-color: rgba(27, 226, 194, 0.34);
+  background: #1a201f;
+}
+
+.page-shell.app-shell .status-chip.available,
+.page-shell.app-shell :is(.status-chip.ready, .mnu-tag--ok, .zpprint-chip.is-ready) {
+  border-color: rgba(27, 226, 194, 0.28);
+  background: rgba(27, 226, 194, 0.1);
+  color: #80f3df;
+}
+
+.page-shell.app-shell :is(.eyebrow, .field-requirement, .mnu-tag--accent) {
+  border-color: rgba(255, 190, 101, 0.26);
+  background: rgba(255, 190, 101, 0.08);
+  color: var(--system-gold-bright);
+}
+
+.page-shell.app-shell .cash-column-total {
+  border-color: rgba(255, 190, 101, 0.18);
+  background: #171813;
+  color: var(--system-text);
+}
+
+.page-shell.app-shell .cash-column-total :is(strong, small),
+.page-shell.app-shell .cash-column-inline-total,
+.page-shell.app-shell .cash-column-inline-count {
+  color: var(--system-text);
+}
+
+/* Cadastro follows the same neutral brand palette as login. */
+.zp-signup-sales-page {
+  --system-bg: #030505;
+  --system-panel: #0a0d0d;
+  --system-panel-soft: #101414;
+  --system-line: rgba(27, 226, 194, 0.22);
+  --system-text: #f4fbfa;
+  --system-muted: #9cb5b8;
+  --system-gold: #e6a04b;
+  --system-gold-bright: #ffbe65;
+  --system-green: #1be2c2;
+  background: #030505;
+}
+
+.zp-signup-sales-page::before {
+  background: #030505;
+}
+
+.zp-signup-sales-page::after {
+  opacity: 0.14;
+}
+
+.zp-signup-sales-page .surface-card {
+  border-color: rgba(255, 190, 101, 0.2);
+  background: #0d1010;
+  box-shadow:
+    0 22px 56px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.zp-signup-sales-page .zp-signup-sales-intro {
+  border-color: rgba(27, 226, 194, 0.28);
+  background: #0a0d0d;
+}
+
+.zp-signup-sales-page .zp-signup-selected-plan,
+.zp-signup-sales-page .zp-signup-plan-switch a,
+.zp-signup-segment-context {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #121616;
+  color: var(--system-text);
+}
+
+.zp-signup-sales-page .zp-signup-plan-switch a.is-active {
+  border-color: rgba(255, 190, 101, 0.52);
+  background: #1a150e;
+  box-shadow: 0 0 0 3px rgba(255, 190, 101, 0.08);
+}
+
+.zp-signup-sales-page .field-group input,
+.zp-signup-sales-page .field-group select {
+  border-color: rgba(156, 181, 184, 0.22);
+  background: #111616;
+  color: var(--system-text);
+}
+
+.zp-signup-sales-page .field-group input:focus,
+.zp-signup-sales-page .field-group select:focus {
+  border-color: rgba(27, 226, 194, 0.76);
+  box-shadow: 0 0 0 4px rgba(27, 226, 194, 0.11);
+}
+
+.zp-signup-sales-page .primary-link {
+  border-color: rgba(255, 209, 139, 0.4);
+  background: #f0ad58;
+  color: #09110f;
+}
+
+.zp-signup-sales-page .ghost-link {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #151919;
+  color: #e8f2f2;
+}
 .zpld-priv-toc-n {
   font-size: 0.65rem;
   font-weight: 700;
@@ -41404,3 +41778,90 @@ html[data-perf="lite"] * {
   .primary-button,
   .secondary-button { width: 100%; }
 }
+
+/* Final brand override: login palette across authenticated app and signup. */
+.page-shell.app-shell,
+.zp-signup-sales-page {
+  --system-bg: #030505;
+  --system-panel: #0a0d0d;
+  --system-panel-soft: #101414;
+  --system-line: rgba(27, 226, 194, 0.22);
+  --system-text: #f4fbfa;
+  --system-muted: #9cb5b8;
+  --system-gold: #e6a04b;
+  --system-gold-bright: #ffbe65;
+  --system-green: #1be2c2;
+  --system-brown: #090b0b;
+  --system-copper: #bd7a2e;
+  background: #030505;
+}
+
+.page-shell.app-shell::before,
+.zp-signup-sales-page::before { background: #030505; }
+.page-shell.app-shell::after,
+.zp-signup-sales-page::after { opacity: 0.14; }
+
+.page-shell.app-shell :is(.owner-lobby-layout, .workspace-app-main, .workspace-app-content) { background: #050707; }
+.page-shell.app-shell .owner-lobby-sidebar { background: #090b0b; border-right-color: rgba(255,190,101,.16); }
+.page-shell.app-shell .workspace-content-topbar { background: #101313; border-bottom-color: rgba(255,255,255,.08); }
+
+.page-shell.app-shell :is(.surface-card, .module-entity-card, .module-empty-state, .setup-progress-card, .setup-next-card, .setup-step-card, .menu-category-form-card, .menu-category-manager-card, .menu-item-form-card-refined, .menu-items-browser-card, .stock-item-card, .table-list-card, .print-summary-card, .print-profile-card, .print-download-card, .print-jobs-card, .print-metric-card, .settings-alert-toggle, .settings-logo-panel, .waiter-call-card, .waiter-call-notice, .waiter-call-summary),
+.zp-signup-sales-page .surface-card {
+  border-color: rgba(255,190,101,.18);
+  background: #0d1010;
+  color: var(--system-text);
+  box-shadow: 0 18px 44px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.page-shell.app-shell :is(.owner-flow-column, .cash-focus-panel, .kitchen-focus-panel, .cash-quick-column) {
+  border-color: rgba(255,255,255,.1);
+  background: #0d1010;
+  color: var(--system-text);
+  box-shadow: 0 18px 44px rgba(0,0,0,.28);
+}
+.page-shell.app-shell :is(.owner-flow-column-todo, .cash-quick-column-pending) { border-color: rgba(255,190,101,.28); background: #12100c; }
+.page-shell.app-shell :is(.owner-flow-column-ready, .cash-quick-column-paid) { border-color: rgba(27,226,194,.28); background: #0b1110; }
+.page-shell.app-shell :is(.owner-flow-column-charge, .owner-flow-column-finished, .cash-quick-column-finished) { border-color: rgba(255,255,255,.11); background: #101212; }
+
+.page-shell.app-shell :is(.owner-flow-order-card, .kitchen-order-card, .cash-order-card, .order-item-compact-card, .cash-payment-state-card, .cash-operation-card, .cash-method-card, .cash-summary-pill, .setup-step-metric, .table-preview-stat, .table-ready-note, .menu-category-manager-row, .menu-item-image-placeholder, .mini-chip) {
+  border-color: rgba(255,255,255,.1);
+  background: #151919;
+  color: var(--system-text);
+  box-shadow: none;
+}
+
+.page-shell.app-shell :is(.surface-card, .module-entity-card, .module-empty-state, .owner-flow-column, .owner-flow-order-card, .kitchen-order-card, .cash-order-card, .cash-payment-state-card, .cash-operation-card, .menu-category-manager-row) :is(h1, h2, h3, h4, strong, em, label) { color: var(--system-text); }
+.page-shell.app-shell :is(.surface-card, .module-entity-card, .module-empty-state, .owner-flow-column, .owner-flow-order-card, .kitchen-order-card, .cash-order-card, .cash-payment-state-card, .cash-operation-card, .menu-category-manager-row) :is(p, span, small) { color: var(--system-muted); }
+
+.page-shell.app-shell .owner-menu-shell { --mnu-text: #f4fbfa; --mnu-muted: #9cb5b8; --mnu-border: rgba(255,255,255,.11); --mnu-surface: #121616; }
+.page-shell.app-shell :is(.mnu-cat-card, .mnu-empty, .mnu-product-card, .mnu-add-card, .mnu-linked-card) { border-color: rgba(27,226,194,.2); background: #0d1110; box-shadow: none; }
+.page-shell.app-shell .mnu-cat-card.is-open { border-color: rgba(255,190,101,.58); box-shadow: 0 0 0 3px rgba(255,190,101,.1); }
+
+.page-shell.app-shell :is(.hrs-summary-card, .hrs-day-btn, .owner-flow-tabs, .cash-flow-tabs .owner-flow-tab-button, .workspace-content-topbar .topbar-account-pill) { border-color: rgba(255,255,255,.1); background: #141818; color: var(--system-muted); }
+.page-shell.app-shell :is(.hrs-day-btn.is-on, .owner-flow-tab-button.is-active, .cash-flow-tabs .owner-flow-tab-button.is-active) { border-color: rgba(255,190,101,.42); background: #1a150e; color: var(--system-gold-bright); }
+
+.page-shell.app-shell :is(input, select, textarea),
+.zp-signup-sales-page .field-group :is(input, select) { border-color: rgba(156,181,184,.22); background: #111616; color: var(--system-text); }
+.page-shell.app-shell :is(input, select, textarea):focus,
+.zp-signup-sales-page .field-group :is(input, select):focus { border-color: rgba(27,226,194,.76); box-shadow: 0 0 0 4px rgba(27,226,194,.11); }
+
+.page-shell.app-shell :is(.primary-link, .module-action-button-primary, .zpprint-btn.is-primary),
+.zp-signup-sales-page .primary-link { border-color: rgba(255,209,139,.4); background: #f0ad58; color: #09110f; box-shadow: 0 12px 26px rgba(230,160,75,.17); }
+.page-shell.app-shell :is(.primary-link, .module-action-button-primary, .zpprint-btn.is-primary):hover,
+.zp-signup-sales-page .primary-link:hover { background: #ffc36f; }
+.page-shell.app-shell :is(.ghost-link, .button-link:not(.primary-link), .zpprint-btn.is-ghost),
+.zp-signup-sales-page .ghost-link { border-color: rgba(255,255,255,.11); background: #151919; color: #e8f2f2; box-shadow: none; }
+.page-shell.app-shell :is(.destructive-link, .module-action-button-danger) { border-color: rgba(255,104,92,.28); background: rgba(118,35,30,.18); color: #ff9b8e; }
+
+.page-shell.app-shell :is(.status-chip.available, .status-chip.ready, .mnu-tag--ok, .zpprint-chip.is-ready) { border-color: rgba(27,226,194,.28); background: rgba(27,226,194,.1); color: #80f3df; }
+.page-shell.app-shell :is(.eyebrow, .field-requirement, .mnu-tag--accent),
+.zp-signup-sales-page :is(.eyebrow, .field-requirement) { border-color: rgba(255,190,101,.26); background: rgba(255,190,101,.08); color: var(--system-gold-bright); }
+
+.page-shell.app-shell .cash-column-total { border-color: rgba(255,190,101,.18); background: #171813; color: var(--system-text); }
+.page-shell.app-shell .cash-column-total :is(strong, small),
+.page-shell.app-shell :is(.cash-column-inline-total, .cash-column-inline-count) { color: var(--system-text); }
+
+.zp-signup-sales-page .zp-signup-sales-intro { border-color: rgba(27,226,194,.28); background: #0a0d0d; }
+.zp-signup-sales-page :is(.zp-signup-selected-plan, .zp-signup-plan-switch a),
+.zp-signup-segment-context { border-color: rgba(255,255,255,.1); background: #121616; color: var(--system-text); }
+.zp-signup-sales-page .zp-signup-plan-switch a.is-active { border-color: rgba(255,190,101,.52); background: #1a150e; box-shadow: 0 0 0 3px rgba(255,190,101,.08); }
