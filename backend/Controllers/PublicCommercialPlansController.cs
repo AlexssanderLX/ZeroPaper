@@ -39,18 +39,18 @@ public sealed class PublicCommercialPlansController : ControllerBase
         {
             return key switch
             {
-                "essencial" => ["Cadastro de tutores e animais", "Catalogo de servicos com precos", "Agenda interna de atendimentos", "Pedidos e cobranca vinculados", "Ate 3 usuarios simultaneos"],
-                "operacao" => ["Tudo do Essencial", "Agendamento publico online (link direto)", "WhatsApp com IA para agendamento", "Relatorio operacional de atendimentos", "Historico completo do animal", "Ate 5 usuarios simultaneos"],
-                "gestao" => ["Tudo do Operacao", "Dashboard gerencial em tempo real", "Relatorios avancados e exportacao", "Cupons, fidelizacao e recorrencia", "Gestao de equipe e comissoes", "Ate 8 usuarios simultaneos"],
+                "essencial" => ["Cadastro de tutores e animais", "Catalogo de servicos com precos", "Agenda interna de atendimentos", "Pedidos e cobranca vinculados"],
+                "operacao" => ["Tudo do Essencial", "Agendamento publico online (link direto)", "WhatsApp com IA para agendamento", "Relatorio operacional de atendimentos", "Historico completo do animal"],
+                "gestao" => ["Tudo do Operacao", "Dashboard gerencial em tempo real", "Relatorios avancados e exportacao", "Cupons, fidelizacao e recorrencia", "Gestao de equipe e comissoes"],
                 _ => []
             };
         }
 
         return key switch
         {
-            "essencial" => ["Cardapio digital com QR Code", "Mesas, pedidos, cozinha e caixa", "Chamada de garcom por mesa", "Impressao manual de comandas", "Ate 3 usuarios simultaneos"],
-            "operacao" => ["Tudo do Essencial", "WhatsApp com IA para atendimento", "Delivery, retirada e rastreio", "Impressao automatica de pedidos", "Relatorio de vendas diario", "Ate 5 usuarios simultaneos"],
-            "gestao" => ["Tudo do Operacao", "Dashboard gerencial em tempo real", "Relatorios avancados e exportacao", "Cupons, fidelizacao e recorrencia", "Gestao de equipe e comissoes", "Ate 8 usuarios simultaneos"],
+            "essencial" => ["Cardapio digital com QR Code", "Mesas, pedidos, cozinha e caixa", "Chamada de garcom por mesa", "Impressao manual de comandas"],
+            "operacao" => ["Tudo do Essencial", "WhatsApp com IA para atendimento", "Delivery, retirada e rastreio", "Impressao automatica de pedidos", "Relatorio de vendas diario"],
+            "gestao" => ["Tudo do Operacao", "Dashboard gerencial em tempo real", "Relatorios avancados e exportacao", "Cupons, fidelizacao e recorrencia", "Gestao de equipe e comissoes"],
             _ => []
         };
     }

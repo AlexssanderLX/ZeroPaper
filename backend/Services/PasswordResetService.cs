@@ -136,6 +136,7 @@ public class PasswordResetService : IPasswordResetService
         }
 
         var frontendBaseUrl = _configuration["Frontend:PublicBaseUrl"]
+            ?? _configuration["PublicApp:BaseUrl"]
             ?? _configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>()?.FirstOrDefault()
             ?? "http://localhost:3000";
 

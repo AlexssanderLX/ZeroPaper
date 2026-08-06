@@ -1407,8 +1407,12 @@ export function createRestaurantSignup(payload: RestaurantSignupPayload) {
   });
 }
 
-export function getPublicCommercialPlans(segment: 1 | 2) {
-  return apiRequest<PublicCommercialPlan[]>(`/api/public/commercial-plans?segment=${segment}`, {});
+export async function getPublicCommercialPlans(segment: 1 | 2) {
+  const plans = await apiRequest<PublicCommercialPlan[]>(`/api/public/commercial-plans?segment=${segment}`, {});
+  return plans.map((plan) => ({
+    ...plan,
+    features: plan.features.filter((feature) => !/usuarios? simultaneos?/i.test(feature)),
+  }));
 }
 
 export function getAdminDashboard(token: string) {

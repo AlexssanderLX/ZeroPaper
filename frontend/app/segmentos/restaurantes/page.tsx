@@ -190,7 +190,6 @@ export default async function RestaurantesPage() {
               className={`zp-lp-plan-card zp-lp-reveal${plan.recommended ? " is-spotlight" : ""}`}
             >
               {plan.recommended ? <em className="zp-lp-plan-badge">Mais indicado</em> : null}
-              <span className="zp-lp-plan-audience">Ate {plan.maxUsers} usuarios</span>
               <h3>{plan.name.replace("ZeroPaper ", "")}</h3>
               <div className="zp-lp-plan-price">
                 <strong>R$ {plan.monthlyPrice.toFixed(0)}</strong>
