@@ -22663,22 +22663,22 @@ select {
 
 /* Login: paleta equilibrada a partir do turquesa e dourado da marca. */
 .zp-auth-neon-page {
-  --system-bg: #030914;
-  --system-panel: #07131c;
-  --system-panel-soft: #0a1923;
+  --system-bg: #030505;
+  --system-panel: #0a0d0d;
+  --system-panel-soft: #101414;
   --system-line: rgba(27, 226, 194, 0.28);
   --system-text: #f4fbfa;
   --system-muted: #9cb5b8;
   --system-gold: #e6a04b;
   --system-gold-bright: #ffbe65;
   --system-green: #1be2c2;
-  --system-brown: #07111a;
+  --system-brown: #090b0b;
   --system-copper: #bd7a2e;
-  background: #030914;
+  background: #030505;
 }
 
 .zp-auth-neon-page::before {
-  background: #030914;
+  background: #030505;
 }
 
 .zp-auth-neon-page::after {
@@ -22689,7 +22689,7 @@ select {
 }
 
 .zp-auth-neon-page .surface-card {
-  background: #07131c;
+  background: #0a0d0d;
   border-color: rgba(27, 226, 194, 0.3);
   box-shadow:
     0 28px 72px rgba(0, 0, 0, 0.46),
@@ -22702,7 +22702,7 @@ select {
 }
 
 .zp-auth-neon-page .login-form-shell {
-  background: #091721;
+  background: #0d1010;
   border-color: rgba(255, 190, 101, 0.38);
   box-shadow:
     0 28px 72px rgba(0, 0, 0, 0.48),
@@ -22735,7 +22735,7 @@ select {
 .zp-auth-neon-page .field-group input,
 .zp-auth-neon-page .field-group select {
   border-color: rgba(139, 180, 190, 0.24);
-  background: #0b1b25;
+  background: #111616;
   color: var(--system-text);
 }
 
@@ -22767,13 +22767,13 @@ select {
 
 .zp-auth-neon-page .ghost-link {
   border-color: rgba(154, 190, 198, 0.2);
-  background: #0b1821;
+  background: #101414;
   color: #e8f2f2;
 }
 
 .zp-auth-neon-page .ghost-link:hover {
   border-color: rgba(27, 226, 194, 0.4);
-  background: #0e222c;
+  background: #151b1a;
 }
 
 .zp-auth-neon-page .login-stage-orb {
@@ -22782,12 +22782,12 @@ select {
 
 .zp-auth-neon-page .login-stage-window-main {
   border-color: rgba(27, 226, 194, 0.26);
-  background: #081821;
+  background: #0c1111;
 }
 
 .zp-auth-neon-page .login-stage-window-chip {
   border-color: rgba(255, 190, 101, 0.28);
-  background: #0a1720;
+  background: #0f1212;
 }
 
 .zp-auth-neon-page .login-stage-window-accent {
@@ -22809,7 +22809,7 @@ select {
 
 .zp-auth-neon-page .login-stage-rail span {
   border-color: rgba(27, 226, 194, 0.18);
-  background: #0b2028;
+  background: #111817;
 }
 
 .zp-auth-neon-page .login-stage-rail span::before {

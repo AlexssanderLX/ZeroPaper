@@ -12,7 +12,7 @@
 - No actionable P0, P1, or P2 differences remain for the requested color redesign.
 - Typography and copy remain unchanged and preserve the existing hierarchy.
 - Spacing, layout rhythm, card dimensions, and responsive stacking remain unchanged.
-- Colors now map to the supplied logo: navy-black foundation, turquoise security/focus accents, and gold primary action accents.
+- Colors now map to the supplied logo: black/graphite foundation, turquoise security/focus accents, and gold primary action accents.
 - The supplied brand logo remains the real existing asset; no placeholder or reconstructed logo was introduced.
 - Mobile has no horizontal overflow (`390 px` viewport, `375 px` document width).
 - Focus state uses a visible turquoise border and four-pixel focus halo.
@@ -20,7 +20,7 @@
 
 ## Full-view comparison evidence
 
-The comparison board shows the former green-heavy rendering beside the redesigned navy/turquoise/gold rendering and the supplied logo palette. Composition, typography, and content are preserved while the dominant surface hue changes from green to navy.
+The comparison board shows the former green-heavy rendering beside the redesigned black/graphite, turquoise, and gold rendering and the supplied logo palette. Composition, typography, and content are preserved while the dominant surface hue changes from green to neutral graphite.
 
 ## Focused region comparison evidence
 
@@ -29,7 +29,7 @@ The login form was checked separately at mobile width. Input text, requirement b
 ## Comparison history
 
 - Initial finding: green occupied the background, both cards, fields, borders, and decorative elements, overpowering the two-color brand identity.
-- Fix: introduced navy neutral surfaces, assigned turquoise to trust/focus elements, and reserved gold for primary actions and selected highlights.
+- Fix: introduced black and neutral graphite surfaces, assigned turquoise to trust/focus elements, and reserved gold for primary actions and selected highlights.
 - Post-fix evidence: desktop and mobile captures show balanced brand colors, preserved contrast, and no horizontal overflow.
 
 ## Follow-up polish
