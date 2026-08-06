@@ -90,7 +90,7 @@ export function ElectricBg() {
             bx: nearest.x, by: nearest.y,
             life: 0,
             maxLife: 22 + Math.floor(Math.random() * 18),
-            color: isGold ? "rgba(255,208,143," : "rgba(109,223,157,",
+            color: isGold ? "rgba(255,190,101," : "rgba(27,226,194,",
           });
         }
       }
@@ -132,7 +132,7 @@ export function ElectricBg() {
       for (const p of particles) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(109,223,157,${p.opacity})`;
+        ctx.fillStyle = `rgba(27,226,194,${p.opacity})`;
         ctx.fill();
       }
 
