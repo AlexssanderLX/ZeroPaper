@@ -22436,15 +22436,16 @@ select {
 .zp-signup-sales-page .surface-card,
 .page-shell.app-shell .surface-card,
 .admin-modal-backdrop .surface-card {
-  border-color: var(--system-line);
+  border-color: rgba(109, 223, 157, 0.22);
   background:
-    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.09), transparent 32%),
-    radial-gradient(circle at 0% 100%, rgba(109, 223, 157, 0.06), transparent 36%),
-    linear-gradient(180deg, rgba(8, 18, 14, 0.97), rgba(4, 10, 8, 0.97));
+    radial-gradient(circle at 100% 0%, rgba(212, 168, 67, 0.10), transparent 32%),
+    radial-gradient(circle at 10% 90%, rgba(109, 223, 157, 0.09), transparent 40%),
+    linear-gradient(180deg, rgba(16, 38, 26, 0.97), rgba(10, 24, 16, 0.97));
   color: var(--system-text);
   box-shadow:
-    0 24px 68px rgba(0, 0, 0, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 24px 68px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(109, 223, 157, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .zp-auth-neon-page .surface-card h1,
