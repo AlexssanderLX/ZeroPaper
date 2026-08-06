@@ -2053,14 +2053,16 @@ select {
   display: grid;
   gap: 16px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(197, 138, 82, 0.18), transparent 28%),
-    linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(243, 232, 222, 0.96));
+    radial-gradient(ellipse at 95% 5%, rgba(197, 138, 82, 0.28), transparent 36%),
+    radial-gradient(ellipse at 10% 95%, rgba(140, 72, 22, 0.18), transparent 32%),
+    linear-gradient(160deg, #1a0e08 0%, #241408 60%, #1a0e08 100%);
+  border-color: rgba(197, 138, 82, 0.2);
 }
 
 .zp-signup-sales-intro h1 {
   max-width: 9ch;
   margin: 0;
-  color: var(--card-title);
+  color: #fffaf4;
   font-family: var(--font-display), serif;
   font-size: clamp(2.3rem, 4vw, 4rem);
   line-height: 0.95;
@@ -2069,18 +2071,23 @@ select {
 .zp-signup-sales-intro > p {
   max-width: 42ch;
   margin: 0;
-  color: var(--card-text);
+  color: rgba(255, 247, 236, 0.68);
   line-height: 1.55;
 }
 
 .zp-signup-selected-plan {
   display: grid;
-  gap: 12px;
-  padding: clamp(16px, 2vw, 22px);
-  border: 1px solid rgba(109, 83, 67, 0.14);
+  gap: 14px;
+  padding: clamp(18px, 2.2vw, 26px);
+  border: 1px solid rgba(197, 138, 82, 0.24);
   border-radius: 24px;
-  background: #241813;
-  box-shadow: 0 20px 42px rgba(35, 20, 14, 0.16);
+  background:
+    radial-gradient(ellipse at 95% 5%, rgba(255, 200, 100, 0.14), transparent 42%),
+    radial-gradient(ellipse at 5% 90%, rgba(120, 60, 20, 0.16), transparent 38%),
+    linear-gradient(160deg, #201009 0%, #2e160a 60%, #1a0b06 100%);
+  box-shadow:
+    0 24px 56px rgba(20, 10, 4, 0.45),
+    inset 0 1px 0 rgba(255, 200, 100, 0.08);
 }
 
 .zp-signup-selected-plan > span {
@@ -2132,45 +2139,60 @@ select {
 .zp-signup-selected-plan li::before {
   content: "";
   position: absolute;
-  top: 0.45em;
+  top: 0.48em;
   left: 0;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: #d89b58;
-  box-shadow: 0 0 0 4px rgba(216, 155, 88, 0.14);
+  background: linear-gradient(135deg, #ffd08f, #c58a52);
+  box-shadow: 0 0 0 3px rgba(216, 155, 88, 0.18), 0 0 10px rgba(216, 155, 88, 0.22);
 }
 
 .zp-signup-plan-switch {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .zp-signup-plan-switch a {
   min-width: 0;
   position: relative;
   display: grid;
-  gap: 3px;
-  padding: 14px 12px 12px;
-  border: 1.5px solid rgba(109, 83, 67, 0.14);
-  border-radius: 18px;
-  background: rgba(255, 251, 247, 0.72);
-  color: var(--card-text);
-  transition: border-color 0.12s, background 0.12s;
+  gap: 4px;
+  padding: 16px 14px 14px;
+  border: 1.5px solid rgba(197, 138, 82, 0.18);
+  border-radius: 20px;
+  background: rgba(30, 16, 8, 0.7);
+  color: rgba(255, 247, 236, 0.75);
+  text-decoration: none;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.14s ease;
+}
+
+.zp-signup-plan-switch a:hover {
+  border-color: rgba(197, 138, 82, 0.36);
+  background: rgba(42, 22, 10, 0.88);
+  box-shadow: 0 6px 22px rgba(155, 88, 35, 0.18);
+  transform: translateY(-1px);
+  color: #fffaf4;
 }
 
 .zp-signup-plan-switch a.is-active {
-  border-color: #c58a52;
-  background: #241813;
+  border-color: rgba(197, 138, 82, 0.65);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(255, 196, 80, 0.16), transparent 50%),
+    rgba(48, 24, 8, 0.96);
   color: #fffaf4;
-  box-shadow: 0 6px 24px rgba(36, 24, 19, 0.18);
+  box-shadow:
+    0 8px 32px rgba(155, 88, 35, 0.24),
+    inset 0 1px 0 rgba(255, 208, 130, 0.10);
+  transform: none;
 }
 
 .zp-signup-plan-switch strong {
   overflow-wrap: anywhere;
   font-size: 1rem;
   font-weight: 900;
+  color: inherit;
 }
 
 .zp-signup-plan-switch span {
@@ -2178,13 +2200,19 @@ select {
   align-items: baseline;
   gap: 2px;
   color: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+  opacity: 0.8;
+}
+
+.zp-signup-plan-switch a.is-active span {
+  color: #ffd08f;
+  opacity: 1;
 }
 
 .zp-signup-plan-switch span small {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   opacity: 0.6;
 }
@@ -2192,19 +2220,22 @@ select {
 .zp-plan-badge {
   display: inline-block;
   margin-bottom: 4px;
-  padding: 2px 7px;
+  padding: 3px 9px;
   border-radius: 999px;
-  background: #c58a52;
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #ffd08f 0%, #c58a52 100%);
+  color: #2b1608;
+  font-size: 0.62rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  box-shadow: 0 2px 10px rgba(197, 138, 82, 0.35);
 }
 
 .zp-signup-plan-switch a.is-active .zp-plan-badge {
-  background: rgba(197, 138, 82, 0.28);
+  background: linear-gradient(135deg, rgba(255, 208, 143, 0.28), rgba(197, 138, 82, 0.22));
   color: #ffd08f;
+  box-shadow: none;
+  border: 1px solid rgba(255, 208, 143, 0.22);
 }
 
 /* Plan row shown inside the form card */
@@ -2261,7 +2292,10 @@ select {
 }
 
 .zp-signup-sales-form {
-  background: linear-gradient(180deg, rgba(255, 252, 248, 0.99), rgba(247, 238, 230, 0.96));
+  background:
+    radial-gradient(ellipse at 90% 5%, rgba(197, 138, 82, 0.10), transparent 40%),
+    linear-gradient(180deg, #19100b 0%, #120b07 100%);
+  border-color: rgba(197, 138, 82, 0.18);
 }
 
 .signup-stage {
@@ -22366,10 +22400,11 @@ select {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(circle at 18% 22%, rgba(109, 223, 157, 0.10), transparent 32%),
-    radial-gradient(circle at 78% 10%, rgba(36, 79, 125, 0.18), transparent 28%),
-    radial-gradient(circle at 82% 80%, rgba(109, 223, 157, 0.08), transparent 30%),
-    linear-gradient(135deg, #03070a 0%, #05100d 50%, #03070a 100%);
+    radial-gradient(ellipse at 15% 12%, rgba(197, 138, 82, 0.22), transparent 40%),
+    radial-gradient(ellipse at 85% 20%, rgba(155, 80, 38, 0.14), transparent 36%),
+    radial-gradient(ellipse at 60% 88%, rgba(109, 58, 22, 0.12), transparent 38%),
+    radial-gradient(ellipse at 30% 70%, rgba(80, 38, 14, 0.10), transparent 30%),
+    linear-gradient(160deg, #0d0704 0%, #160b06 45%, #0a0503 100%);
 }
 
 .zp-auth-neon-page::after,
@@ -22503,10 +22538,10 @@ select {
 .page-shell.app-shell .field-group select:focus,
 .admin-modal-backdrop .field-group input:focus,
 .admin-modal-backdrop .field-group select:focus {
-  border-color: rgba(109, 223, 157, 0.5);
+  border-color: rgba(197, 138, 82, 0.55);
   box-shadow:
-    0 0 0 4px rgba(109, 223, 157, 0.1),
-    0 0 34px rgba(109, 223, 157, 0.09);
+    0 0 0 4px rgba(197, 138, 82, 0.12),
+    0 0 28px rgba(197, 138, 82, 0.10);
 }
 
 .zp-auth-neon-page .field-requirement,
@@ -22556,16 +22591,27 @@ select {
 }
 
 .zp-signup-sales-page .zp-signup-plan-switch a {
-  border-color: rgba(255, 248, 238, 0.12);
-  background: rgba(255, 248, 238, 0.055);
+  border-color: rgba(197, 138, 82, 0.18);
+  background: rgba(30, 16, 8, 0.72);
   color: var(--system-text);
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.14s ease;
+}
+.zp-signup-sales-page .zp-signup-plan-switch a:hover {
+  border-color: rgba(197, 138, 82, 0.38);
+  background: rgba(40, 22, 10, 0.9);
+  box-shadow: 0 4px 20px rgba(155, 88, 35, 0.16);
+  transform: translateY(-1px);
 }
 
 .zp-signup-sales-page .zp-signup-plan-switch a.is-active {
-  border-color: rgba(109, 223, 157, 0.38);
+  border-color: rgba(197, 138, 82, 0.65);
   background:
-    radial-gradient(circle at 0% 0%, rgba(109, 223, 157, 0.18), transparent 34%),
-    rgba(109, 223, 157, 0.08);
+    radial-gradient(ellipse at 0% 0%, rgba(255, 192, 80, 0.18), transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(155, 80, 30, 0.14), transparent 40%),
+    rgba(45, 22, 8, 0.95);
+  box-shadow:
+    0 6px 28px rgba(155, 88, 35, 0.22),
+    inset 0 1px 0 rgba(255, 208, 130, 0.12);
 }
 
 .page-shell.app-shell {
@@ -40866,6 +40912,36 @@ html[data-perf="lite"] * {
 }
 .ps-select:focus {
   border-color: rgba(196, 92, 48, 0.5);
+}
+
+/* ─── Password show/hide wrapper ──────────────────────────────────── */
+.zp-pw-wrapper {
+  position: relative;
+}
+.zp-pw-wrapper input {
+  padding-right: 52px;
+}
+.zp-pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 247, 236, 0.45);
+  padding: 0;
+  border-radius: 8px;
+  transition: color 150ms ease, background 150ms ease;
+}
+.zp-pw-toggle:hover {
+  color: rgba(255, 247, 236, 0.85);
+  background: rgba(255, 248, 238, 0.08);
 }
 
 /* Tab navigation */
