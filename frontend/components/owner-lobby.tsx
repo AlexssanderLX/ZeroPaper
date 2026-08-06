@@ -428,12 +428,15 @@ export function OwnerLobby() {
 
           {/* Delivery / pickup info */}
           {deliveryLines.length > 0 ? (
-            <div className="owner-order-detail-note">
-              <span>{isPickup ? "Retirada" : "Entrega"}</span>
-              {deliveryLines.map((line) => (
-                <p key={String(line)}>{String(line)}</p>
-              ))}
-            </div>
+            <section className="owner-modal-v2-delivery-section" aria-label={isPickup ? "Dados de retirada" : "Dados de entrega"}>
+              <span className="owner-modal-v2-section-label">{isPickup ? "Dados de retirada" : "Dados de entrega"}</span>
+              <div className="owner-order-detail-note owner-order-delivery-note">
+                <span>{isPickup ? "Retirada" : "Entrega"}</span>
+                {deliveryLines.map((line) => (
+                  <p key={String(line)}>{String(line)}</p>
+                ))}
+              </div>
+            </section>
           ) : null}
 
           {/* Print error */}

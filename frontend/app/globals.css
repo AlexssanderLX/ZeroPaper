@@ -41922,3 +41922,109 @@ html[data-perf="lite"] * {
 .page-shell.app-shell .owner-flow-empty span {
   color: #a9bec0;
 }
+
+/* Orders: consistent dark cards and readable metadata. */
+.page-shell.app-shell .cash-compact-card,
+.page-shell.app-shell :is(.kitchen-order-card, .cash-order-card) {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #151919;
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .cash-compact-card :is(h3, .cash-compact-amount),
+.page-shell.app-shell :is(.kitchen-order-card, .cash-order-card) :is(h3, strong) {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .cash-compact-card p,
+.page-shell.app-shell :is(.kitchen-order-card, .cash-order-card) p {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .cash-compact-card .entity-meta-grid span,
+.page-shell.app-shell :is(.kitchen-order-card, .cash-order-card) .entity-meta-grid span {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #222828;
+  color: #b8ccce;
+}
+
+/* Order detail: dark modal, legible products, and a distinct delivery section. */
+.page-shell.app-shell .owner-order-modal.owner-order-modal-v2 {
+  border-color: rgba(255, 190, 101, 0.24);
+  background: #0d1010;
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-modal-v2-head,
+.page-shell.app-shell .owner-modal-v2-toolbar {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: #101313;
+}
+
+.page-shell.app-shell .owner-modal-v2-body {
+  background: #0a0d0d;
+}
+
+.page-shell.app-shell .owner-modal-v2-title h2,
+.page-shell.app-shell .owner-order-modal-v2 .owner-modal-v2-total,
+.page-shell.app-shell .owner-order-modal-v2 .order-item-compact-head strong,
+.page-shell.app-shell .owner-order-modal-v2 .order-item-compact-meta strong {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-modal-v2-title p,
+.page-shell.app-shell .owner-order-modal-v2 .order-item-compact-copy p,
+.page-shell.app-shell .owner-order-modal-v2 .order-item-compact-meta span {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .owner-modal-v2-title .eyebrow,
+.page-shell.app-shell .owner-order-modal-v2 .order-item-compact-category {
+  border-color: rgba(255, 190, 101, 0.24);
+  background: rgba(255, 190, 101, 0.09);
+  color: #ffc16d;
+}
+
+.page-shell.app-shell .owner-order-modal-v2 .order-item-compact-addition-chip,
+.page-shell.app-shell .owner-modal-v2-meta span {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #222828;
+  color: #b8ccce;
+}
+
+.page-shell.app-shell .owner-order-modal.owner-order-modal-v2 .order-item-compact-card {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #151919;
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-modal-v2-section-label {
+  color: #9fc2c3;
+}
+
+.owner-modal-v2-delivery-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 190, 101, 0.22);
+}
+
+.page-shell.app-shell .owner-order-modal.owner-order-modal-v2 .owner-order-delivery-note {
+  border-color: rgba(255, 190, 101, 0.28);
+  background: #17130e;
+}
+
+.page-shell.app-shell .owner-order-modal.owner-order-modal-v2 .owner-order-delivery-note span {
+  color: #ffc16d;
+}
+
+.page-shell.app-shell .owner-order-modal.owner-order-modal-v2 .owner-order-delivery-note p {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-modal-v2-close {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: #1a1f1f;
+  color: #d9e6e6;
+}
