@@ -592,7 +592,7 @@ export function OrdersModule({
                   <p>{hasSearch ? "Nenhum pedido encontrado." : "Sem pedidos nesta etapa."}</p>
                 </div>
               ) : (
-                <div className="zp-order-list">
+                <div className="zp-order-list kitchen-single-list">
                   {visibleItems.map((order) => (
                     <article
                       key={order.id}

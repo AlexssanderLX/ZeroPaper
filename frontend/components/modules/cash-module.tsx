@@ -951,7 +951,7 @@ export function CashModule({
             <p>{hasSearch ? "Tente buscar por outro nome, mesa ou telefone." : column.emptyCopy}</p>
           </div>
         ) : (
-          <div className="zp-order-list">
+          <div className="zp-order-list cash-single-list cash-quick-list">
             {column.items.map((order) => renderOrderCard(order))}
           </div>
         )}

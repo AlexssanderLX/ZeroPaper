@@ -22931,13 +22931,13 @@ select {
   color: #201512;
 }
 
-.page-shell.app-shell .owner-flow-order-card span,
-.page-shell.app-shell .owner-flow-order-tags span {
+.page-shell.app-shell .owner-flow-order-card span {
   color: #70584b;
 }
 
 .page-shell.app-shell .owner-flow-order-tags span {
-  background: #f0e5dc;
+  background: #ddc8b4;
+  color: #2e1a0e;
 }
 
 .page-shell.app-shell .owner-flow-order-card .ghost-link,
@@ -30969,8 +30969,8 @@ select {
 }
 
 .page-shell.app-shell .owner-flow-readonly-note {
-  background: #f2e7dc;
-  color: #75594a;
+  background: #ddc8b4;
+  color: #2e1a0e;
 }
 
 /* "Mostrar mais / recolher" */
@@ -33104,8 +33104,7 @@ select {
   color: #20130f;
 }
 
-.page-shell.app-shell .owner-flow-order-head span,
-.page-shell.app-shell .owner-flow-order-tags span {
+.page-shell.app-shell .owner-flow-order-head span {
   color: #6b5145;
 }
 
@@ -33113,9 +33112,10 @@ select {
 .page-shell.app-shell .owner-flow-readonly-note,
 .page-shell.app-shell .owner-flow-more,
 .page-shell.app-shell .owner-flow-finished-link {
-  border: 1px solid rgba(92, 65, 48, 0.1);
-  background: #f2e7dc;
-  color: #654a3c;
+  border: 1px solid rgba(120, 75, 42, 0.2);
+  background: #ddc8b4;
+  color: #2e1a0e;
+  font-weight: 700;
 }
 
 .page-shell.app-shell .kitchen-focus-panel,
@@ -42217,8 +42217,38 @@ html[data-perf="lite"] * {
   align-items: start;
 }
 
-.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) > .cash-compact-card {
+.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) > .cash-compact-card,
+.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) > .zp-order-row {
   width: 100%;
   min-height: 0;
   align-self: start;
+}
+
+/* ── Kitchen/Cash search field — unified brand colors (teal/orange) ── */
+.page-shell.app-shell :is(.kitchen-focus-panel, .cash-focus-panel) .cash-search-field {
+  border: 1px solid rgba(66, 217, 168, 0.22);
+  background: rgba(66, 217, 168, 0.06);
+  border-radius: 10px;
+}
+
+.page-shell.app-shell :is(.kitchen-focus-panel, .cash-focus-panel) .cash-search-field label {
+  color: #7ea898;
+  font-size: 0.72rem;
+}
+
+.page-shell.app-shell :is(.kitchen-focus-panel, .cash-focus-panel) .cash-search-field input {
+  background: rgba(6, 12, 10, 0.55);
+  border: 1px solid rgba(66, 217, 168, 0.18);
+  color: #eef8f4;
+  -webkit-text-fill-color: #eef8f4;
+}
+
+.page-shell.app-shell :is(.kitchen-focus-panel, .cash-focus-panel) .cash-search-field input::placeholder {
+  color: #7ea898;
+  opacity: 0.8;
+}
+
+.page-shell.app-shell :is(.kitchen-focus-panel, .cash-focus-panel) .cash-search-field input:focus {
+  border-color: rgba(210, 145, 85, 0.55);
+  outline: none;
 }
