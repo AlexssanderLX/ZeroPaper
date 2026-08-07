@@ -383,7 +383,10 @@ export function PublicTableOrder({
   const categoryTabsRef = useRef<HTMLDivElement | null>(null);
   const hydratedEditOrderId = useRef<string | null>(null);
   const visibleCategories = useMemo(() => (table?.menu ?? []).filter((category) => category.items.length > 0), [table]);
-  const isOwnerEditMode = Boolean(editOrder && editToken);
+  // Owner sessions authenticate via httpOnly cookie (credentials: "include"); the
+  // portal session's `token` field is intentionally empty (see AuthController.LoginAsync),
+  // so edit mode must be gated on `editOrder` alone — never on a truthy `editToken`.
+  const isOwnerEditMode = Boolean(editOrder);
   const isDeliveryChannel = table?.isDeliveryChannel ?? false;
   const isPickupFlow = isDeliveryChannel && fulfillmentType === "pickup";
   const isDeliveryFlow = isDeliveryChannel && fulfillmentType === "delivery";
@@ -1215,8 +1218,8 @@ export function PublicTableOrder({
         couponCode: !isOwnerEditMode && couponValidation?.isValid ? couponValidation.code : undefined,
         menuSelections,
       };
-      const response = isOwnerEditMode && editOrder && editToken
-        ? await updateOrder(editToken, editOrder.id, {
+      const response = isOwnerEditMode && editOrder
+        ? await updateOrder(editToken ?? "", editOrder.id, {
             ...orderPayload,
             items: [],
           })
