@@ -407,6 +407,10 @@ public class ZeroPaperDbContext : DbContext
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.PlanName).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.ProductType)
+                .HasConversion<int>()
+                .HasDefaultValue(Domain.Enums.SubscriptionProductType.Restaurant)
+                .IsRequired();
             entity.Property(x => x.MonthlyPrice).HasPrecision(10, 2).IsRequired();
             entity.Property(x => x.IncludesMenuModule).IsRequired();
             entity.Property(x => x.IncludesTablesModule).IsRequired();

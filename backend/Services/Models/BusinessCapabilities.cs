@@ -8,6 +8,9 @@ public sealed record BusinessCapabilities
     public bool HasCatalog { get; init; }
     public bool HasPets { get; init; }
     public bool HasAppointments { get; init; }
+    public bool HasPublicBooking { get; init; }
+    public bool HasBoarding { get; init; }
+    public bool HasPublicBoardingRequest { get; init; }
     public bool HasOnlinePayments { get; init; }
     public bool HasWhatsApp { get; init; }
     public bool HasAiAssistant { get; init; }
@@ -21,6 +24,7 @@ public sealed record BusinessCapabilities
 
     public static BusinessCapabilities Resolve(
         BusinessSegment segment,
+        SubscriptionProductType productType,
         bool includesMenu,
         bool includesTables,
         bool includesKitchen,
@@ -33,14 +37,19 @@ public sealed record BusinessCapabilities
         bool hasReports)
     {
         var isRestaurant = segment == BusinessSegment.Restaurant;
-        var isPetShop = segment == BusinessSegment.PetShop;
+        var isPetFamily = segment == BusinessSegment.PetShop;
+        var hasPetShopProduct = isPetFamily && productType == SubscriptionProductType.PetShop;
+        var hasHostingProduct = isPetFamily && productType == SubscriptionProductType.PetHosting;
 
         return new BusinessCapabilities
         {
-            HasCustomerProfiles = includesCash || includesDelivery || isPetShop,
-            HasCatalog = includesMenu,
-            HasPets = isPetShop,
-            HasAppointments = isPetShop,
+            HasCustomerProfiles = includesCash || includesDelivery || hasPetShopProduct || hasHostingProduct,
+            HasCatalog = includesMenu && (isRestaurant || hasPetShopProduct),
+            HasPets = hasPetShopProduct || hasHostingProduct,
+            HasAppointments = hasPetShopProduct,
+            HasPublicBooking = hasPetShopProduct,
+            HasBoarding = hasHostingProduct,
+            HasPublicBoardingRequest = hasHostingProduct,
             HasOnlinePayments = includesCash,
             HasWhatsApp = includesAiAssistant,
             HasAiAssistant = includesAiAssistant,
@@ -53,6 +62,33 @@ public sealed record BusinessCapabilities
             HasWaiterCalls = isRestaurant && includesWaiterCalls
         };
     }
+
+    public static BusinessCapabilities Resolve(
+        BusinessSegment segment,
+        bool includesMenu,
+        bool includesTables,
+        bool includesKitchen,
+        bool includesCash,
+        bool includesDelivery,
+        bool includesPrinting,
+        bool includesWaiterCalls,
+        bool includesAiAssistant,
+        bool hasCoupons,
+        bool hasReports) => Resolve(
+            segment,
+            segment == BusinessSegment.PetShop
+                ? SubscriptionProductType.PetShop
+                : SubscriptionProductType.Restaurant,
+            includesMenu,
+            includesTables,
+            includesKitchen,
+            includesCash,
+            includesDelivery,
+            includesPrinting,
+            includesWaiterCalls,
+            includesAiAssistant,
+            hasCoupons,
+            hasReports);
 }
 
 public static class BusinessCapabilityGuard

@@ -7,23 +7,28 @@ namespace ZeroPaper.Tests.Services;
 public sealed class SegmentCommercialPlanCatalogTests
 {
     [Fact]
-    public void PetShopPlan_IsResolvedBySegmentAndServerKey()
+    public void PetShopProduct_IsResolvedByServerKey()
     {
-        var plan = SegmentCommercialPlanCatalog.Resolve(BusinessSegment.PetShop, "operacao");
+        var product = SubscriptionProductCatalog.ResolvePet("pet-shop");
 
-        Assert.Equal("ZeroPaper Pet Operacao", plan.Name);
-        Assert.Equal(120m, plan.MonthlyPrice);
-        Assert.Equal(5, plan.DefaultMaxUsers);
-        Assert.False(plan.IncludesTablesModule);
-        Assert.False(plan.IncludesKitchenModule);
-        Assert.True(plan.IncludesMenuModule);
-        Assert.True(plan.IncludesCashModule);
+        Assert.Equal(SubscriptionProductType.PetShop, product.Type);
+        Assert.Equal("ZeroPaper Pet Shop", product.Name);
+        Assert.Equal(150m, product.MonthlyPrice);
+        Assert.Equal(5, product.DefaultMaxUsers);
     }
 
     [Fact]
     public void PlanFromAnotherSegment_IsRejected()
     {
         Assert.Throws<ArgumentException>(() =>
-            SegmentCommercialPlanCatalog.Resolve(BusinessSegment.PetShop, "plano-inventado"));
+            SubscriptionProductCatalog.ResolvePet("produto-inventado"));
+    }
+
+    [Fact]
+    public void HostingProduct_HasSingleCanonicalPrice()
+    {
+        var product = SubscriptionProductCatalog.Resolve(SubscriptionProductType.PetHosting);
+        Assert.Equal("ZeroPaper Hospedagem", product.Name);
+        Assert.Equal(100m, product.MonthlyPrice);
     }
 }

@@ -26,39 +26,69 @@ public class Subscription : TenantOwnedEntity
         decimal monthlyPrice,
         int maxUsers,
         DateTime startsAtUtc,
-        SubscriptionStatus status = SubscriptionStatus.Trial) : base(tenantId)
+        SubscriptionStatus status = SubscriptionStatus.Trial,
+        SubscriptionProductType productType = SubscriptionProductType.Restaurant)
+        : base(tenantId)
     {
         ChangePlan(planName, monthlyPrice, maxUsers);
+        ChangeProduct(productType);
+
         StartsAtUtc = startsAtUtc;
         Status = status;
     }
 
     public string PlanName { get; private set; } = null!;
+
     public decimal MonthlyPrice { get; private set; }
+
     public int MaxUsers { get; private set; }
+
+    public SubscriptionProductType ProductType { get; private set; }
+
     public bool IncludesMenuModule { get; private set; } = true;
+
     public bool IncludesTablesModule { get; private set; } = true;
+
     public bool IncludesKitchenModule { get; private set; } = true;
+
     public bool IncludesCashModule { get; private set; } = true;
+
     public bool IncludesStockModule { get; private set; } = true;
+
     public bool IncludesDeliveryModule { get; private set; } = true;
+
     public bool IncludesPrintingModule { get; private set; } = true;
+
     public bool IncludesWaiterCallModule { get; private set; } = true;
+
     public bool IncludesAiAssistantModule { get; private set; }
+
     public DateTime StartsAtUtc { get; private set; }
+
     public DateTime? EndsAtUtc { get; private set; }
+
     public SubscriptionStatus Status { get; private set; }
+
     public string? MercadoPagoPreapprovalId { get; private set; }
+
     public string? MercadoPagoPreapprovalPlanId { get; private set; }
+
     public string? MercadoPagoCheckoutUrl { get; private set; }
+
     public string? MercadoPagoStatus { get; private set; }
+
     public DateTime? MercadoPagoStatusUpdatedAtUtc { get; private set; }
+
     public DateTime? PaidThroughUtc { get; private set; }
+
     public string? CheckoutConfirmationTokenHash { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
 
-    public void ChangePlan(string planName, decimal monthlyPrice, int maxUsers)
+    public void ChangePlan(
+        string planName,
+        decimal monthlyPrice,
+        int maxUsers)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(planName);
 
@@ -75,6 +105,22 @@ public class Subscription : TenantOwnedEntity
         PlanName = planName.Trim();
         MonthlyPrice = decimal.Round(monthlyPrice, 2);
         MaxUsers = maxUsers;
+
+        Touch();
+    }
+
+    public void ChangeProduct(SubscriptionProductType productType)
+    {
+        if (!Enum.IsDefined(productType))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(productType),
+                productType,
+                "O produto da assinatura é inválido.");
+        }
+
+        ProductType = productType;
+
         Touch();
     }
 
@@ -98,10 +144,13 @@ public class Subscription : TenantOwnedEntity
         IncludesPrintingModule = includesPrintingModule;
         IncludesWaiterCallModule = includesWaiterCallModule;
         IncludesAiAssistantModule = includesAiAssistantModule;
+
         Touch();
     }
 
-    public void ApplyCommercialPlan(CommercialPlanDefinition plan, int? maxUsers = null)
+    public void ApplyCommercialPlan(
+        CommercialPlanDefinition plan,
+        int? maxUsers = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
 
@@ -116,19 +165,24 @@ public class Subscription : TenantOwnedEntity
             plan.IncludesWaiterCallModule,
             plan.IncludesAiAssistantModule);
 
-        ChangePlan(plan.Name, plan.MonthlyPrice, maxUsers.GetValueOrDefault(plan.DefaultMaxUsers));
+        ChangePlan(
+            plan.Name,
+            plan.MonthlyPrice,
+            maxUsers.GetValueOrDefault(plan.DefaultMaxUsers));
     }
 
     public void Reactivate()
     {
         Status = SubscriptionStatus.Active;
         EndsAtUtc = null;
+
         Touch();
     }
 
     public void Suspend()
     {
         Status = SubscriptionStatus.Suspended;
+
         Touch();
     }
 
@@ -141,49 +195,79 @@ public class Subscription : TenantOwnedEntity
 
         Status = SubscriptionStatus.Cancelled;
         EndsAtUtc = endsAtUtc;
+
         Touch();
     }
 
-    public void RegisterMercadoPagoCheckout(string preapprovalId, string checkoutUrl, string status, DateTime occurredAtUtc)
+    public void RegisterMercadoPagoCheckout(
+        string preapprovalId,
+        string checkoutUrl,
+        string status,
+        DateTime occurredAtUtc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(preapprovalId);
         ArgumentException.ThrowIfNullOrWhiteSpace(checkoutUrl);
+
         MercadoPagoPreapprovalId = preapprovalId.Trim();
         MercadoPagoCheckoutUrl = checkoutUrl.Trim();
+
         UpdateMercadoPagoStatus(status, occurredAtUtc);
     }
 
-    public void RegisterMercadoPagoPlanCheckout(string preapprovalPlanId, string checkoutUrl, string status, DateTime occurredAtUtc)
+    public void RegisterMercadoPagoPlanCheckout(
+        string preapprovalPlanId,
+        string checkoutUrl,
+        string status,
+        DateTime occurredAtUtc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(preapprovalPlanId);
         ArgumentException.ThrowIfNullOrWhiteSpace(checkoutUrl);
+
         MercadoPagoPreapprovalPlanId = preapprovalPlanId.Trim();
         MercadoPagoCheckoutUrl = checkoutUrl.Trim();
+
         UpdateMercadoPagoStatus(status, occurredAtUtc);
     }
 
-    public void UpdateMercadoPagoStatus(string status, DateTime occurredAtUtc)
+    public void UpdateMercadoPagoStatus(
+        string status,
+        DateTime occurredAtUtc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
+
         MercadoPagoStatus = status.Trim().ToLowerInvariant();
         MercadoPagoStatusUpdatedAtUtc = occurredAtUtc;
+
         Touch();
     }
 
     public void SetCheckoutConfirmationTokenHash(string tokenHash)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
+
         CheckoutConfirmationTokenHash = tokenHash.Trim();
+
         Touch();
     }
 
     public DateTime RegisterPaidMonth(DateTime paidAtUtc)
     {
-        var basis = PaidThroughUtc.HasValue && PaidThroughUtc.Value > paidAtUtc ? PaidThroughUtc.Value : paidAtUtc;
+        var basis =
+            PaidThroughUtc.HasValue &&
+            PaidThroughUtc.Value > paidAtUtc
+                ? PaidThroughUtc.Value
+                : paidAtUtc;
+
         PaidThroughUtc = basis.AddMonths(1);
+
         Reactivate();
+
         return PaidThroughUtc.Value;
     }
 
-    public bool HasPaidAccess(DateTime utcNow) => PaidThroughUtc.HasValue && PaidThroughUtc.Value > utcNow;
+    public bool HasPaidAccess(DateTime utcNow)
+    {
+        return PaidThroughUtc.HasValue &&
+               PaidThroughUtc.Value > utcNow;
+    }
 }

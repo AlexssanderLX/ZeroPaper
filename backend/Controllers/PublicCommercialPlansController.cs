@@ -20,10 +20,28 @@ public sealed class PublicCommercialPlansController : ControllerBase
             return NotFound();
         }
 
+        if (segment == BusinessSegment.PetShop)
+        {
+            return Ok(SubscriptionProductCatalog.PetProducts.Select(product => new PublicCommercialPlanDto
+            {
+                Segment = segment,
+                ProductType = product.Type,
+                Key = product.Key,
+                Name = product.Name,
+                MonthlyPrice = product.MonthlyPrice,
+                MaxUsers = product.DefaultMaxUsers,
+                Recommended = product.Type == SubscriptionProductType.PetShop,
+                Features = product.Type == SubscriptionProductType.PetShop
+                    ? ["Cadastro de tutores e animais", "Catalogo de servicos", "Agenda interna", "Agendamento publico"]
+                    : ["Cadastro de tutores e animais", "Reservas por periodo", "Check-in e check-out", "Solicitacao publica de hospedagem"]
+            }));
+        }
+
         var plans = SegmentCommercialPlanCatalog.GetPlans(segment);
         return Ok(plans.Select(plan => new PublicCommercialPlanDto
         {
             Segment = segment,
+            ProductType = SubscriptionProductType.Restaurant,
             Key = plan.Key,
             Name = plan.Name,
             MonthlyPrice = plan.MonthlyPrice,
@@ -35,17 +53,6 @@ public sealed class PublicCommercialPlansController : ControllerBase
 
     private static IReadOnlyList<string> GetFeatures(BusinessSegment segment, string key)
     {
-        if (segment == BusinessSegment.PetShop)
-        {
-            return key switch
-            {
-                "essencial" => ["Cadastro de tutores e animais", "Catalogo de servicos com precos", "Agenda interna de atendimentos", "Pedidos e cobranca vinculados"],
-                "operacao" => ["Tudo do Essencial", "Agendamento publico online (link direto)", "WhatsApp com IA para agendamento", "Relatorio operacional de atendimentos", "Historico completo do animal"],
-                "gestao" => ["Tudo do Operacao", "Dashboard gerencial em tempo real", "Relatorios avancados e exportacao", "Cupons, fidelizacao e recorrencia", "Gestao de equipe e comissoes"],
-                _ => []
-            };
-        }
-
         return key switch
         {
             "essencial" => ["Cardapio digital com QR Code", "Mesas, pedidos, cozinha e caixa", "Chamada de garcom por mesa", "Impressao manual de comandas"],

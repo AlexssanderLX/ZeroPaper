@@ -37,6 +37,7 @@ public class AdminCompanyFlowDto
     public string OwnerEmail { get; set; } = string.Empty;
     public string? ContactPhone { get; set; }
     public string PlanName { get; set; } = string.Empty;
+    public SubscriptionProductType ProductType { get; set; } = SubscriptionProductType.Restaurant;
     public string PlanTier { get; set; } = string.Empty;
     public decimal MonthlyPrice { get; set; }
     public int MaxUsers { get; set; }
@@ -90,6 +91,7 @@ public class AdminCompanyPlanUpdateDto
     public Guid CompanyId { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
     public string PlanName { get; set; } = string.Empty;
+    public SubscriptionProductType ProductType { get; set; } = SubscriptionProductType.Restaurant;
     public string PlanTier { get; set; } = string.Empty;
     public decimal MonthlyPrice { get; set; }
     public int MaxUsers { get; set; }

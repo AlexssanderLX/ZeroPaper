@@ -352,6 +352,9 @@ export function WorkspaceShell({
               <div>
                 <strong>ZeroPaper</strong>
                 <small>{session.restaurantName}</small>
+                {overview?.productType && overview.productType !== 1 ? (
+                  <small>{overview.planName} · R$ {overview.monthlyPrice.toFixed(2).replace(".", ",")}/mes</small>
+                ) : null}
               </div>
             </Link>
             <button className="ghost-link button-link owner-sidebar-close" type="button" onClick={() => setIsSidebarOpen(false)}>

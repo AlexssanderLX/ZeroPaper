@@ -132,6 +132,11 @@ public class AdminDashboardService : IAdminDashboardService
                     .OrderByDescending(subscription => subscription.StartsAtUtc)
                     .Select(subscription => subscription.PlanName)
                     .FirstOrDefault() ?? "Plano nao informado",
+                ProductType = _context.Subscriptions
+                    .Where(subscription => subscription.TenantId == item.TenantId && subscription.IsActive)
+                    .OrderByDescending(subscription => subscription.StartsAtUtc)
+                    .Select(subscription => subscription.ProductType)
+                    .FirstOrDefault(),
                 MonthlyPrice = _context.Subscriptions
                     .Where(subscription => subscription.TenantId == item.TenantId && subscription.IsActive)
                     .OrderByDescending(subscription => subscription.StartsAtUtc)
@@ -349,16 +354,18 @@ public class AdminDashboardService : IAdminDashboardService
             throw new InvalidOperationException("O limite de usuarios precisa ser maior que zero.");
         }
 
-        var hasStandardPlanRequest = CommercialPlanCatalog.TryResolve(request.PlanName, out var requestedPlan);
-
-        if (!hasStandardPlanRequest && !HasAnyEnabledModule(request))
-        {
-            throw new InvalidOperationException("Selecione pelo menos um modulo para esse plano.");
-        }
-
         var company = await _context.Companies
             .FirstOrDefaultAsync(item => item.Id == companyId, cancellationToken)
             ?? throw new KeyNotFoundException("Unidade nao encontrada.");
+
+        var isPetCompany = company.BusinessSegment == BusinessSegment.PetShop;
+        CommercialPlanDefinition requestedPlan = null!;
+        var hasStandardPlanRequest = !isPetCompany && CommercialPlanCatalog.TryResolve(request.PlanName, out requestedPlan);
+
+        if (!isPetCompany && !hasStandardPlanRequest && !HasAnyEnabledModule(request))
+        {
+            throw new InvalidOperationException("Selecione pelo menos um modulo para esse plano.");
+        }
 
         var subscription = await _context.Subscriptions
             .Where(item => item.TenantId == company.TenantId && item.IsActive)
@@ -377,8 +384,33 @@ public class AdminDashboardService : IAdminDashboardService
 
         CommercialPlanFeatures planFeatures;
 
-        if (hasStandardPlanRequest)
+        if (isPetCompany)
         {
+            var productType = request.ProductType ?? subscription.ProductType;
+            if (productType is not (SubscriptionProductType.PetShop or SubscriptionProductType.PetHosting))
+            {
+                throw new InvalidOperationException("Selecione um produto valido para a empresa Pet.");
+            }
+
+            var product = SubscriptionProductCatalog.Resolve(productType);
+            subscription.ChangeProduct(product.Type);
+            subscription.ChangePlan(product.Name, product.MonthlyPrice, request.MaxUsers);
+            var petShop = product.Type == SubscriptionProductType.PetShop;
+            subscription.UpdateFeatureSet(
+                includesMenuModule: petShop,
+                includesTablesModule: false,
+                includesKitchenModule: false,
+                includesCashModule: petShop,
+                includesStockModule: false,
+                includesDeliveryModule: false,
+                includesPrintingModule: false,
+                includesWaiterCallModule: false,
+                includesAiAssistantModule: false);
+            planFeatures = CommercialPlanCatalog.ResolveFeatures(null);
+        }
+        else if (hasStandardPlanRequest)
+        {
+            subscription.ChangeProduct(SubscriptionProductType.Restaurant);
             subscription.ApplyCommercialPlan(requestedPlan, request.MaxUsers);
             planFeatures = requestedPlan.Features;
         }
@@ -668,7 +700,10 @@ public class AdminDashboardService : IAdminDashboardService
             CompanyId = company.Id,
             RestaurantName = company.TradeName,
             PlanName = subscription.PlanName,
-            PlanTier = CommercialPlanCatalog.ResolveTier(subscription.PlanName).ToString(),
+            ProductType = subscription.ProductType,
+            PlanTier = subscription.ProductType == SubscriptionProductType.Restaurant
+                ? CommercialPlanCatalog.ResolveTier(subscription.PlanName).ToString()
+                : string.Empty,
             MonthlyPrice = subscription.MonthlyPrice,
             MaxUsers = subscription.MaxUsers,
             IncludesMenuModule = subscription.IncludesMenuModule,

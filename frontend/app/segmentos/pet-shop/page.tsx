@@ -37,26 +37,26 @@ export default async function PetShopPage() {
           </h1>
           <p>O MVP do ZeroPaper Pet para organizar o atendimento da sua unidade.</p>
           <div className="zpld-ctas" style={{ justifyContent: "center", marginTop: "0.5rem" }}>
-            <Link className="zpld-btn-primary" href="/cadastro?segmento=petshop&plano=operacao">Criar conta agora</Link>
-            <a className="zpld-btn-ghost" href="#planos-pet">Ver planos</a>
+            <Link className="zpld-btn-primary" href="/cadastro?segmento=petshop&plano=pet-shop">Criar conta agora</Link>
+            <a className="zpld-btn-ghost" href="#planos-pet">Ver produtos</a>
           </div>
         </div>
       </section>
 
       <section className="zpld-section zp-lp-reveal" id="planos-pet" aria-labelledby="pet-plans-title">
         <div className="zpld-section-head">
-          <span>Planos</span>
-          <h2 id="pet-plans-title">Escolha o nivel ideal para o seu pet shop.</h2>
-          <p>Mensalidade fixa por unidade, com os recursos confirmados pelo servidor.</p>
+          <span>Produtos</span>
+          <h2 id="pet-plans-title">Escolha o produto para a sua operacao.</h2>
+          <p>Mensalidade fixa por unidade, sem tiers internos.</p>
         </div>
         <div className="zp-lp-plans-grid">
           {plans.map((plan) => (
             <article key={plan.key} className={`zp-lp-plan-card zp-lp-reveal${plan.recommended ? " is-spotlight" : ""}`}>
               {plan.recommended ? <em className="zp-lp-plan-badge">Mais indicado</em> : null}
-              <h3>{plan.name.replace("ZeroPaper Pet ", "")}</h3>
+              <h3>{plan.name.replace("ZeroPaper ", "")}</h3>
               <div className="zp-lp-plan-price"><strong>R$ {plan.monthlyPrice.toFixed(0)}</strong><small>/mes</small></div>
               <ul className="zp-lp-plan-features">{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
-              <Link className="zp-lp-plan-cta" href={`/cadastro?segmento=petshop&plano=${plan.key}`}>Escolher {plan.name.replace("ZeroPaper Pet ", "")}</Link>
+              <Link className="zp-lp-plan-cta" href={`/cadastro?segmento=petshop&plano=${plan.key}`}>Escolher {plan.name.replace("ZeroPaper ", "")}</Link>
             </article>
           ))}
         </div>

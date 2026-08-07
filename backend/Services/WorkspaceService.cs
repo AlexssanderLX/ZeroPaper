@@ -153,6 +153,7 @@ public class WorkspaceService : IWorkspaceService
         return new WorkspaceOverviewDto
         {
             BusinessSegment = session.BusinessSegment,
+            ProductType = session.ProductType,
             Capabilities = session.Capabilities,
             ActiveTables = activeTables,
             OpenOrders = openOrders,
@@ -165,6 +166,7 @@ public class WorkspaceService : IWorkspaceService
             PrintedPrints = printedPrints,
             FailedPrints = failedPrints,
             PlanName = session.PlanName,
+            MonthlyPrice = session.MonthlyPrice,
             PlanTier = session.PlanTier,
             IncludesMenuModule = session.IncludesMenuModule,
             IncludesTablesModule = session.IncludesTablesModule,
@@ -1948,6 +1950,22 @@ public class WorkspaceService : IWorkspaceService
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Email);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Password);
+
+        var maxUsers = await _context.Subscriptions
+            .AsNoTracking()
+            .Where(item => item.TenantId == session.TenantId && item.IsActive &&
+                (item.Status == SubscriptionStatus.Active || item.Status == SubscriptionStatus.Trial))
+            .OrderByDescending(item => item.StartsAtUtc)
+            .Select(item => (int?)item.MaxUsers)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Assinatura ativa nao encontrada.");
+        var activeUsers = await _context.Users.CountAsync(
+            item => item.CompanyId == session.CompanyId && item.IsActive && item.Role != UserRole.Root,
+            cancellationToken);
+        if (activeUsers >= maxUsers)
+        {
+            throw new InvalidOperationException($"O produto contratado permite no maximo {maxUsers} usuario(s) ativo(s).");
+        }
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var emailExists = await _context.Users.AnyAsync(

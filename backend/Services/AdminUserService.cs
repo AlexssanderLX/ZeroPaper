@@ -105,6 +105,22 @@ public class AdminUserService : IAdminUserService
 
         EnsureManagedUser(user);
 
+        var maxUsers = await _context.Subscriptions
+            .AsNoTracking()
+            .Where(item => item.TenantId == user.TenantId && item.IsActive &&
+                (item.Status == SubscriptionStatus.Active || item.Status == SubscriptionStatus.Trial))
+            .OrderByDescending(item => item.StartsAtUtc)
+            .Select(item => (int?)item.MaxUsers)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Assinatura ativa nao encontrada.");
+        var activeUsers = await _context.Users.CountAsync(
+            item => item.CompanyId == user.CompanyId && item.IsActive && item.Role != UserRole.Root,
+            cancellationToken);
+        if (activeUsers >= maxUsers)
+        {
+            throw new InvalidOperationException($"O produto contratado permite no maximo {maxUsers} usuario(s) ativo(s).");
+        }
+
         user.Activate();
         await _context.SaveChangesAsync(cancellationToken);
 

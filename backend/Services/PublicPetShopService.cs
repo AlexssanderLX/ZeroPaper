@@ -39,7 +39,7 @@ public sealed class PublicPetShopService : IPublicPetShopService
     public async Task<AppointmentAvailabilityDto> GetAvailabilityAsync(string publicCode, DateOnly date, Guid serviceId, CancellationToken cancellationToken = default)
     {
         var company = await GetCompanyAsync(publicCode, cancellationToken);
-        return await _appointments.GetAvailabilityAsync(CreateSession(company), date, serviceId, null, cancellationToken);
+        return await _appointments.GetAvailabilityAsync(await CreateSessionAsync(company, cancellationToken), date, serviceId, null, cancellationToken);
     }
 
     public async Task<PublicAppointmentCreatedDto> CreateRequestAsync(string publicCode, PublicAppointmentRequestDto request, CancellationToken cancellationToken = default)
@@ -78,7 +78,7 @@ public sealed class PublicPetShopService : IPublicPetShopService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        var session = CreateSession(company);
+        var session = await CreateSessionAsync(company, cancellationToken);
         var created = await _appointments.CreateAsync(session, new CreateAppointmentRequestDto
         { PetId = pet.Id, MenuItemId = request.ServiceId, StartsAtUtc = request.StartsAtUtc, CustomerNotes = request.Notes }, cancellationToken);
         var appointment = await _context.Appointments.FirstAsync(item => item.Id == created.Id, cancellationToken);
@@ -104,23 +104,68 @@ public sealed class PublicPetShopService : IPublicPetShopService
     private async Task<Company> GetCompanyAsync(string code, CancellationToken cancellationToken)
     {
         var normalized = string.IsNullOrWhiteSpace(code) ? string.Empty : code.Trim().ToLowerInvariant();
-        return await _context.Companies.AsNoTracking().FirstOrDefaultAsync(item => item.PetShopPublicCode == normalized && item.BusinessSegment == BusinessSegment.PetShop && item.IsActive, cancellationToken)
+        var company = await _context.Companies.AsNoTracking().FirstOrDefaultAsync(item => item.PetShopPublicCode == normalized && item.BusinessSegment == BusinessSegment.PetShop && item.IsActive, cancellationToken)
             ?? throw new KeyNotFoundException("Pet Shop nao encontrado.");
+        await EnsurePublicBookingEnabledAsync(company.TenantId, cancellationToken);
+        return company;
     }
 
     private async Task<Appointment> GetByTokenAsync(string token, CancellationToken cancellationToken, bool tracking = false)
     {
         var hash = Hash(token);
         var query = _context.Appointments.Include(item => item.Pet).AsQueryable(); if (!tracking) query = query.AsNoTracking();
-        return await query.FirstOrDefaultAsync(item => item.PublicAccessTokenHash == hash && item.PublicAccessExpiresAtUtc > DateTime.UtcNow && item.PublicAccessRevokedAtUtc == null && item.IsActive, cancellationToken)
+        var appointment = await query.FirstOrDefaultAsync(item => item.PublicAccessTokenHash == hash && item.PublicAccessExpiresAtUtc > DateTime.UtcNow && item.PublicAccessRevokedAtUtc == null && item.IsActive, cancellationToken)
             ?? throw new KeyNotFoundException("Agendamento nao encontrado ou link expirado.");
+        await EnsurePublicBookingEnabledAsync(appointment.TenantId, cancellationToken);
+        return appointment;
     }
 
-    private static WorkspaceSessionContext CreateSession(Company company) => new()
+    private async Task<WorkspaceSessionContext> CreateSessionAsync(Company company, CancellationToken cancellationToken)
     {
-        TenantId = company.TenantId, CompanyId = company.Id, BusinessSegment = BusinessSegment.PetShop,
-        Capabilities = new BusinessCapabilities { HasAppointments = true, HasPets = true, HasCatalog = true, HasCustomerProfiles = true }
-    };
+        var subscription = await EnsurePublicBookingEnabledAsync(company.TenantId, cancellationToken);
+        var capabilities = BusinessCapabilities.Resolve(
+            company.BusinessSegment,
+            subscription.ProductType,
+            subscription.IncludesMenuModule,
+            subscription.IncludesTablesModule,
+            subscription.IncludesKitchenModule,
+            subscription.IncludesCashModule,
+            subscription.IncludesDeliveryModule,
+            subscription.IncludesPrintingModule,
+            subscription.IncludesWaiterCallModule,
+            subscription.IncludesAiAssistantModule,
+            hasCoupons: false,
+            hasReports: false);
+
+        BusinessCapabilityGuard.Require(capabilities.HasPublicBooking, "PublicBooking");
+        return new WorkspaceSessionContext
+        {
+            TenantId = company.TenantId,
+            CompanyId = company.Id,
+            BusinessSegment = company.BusinessSegment,
+            ProductType = subscription.ProductType,
+            Capabilities = capabilities
+        };
+    }
+
+    private async Task<Subscription> EnsurePublicBookingEnabledAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var utcNow = DateTime.UtcNow;
+        var subscription = await _context.Subscriptions
+            .AsNoTracking()
+            .Where(item => item.TenantId == tenantId && item.IsActive &&
+                (item.Status == SubscriptionStatus.Active || item.Status == SubscriptionStatus.Trial))
+            .OrderByDescending(item => item.StartsAtUtc)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new KeyNotFoundException("Pet Shop nao encontrado.");
+
+        if (subscription.ProductType != SubscriptionProductType.PetShop || !subscription.HasPaidAccess(utcNow))
+        {
+            throw new KeyNotFoundException("Pet Shop nao encontrado.");
+        }
+
+        return subscription;
+    }
 
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim()))).ToLowerInvariant();
     private static PublicAppointmentTrackingDto Map(Appointment item) => new()

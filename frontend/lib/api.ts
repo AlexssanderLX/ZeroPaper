@@ -52,6 +52,9 @@ export type WorkspaceOverview = {
     hasCatalog: boolean;
     hasPets: boolean;
     hasAppointments: boolean;
+    hasPublicBooking: boolean;
+    hasBoarding: boolean;
+    hasPublicBoardingRequest: boolean;
     hasOnlinePayments: boolean;
     hasWhatsApp: boolean;
     hasAiAssistant: boolean;
@@ -73,6 +76,8 @@ export type WorkspaceOverview = {
   pendingPrints: number;
   printedPrints: number;
   failedPrints: number;
+  planName: string;
+  monthlyPrice: number;
   includesMenuModule: boolean;
   includesTablesModule: boolean;
   includesKitchenModule: boolean;
@@ -89,6 +94,7 @@ export type WorkspaceOverview = {
   hasManagementDashboard?: boolean;
   hasSalesAgents?: boolean;
   businessSegment?: number;
+  productType?: 1 | 2 | 3;
   hasCustomerProfiles?: boolean;
   hasCatalog?: boolean;
   hasPets?: boolean;
@@ -741,6 +747,7 @@ export type RestaurantSignupResult = {
   planName: string;
   planKey: string;
   businessSegment: number;
+  productType: 1 | 2 | 3;
   requiresApproval: boolean;
   message: string;
   checkoutUrl?: string | null;
@@ -755,6 +762,7 @@ export type SubscriptionPaymentConfirmation = {
 
 export type PublicCommercialPlan = {
   segment: 1 | 2;
+  productType: 1 | 2 | 3;
   key: string;
   name: string;
   monthlyPrice: number;
@@ -844,6 +852,7 @@ export type AdminCompanyFlow = {
   ownerEmail: string;
   contactPhone?: string | null;
   planName: string;
+  productType: 1 | 2 | 3;
   planTier?: string;
   monthlyPrice: number;
   maxUsers: number;
@@ -951,6 +960,7 @@ export type HardDeleteAdminOwnerPayload = AdminOwnerSensitivePayload & {
 
 export type UpdateAdminCompanyPlanPayload = AdminSensitiveActionPayload & {
   planName?: string | null;
+  productType?: 1 | 2 | 3;
   includesMenuModule: boolean;
   includesTablesModule: boolean;
   includesKitchenModule: boolean;
@@ -971,6 +981,7 @@ export type AdminCompanyPlanUpdate = {
   companyId: string;
   restaurantName: string;
   planName: string;
+  productType: 1 | 2 | 3;
   planTier?: string;
   monthlyPrice: number;
   maxUsers: number;

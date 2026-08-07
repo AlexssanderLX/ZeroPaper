@@ -6,6 +6,7 @@ namespace ZeroPaper.DTOs.Workspace;
 public class WorkspaceOverviewDto
 {
     public BusinessSegment BusinessSegment { get; set; } = BusinessSegment.Restaurant;
+    public SubscriptionProductType ProductType { get; set; } = SubscriptionProductType.Restaurant;
     public BusinessCapabilities Capabilities { get; set; } = new();
     public int ActiveTables { get; set; }
     public int OpenOrders { get; set; }
@@ -18,6 +19,7 @@ public class WorkspaceOverviewDto
     public int PrintedPrints { get; set; }
     public int FailedPrints { get; set; }
     public string PlanName { get; set; } = string.Empty;
+    public decimal MonthlyPrice { get; set; }
     public string PlanTier { get; set; } = string.Empty;
     public bool IncludesMenuModule { get; set; } = true;
     public bool IncludesTablesModule { get; set; } = true;

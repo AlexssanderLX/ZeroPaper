@@ -21,4 +21,32 @@ public sealed class BusinessCapabilitiesTests
         Assert.True(result.HasPets); Assert.True(result.HasAppointments); Assert.True(result.HasCatalog);
         Assert.False(result.HasTables); Assert.False(result.HasKitchen); Assert.False(result.HasDelivery);
     }
+
+    [Fact]
+    public void Hosting_gets_boarding_without_appointments()
+    {
+        var result = BusinessCapabilities.Resolve(
+            BusinessSegment.PetShop,
+            SubscriptionProductType.PetHosting,
+            false, false, false, false, false, false, false, false, false, false);
+
+        Assert.True(result.HasPets);
+        Assert.True(result.HasBoarding);
+        Assert.True(result.HasPublicBoardingRequest);
+        Assert.False(result.HasAppointments);
+        Assert.False(result.HasPublicBooking);
+    }
+
+    [Fact]
+    public void PetSegment_with_restaurant_product_fails_closed()
+    {
+        var result = BusinessCapabilities.Resolve(
+            BusinessSegment.PetShop,
+            SubscriptionProductType.Restaurant,
+            true, true, true, true, true, true, true, true, true, true);
+
+        Assert.False(result.HasPets);
+        Assert.False(result.HasAppointments);
+        Assert.False(result.HasBoarding);
+    }
 }

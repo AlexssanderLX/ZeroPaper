@@ -1,3 +1,5 @@
+using ZeroPaper.Domain.Enums;
+
 namespace ZeroPaper.DTOs.Admin;
 
 public class AdminSensitiveActionRequestDto
@@ -8,6 +10,7 @@ public class AdminSensitiveActionRequestDto
 public class UpdateAdminCompanyPlanRequestDto : AdminSensitiveActionRequestDto
 {
     public string? PlanName { get; set; }
+    public SubscriptionProductType? ProductType { get; set; }
     public bool IncludesMenuModule { get; set; }
     public bool IncludesTablesModule { get; set; }
     public bool IncludesKitchenModule { get; set; }

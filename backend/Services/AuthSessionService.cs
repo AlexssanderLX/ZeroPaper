@@ -309,6 +309,7 @@ public class AuthSessionService : IAuthSessionService
 
         var activeSubscription = await GetActiveSubscriptionAsync(session.TenantId, cancellationToken);
 
+        var productType = activeSubscription?.ProductType ?? SubscriptionProductType.Restaurant;
         var planName = activeSubscription?.PlanName ?? CommercialPlanCatalog.Operation.Name;
         var planFeatures = CommercialPlanCatalog.ResolveFeatures(planName);
         var planTier = CommercialPlanCatalog.ResolveTier(planName);
@@ -332,8 +333,10 @@ public class AuthSessionService : IAuthSessionService
             Role = session.AppUser.Role.ToString(),
             RestaurantName = session.Company.TradeName,
             BusinessSegment = session.Company.BusinessSegment,
+            ProductType = productType,
             Capabilities = BusinessCapabilities.Resolve(
                 session.Company.BusinessSegment,
+                productType,
                 includesMenu,
                 includesTables,
                 includesKitchen,
@@ -347,6 +350,7 @@ public class AuthSessionService : IAuthSessionService
             PlanName = CommercialPlanCatalog.TryResolve(planName, out var plan)
                 ? plan.Name
                 : planName,
+            MonthlyPrice = activeSubscription?.MonthlyPrice ?? 0m,
             PlanTier = planTier.ToString(),
             IncludesMenuModule = includesMenu,
             IncludesTablesModule = includesTables,

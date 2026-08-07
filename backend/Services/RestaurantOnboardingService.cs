@@ -131,19 +131,52 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 owner.Deactivate();
             }
 
-            var selectedPlan = signupCode is not null
-                ? CommercialPlanCatalog.Resolve(signupCode.AllowedPlanName)
-                : ResolveRequestedPlan(request);
-            var maxUsers = signupCode?.AllowedMaxUsers ?? selectedPlan.DefaultMaxUsers;
+            var selectedPlan = request.BusinessSegment == BusinessSegment.Restaurant
+                ? signupCode is not null
+                    ? CommercialPlanCatalog.Resolve(signupCode.AllowedPlanName)
+                    : ResolveRequestedRestaurantPlan(request)
+                : null;
+            var selectedProduct = request.BusinessSegment == BusinessSegment.PetShop
+                ? SubscriptionProductCatalog.ResolvePet(request.PlanKey)
+                : null;
+            var maxUsers = signupCode?.AllowedMaxUsers
+                ?? selectedPlan?.DefaultMaxUsers
+                ?? selectedProduct!.DefaultMaxUsers;
 
-            var subscription = new Subscription(
-                tenant.Id,
-                selectedPlan.Name,
-                selectedPlan.MonthlyPrice,
-                maxUsers,
-                DateTime.UtcNow,
-                SubscriptionStatus.Active);
-            subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
+            var subscription = selectedProduct is not null
+                ? new Subscription(
+                    tenant.Id,
+                    selectedProduct.Name,
+                    selectedProduct.MonthlyPrice,
+                    maxUsers,
+                    DateTime.UtcNow,
+                    SubscriptionStatus.Active,
+                    selectedProduct.Type)
+                : new Subscription(
+                    tenant.Id,
+                    selectedPlan!.Name,
+                    selectedPlan.MonthlyPrice,
+                    maxUsers,
+                    DateTime.UtcNow,
+                    SubscriptionStatus.Active);
+            if (selectedPlan is not null)
+            {
+                subscription.ApplyCommercialPlan(selectedPlan, maxUsers);
+            }
+            else
+            {
+                var petShop = selectedProduct!.Type == SubscriptionProductType.PetShop;
+                subscription.UpdateFeatureSet(
+                    includesMenuModule: petShop,
+                    includesTablesModule: false,
+                    includesKitchenModule: false,
+                    includesCashModule: petShop,
+                    includesStockModule: false,
+                    includesDeliveryModule: false,
+                    includesPrintingModule: false,
+                    includesWaiterCallModule: false,
+                    includesAiAssistantModule: false);
+            }
             if (signupCode is not null) subscription.RegisterPaidMonth(DateTime.UtcNow);
 
             var qrCodeAccess = request.BusinessSegment == BusinessSegment.Restaurant
@@ -179,7 +212,14 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 checkoutUrl = (await _platformBillingService.CreateSignupCheckoutAsync(subscription.Id, company.Id, owner.Email, cancellationToken)).CheckoutUrl;
             }
 
-            return BuildResponse(tenant, company, owner, subscription, selectedPlan.Key, signupCode is null, checkoutUrl);
+            return BuildResponse(
+                tenant,
+                company,
+                owner,
+                subscription,
+                selectedPlan?.Key ?? selectedProduct!.Key,
+                signupCode is null,
+                checkoutUrl);
         }
         finally
         {
@@ -223,8 +263,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             AccessUrl = $"/r/{owner.Company.AccessSlug}/menu",
             OwnerEmail = owner.Email,
             PlanName = subscription?.PlanName ?? string.Empty,
-            PlanKey = CommercialPlanCatalog.TryResolve(subscription?.PlanName, out var plan) ? plan.Key : string.Empty,
+            PlanKey = ResolveSubscriptionKey(subscription),
             BusinessSegment = (int)owner.Company.BusinessSegment,
+            ProductType = subscription?.ProductType ?? SubscriptionProductType.Restaurant,
             RequiresApproval = !owner.IsActive,
             CheckoutUrl = checkoutUrl,
             Message = owner.IsActive
@@ -251,6 +292,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             PlanName = subscription.PlanName,
             PlanKey = planKey,
             BusinessSegment = (int)company.BusinessSegment,
+            ProductType = subscription.ProductType,
             RequiresApproval = requiresApproval,
             CheckoutUrl = checkoutUrl,
             Message = requiresApproval
@@ -259,11 +301,11 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         };
     }
 
-    private static CommercialPlanDefinition ResolveRequestedPlan(RestaurantOnboardingRequestDto request)
+    private static CommercialPlanDefinition ResolveRequestedRestaurantPlan(RestaurantOnboardingRequestDto request)
     {
         if (!string.IsNullOrWhiteSpace(request.PlanKey))
         {
-            return SegmentCommercialPlanCatalog.Resolve(request.BusinessSegment, request.PlanKey);
+            return SegmentCommercialPlanCatalog.Resolve(BusinessSegment.Restaurant, request.PlanKey);
         }
 
         // Compatibilidade com clientes antigos: nome, preco e limite enviados pelo cliente
@@ -275,6 +317,19 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         }
 
         return legacyPlan;
+    }
+
+    private static string ResolveSubscriptionKey(Subscription? subscription)
+    {
+        if (subscription is null) return string.Empty;
+        if (subscription.ProductType is SubscriptionProductType.PetShop or SubscriptionProductType.PetHosting)
+        {
+            return SubscriptionProductCatalog.Resolve(subscription.ProductType).Key;
+        }
+
+        return CommercialPlanCatalog.TryResolve(subscription.PlanName, out var plan)
+            ? plan.Key
+            : string.Empty;
     }
 
     private Task<AccessRequestResponseDto> NotifyPendingApprovalAsync(
