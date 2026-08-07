@@ -705,27 +705,26 @@ export function CashModule({
     return (
       <article
         key={order.id}
-        className={`cash-compact-card ${isPaid ? "cash-compact-card-paid" : "cash-compact-card-pending"}`}
+        className={`zp-order-row ${isPaid ? "zp-order-row-paid" : "zp-order-row-pending"}`}
         onClick={() => setSelectedOrderId(order.id)}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedOrderId(order.id); }}
       >
-        <div className="cash-compact-head">
-          <div className="cash-compact-copy">
-            <h3>{renderOrderTitle(order)}</h3>
-            <p>{renderOrderSubtitle(order)}</p>
-          </div>
-          <strong className="cash-compact-amount">{formatCurrency(order.totalAmount)}</strong>
+        <div className="zp-order-row-main">
+          <span className="zp-order-row-title">{renderOrderTitle(order)}</span>
+          <span className="zp-order-row-sub">{renderOrderSubtitle(order)}</span>
         </div>
-        <div className="entity-meta-grid cash-compact-meta">
-          <span>{getDisplayItemQuantity(order)} item(ns)</span>
-          <span>{isPaid ? buildPaymentSummary(order) : "A cobrar"}</span>
-          <span>{formatDateTime(order.submittedAtUtc)}</span>
+        <strong className="zp-order-row-amount">{formatCurrency(order.totalAmount)}</strong>
+        <div className="zp-order-row-chips">
+          <span className={`zp-status-chip ${isPaid ? "zp-status-paid" : "zp-status-a-cobrar"}`}>
+            {isPaid ? buildPaymentSummary(order) : "A cobrar"}
+          </span>
+          <span className="zp-order-row-time">{formatDateTime(order.submittedAtUtc)}</span>
           {order.isDeliveryOrder
-            ? <span>{order.fulfillmentType === "Pickup" ? "Retirada" : "Entrega"}</span>
-            : <span>Local</span>}
-          {order.hasPriceAdjustment ? <span>Valor ajustado</span> : null}
+            ? <span className="zp-tag">{order.fulfillmentType === "Pickup" ? "Retirada" : "Delivery"}</span>
+            : null}
+          {order.hasPriceAdjustment ? <span className="zp-tag">Ajustado</span> : null}
         </div>
       </article>
     );
@@ -952,7 +951,7 @@ export function CashModule({
             <p>{hasSearch ? "Tente buscar por outro nome, mesa ou telefone." : column.emptyCopy}</p>
           </div>
         ) : (
-          <div className="cash-single-list cash-quick-list">
+          <div className="zp-order-list">
             {column.items.map((order) => renderOrderCard(order))}
           </div>
         )}

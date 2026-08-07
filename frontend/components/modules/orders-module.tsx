@@ -592,11 +592,11 @@ export function OrdersModule({
                   <p>{hasSearch ? "Nenhum pedido encontrado." : "Sem pedidos nesta etapa."}</p>
                 </div>
               ) : (
-                <div className="cash-single-list kitchen-single-list">
+                <div className="zp-order-list">
                   {visibleItems.map((order) => (
                     <article
                       key={order.id}
-                      className="cash-compact-card"
+                      className="zp-order-row"
                       role="button"
                       tabIndex={0}
                       onClick={() => setSelectedOrderId(order.id)}
@@ -607,23 +607,23 @@ export function OrdersModule({
                         }
                       }}
                     >
-                      <div className="cash-compact-head">
-                        <div className="cash-compact-copy">
-                          <h3>{renderOrderTitle(order)}</h3>
-                          <p>{renderOrderSubtitle(order)}</p>
-                        </div>
-                        <strong className="cash-compact-amount">{formatCurrency(order.totalAmount)}</strong>
+                      <div className="zp-order-row-main">
+                        <span className="zp-order-row-title">{renderOrderTitle(order)}</span>
+                        <span className="zp-order-row-sub">{renderOrderSubtitle(order)}</span>
                       </div>
-                      <div className="entity-meta-grid cash-compact-meta">
-                        <span>{statusLabels[order.status] ?? order.status}</span>
-                        <span>{formatDateTime(order.submittedAtUtc)}</span>
-                        <span>{printStatusLabels[order.printStatus] ?? order.printStatus}</span>
+                      <strong className="zp-order-row-amount">{formatCurrency(order.totalAmount)}</strong>
+                      <div className="zp-order-row-chips">
+                        <span className={`zp-status-chip zp-status-${order.status.toLowerCase()}`}>
+                          {statusLabels[order.status] ?? order.status}
+                        </span>
+                        <span className="zp-order-row-time">{formatDateTime(order.submittedAtUtc)}</span>
+                        {order.printStatus !== "Printed" ? (
+                          <span className="zp-tag">{printStatusLabels[order.printStatus] ?? order.printStatus}</span>
+                        ) : null}
                         {order.isDeliveryOrder ? (
-                          <span>{order.fulfillmentType === "Pickup" ? "Retirada" : "Delivery"}</span>
-                        ) : (
-                          <span>Local</span>
-                        )}
-                        {order.isEdited ? <span>Editado</span> : null}
+                          <span className="zp-tag">{order.fulfillmentType === "Pickup" ? "Retirada" : "Delivery"}</span>
+                        ) : null}
+                        {order.isEdited ? <span className="zp-tag">Editado</span> : null}
                       </div>
                     </article>
                   ))}

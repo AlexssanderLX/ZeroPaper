@@ -30221,6 +30221,171 @@ select {
 .page-shell.app-shell .cash-compact-amount {
   color: #1c1110;
 }
+/* ============================================================
+   Compact order rows — Kitchen & Cash redesign (zp-order-row)
+   ============================================================ */
+
+.zp-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.zp-order-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 3px 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.12s, border-color 0.12s;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zp-order-row:hover,
+.zp-order-row:focus-visible {
+  border-color: rgba(0, 0, 0, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.zp-order-row:active { box-shadow: none; }
+
+.zp-order-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.zp-order-row-title {
+  font-size: 0.855rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1c1110;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zp-order-row-sub {
+  font-size: 0.71rem;
+  color: #775d4d;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zp-order-row-amount {
+  font-size: 0.93rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  color: #1c1110;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  padding-top: 1px;
+}
+
+.zp-order-row-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-items: center;
+}
+
+.zp-status-chip {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.zp-status-pending   { background: #fef3c7; color: #92400e; }
+.zp-status-inkitchen { background: #dbeafe; color: #1e40af; }
+.zp-status-ready     { background: #d1fae5; color: #065f46; }
+.zp-status-delivered { background: #e5e7eb; color: #374151; }
+.zp-status-cancelled { background: #fee2e2; color: #991b1b; }
+.zp-status-paid      { background: #d1fae5; color: #065f46; }
+.zp-status-a-cobrar  { background: #fef3c7; color: #92400e; }
+
+.zp-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #775d4d;
+}
+
+.zp-order-row-time {
+  font-size: 0.65rem;
+  color: #775d4d;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* App-shell (dark) overrides */
+.page-shell.app-shell .zp-order-row {
+  background: rgba(255, 253, 249, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.page-shell.app-shell .zp-order-row:hover,
+.page-shell.app-shell .zp-order-row:focus-visible {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 253, 249, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+
+.page-shell.app-shell .zp-order-row-title,
+.page-shell.app-shell .zp-order-row-amount {
+  color: #f0e8e0;
+}
+
+.page-shell.app-shell .zp-order-row-sub,
+.page-shell.app-shell .zp-order-row-time {
+  color: #a8958a;
+}
+
+.page-shell.app-shell .zp-status-pending   { background: rgba(251, 191, 36, 0.18); color: #fbbf24; }
+.page-shell.app-shell .zp-status-inkitchen { background: rgba(96, 165, 250, 0.18); color: #60a5fa; }
+.page-shell.app-shell .zp-status-ready     { background: rgba(52, 211, 153, 0.18); color: #34d399; }
+.page-shell.app-shell .zp-status-delivered { background: rgba(156, 163, 175, 0.13); color: #9ca3af; }
+.page-shell.app-shell .zp-status-cancelled { background: rgba(248, 113, 113, 0.18); color: #f87171; }
+.page-shell.app-shell .zp-status-paid      { background: rgba(52, 211, 153, 0.18); color: #34d399; }
+.page-shell.app-shell .zp-status-a-cobrar  { background: rgba(251, 191, 36, 0.18); color: #fbbf24; }
+
+.page-shell.app-shell .zp-tag {
+  background: rgba(255, 255, 255, 0.08);
+  color: #a8958a;
+}
+
+.page-shell.app-shell .zp-order-row-pending {
+  border-left: 3px solid rgba(210, 145, 85, 0.55);
+}
+
+.page-shell.app-shell .zp-order-row-paid {
+  border-left: 3px solid rgba(66, 217, 168, 0.45);
+  opacity: 0.82;
+}
+
 
 /* â”€â”€ Order modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .cash-order-modal-backdrop {
