@@ -361,6 +361,7 @@ public sealed class AppointmentService : IAppointmentService
     {
         var query = _context.Appointments
             .Include(item => item.Pet)
+                .ThenInclude(item => item.CustomerProfile)
             .Include(item => item.AssignedUser)
             .AsQueryable();
         return tracking ? query : query.AsNoTracking();
@@ -469,6 +470,7 @@ public sealed class AppointmentService : IAppointmentService
         Id = item.Id,
         PetId = item.PetId,
         PetName = item.Pet.Name,
+        CustomerName = item.Pet.CustomerProfile.CustomerName ?? item.Pet.CustomerProfile.Phone,
         MenuItemId = item.MenuItemId,
         ServiceName = item.ServiceNameSnapshot,
         CustomerOrderId = item.CustomerOrderId,

@@ -175,7 +175,7 @@ export const ownerModules: PortalModule[] = [
   },
   {
     slug: "agenda",
-    title: "Agenda",
+    title: "Meus agendamentos",
     eyebrow: "Pet Shop",
     featureKey: "hasAppointments",
     segments: ["petshop"],

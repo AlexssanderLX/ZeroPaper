@@ -71,6 +71,7 @@ public sealed class AppointmentDto
     public Guid Id { get; set; }
     public Guid PetId { get; set; }
     public string PetName { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
     public Guid MenuItemId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public Guid? CustomerOrderId { get; set; }

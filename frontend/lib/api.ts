@@ -2656,6 +2656,7 @@ export type AppointmentDto = {
   id: string;
   petId: string;
   petName: string;
+  customerName: string;
   menuItemId: string;
   serviceName: string;
   customerOrderId?: string | null;

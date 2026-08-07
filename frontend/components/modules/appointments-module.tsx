@@ -27,6 +27,7 @@ import {
   ApiError,
 } from "@/lib/api";
 import { formatCurrency, formatDateTime, handleApiError, type AsyncVoid } from "@/components/modules/module-utils";
+import { PetBookingFlow } from "@/components/modules/pet-booking-flow";
 
 type View = "calendar" | "detail" | "create" | "reschedule";
 
@@ -89,6 +90,7 @@ function getWeekRange(dateStr: string): { fromUtc: string; toUtc: string } {
 export function AppointmentsModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
   const [view, setView] = useState<View>("calendar");
   const [calendarMode, setCalendarMode] = useState<"day" | "week">("day");
+  const [operationalView, setOperationalView] = useState<"today" | "upcoming" | "completed" | "custom">("today");
   const [selectedDate, setSelectedDate] = useState(localDateString(new Date()));
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,6 +236,51 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
     }
   }
 
+  async function handleQuickStatus(appointment: AppointmentDto, newStatus: AppointmentStatus, reason?: string) {
+    setIsActioning(true);
+    setErrorMessage("");
+    try {
+      const updated = await updateAppointmentStatus(token, appointment.id, {
+        status: newStatus,
+        cancellationReason: reason ?? null,
+      });
+      setAppointments((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setSuccessMessage(`${updated.petName}: ${statusLabel(updated.status)}.`);
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel atualizar o atendimento.");
+    } finally {
+      setIsActioning(false);
+    }
+  }
+
+  async function loadOperationalView(nextView: "today" | "upcoming" | "completed") {
+    setOperationalView(nextView);
+    setCalendarMode("day");
+    setLoading(true);
+    const today = localDateString(new Date());
+    const edge = new Date(`${today}T12:00:00Z`);
+    const fromDate = new Date(edge);
+    const toDate = new Date(edge);
+    if (nextView === "upcoming") toDate.setUTCDate(toDate.getUTCDate() + 30);
+    if (nextView === "completed") fromDate.setUTCDate(fromDate.getUTCDate() - 30);
+    if (nextView !== "upcoming") toDate.setUTCDate(toDate.getUTCDate() + 1);
+    try {
+      const data = await getAppointments(token, {
+        fromUtc: `${localDateString(fromDate)}T00:00:00Z`,
+        toUtc: `${localDateString(toDate)}T00:00:00Z`,
+        status: nextView === "completed" ? 4 : undefined,
+        assignedUserId: filterProfessional || undefined,
+      });
+      setSelectedDate(today);
+      setAppointments(nextView === "today" ? data : data.filter((item) => nextView === "completed" || !isTerminal(item.status)));
+      setErrorMessage("");
+    } catch (error) {
+      await handleApiError(error, onUnauthorized, setErrorMessage, "Nao foi possivel carregar os agendamentos.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSaveNotes(e: FormEvent) {
     e.preventDefault();
     if (!selectedAppointment) return;
@@ -326,16 +373,6 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
   }, [createServiceId, createDate, createAssigneeId, view]);
 
   function openCreate() {
-    void loadCustomersForCreate();
-    setSelectedCustomerId("");
-    setCustomerPets([]);
-    setCreatePetId("");
-    setCreateServiceId("");
-    setCreateAssigneeId("");
-    setCreateDate(selectedDate);
-    setCreateSlot("");
-    setCreateNotes("");
-    setAvailability(null);
     setErrorMessage("");
     setSuccessMessage("");
     setView("create");
@@ -525,6 +562,25 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
   // ─── Create view ─────────────────────────────────────────────────────────────
   if (view === "create") {
     return (
+      <PetBookingFlow
+        token={token}
+        onUnauthorized={onUnauthorized}
+        initialDate={selectedDate}
+        onCancel={() => setView("calendar")}
+        onCreated={async (created) => {
+          const createdDate = created.startsAtUtc.slice(0, 10);
+          setSelectedDate(createdDate);
+          setCalendarMode("day");
+          setSuccessMessage("Agendamento criado com sucesso.");
+          setView("calendar");
+          await loadAppointments(createdDate, "day", filterProfessional);
+        }}
+      />
+    );
+  }
+
+  if (false && view === "create") {
+    return (
       <section className="surface-card workspace-summary-card module-summary-card simple-module-summary">
         <div className="workspace-summary-head">
           <div className="hero-stack">
@@ -634,11 +690,11 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
           {!availabilityLoading && availability && createServiceId && (
             <div className="form-field">
               <label>Horario</label>
-              {availability.slots.length === 0 ? (
+              {availability!.slots.length === 0 ? (
                 <p className="body-copy">Sem horarios disponiveis para esta data.</p>
               ) : (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                  {availability.slots.map((slot) => (
+                  {availability!.slots.map((slot) => (
                     <button
                       key={slot.startsAtUtc}
                       type="button"
@@ -940,7 +996,8 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
     <section className="surface-card workspace-summary-card module-summary-card simple-module-summary">
       <div className="workspace-summary-head">
         <div className="hero-stack">
-          <h1>Agenda</h1>
+          <h1>Meus agendamentos</h1>
+          <p className="body-copy">Priorize o que precisa acontecer agora.</p>
         </div>
         <div className="toolbar-actions compact">
           <button type="button" className="primary-button" onClick={openCreate}>
@@ -953,12 +1010,15 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
       {successMessage && <p className="success-message">{successMessage}</p>}
 
       <div className="ps-cal-toolbar">
+        <button type="button" className={operationalView === "today" ? "primary-button" : "secondary-button"} onClick={() => void loadOperationalView("today")}>Hoje</button>
+        <button type="button" className={operationalView === "upcoming" ? "primary-button" : "secondary-button"} onClick={() => void loadOperationalView("upcoming")}>Proximos</button>
+        <button type="button" className={operationalView === "completed" ? "primary-button" : "secondary-button"} onClick={() => void loadOperationalView("completed")}>Concluidos</button>
         <button
           type="button"
           className={calendarMode === "day" ? "primary-button" : "secondary-button"}
           onClick={() => switchMode("day")}
         >
-          Dia
+          Outra data
         </button>
         <button
           type="button"
@@ -982,6 +1042,7 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
             className="ps-date-input"
             value={selectedDate}
             onChange={(e) => {
+              setOperationalView("custom");
               setSelectedDate(e.target.value);
               void loadAppointments(e.target.value, calendarMode, filterProfessional);
             }}
@@ -1036,12 +1097,19 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
                       <strong>{escapeText(appt.petName)}</strong>
                       <span className="ps-entity-meta">
                         {escapeText(appt.serviceName)}
+                        {appt.customerName && ` · ${escapeText(appt.customerName)}`}
                         {appt.assignedUserName && ` · ${escapeText(appt.assignedUserName)}`}
                       </span>
                     </div>
                     <div className="ps-entity-aside">
                       <span className="ps-time-badge">{formatTimeUtc(appt.startsAtUtc, tz)}</span>
                       <span className="ps-entity-meta">{statusLabel(appt.status)}</span>
+                      <div className="toolbar-actions compact" onClick={(event) => event.stopPropagation()}>
+                        {appt.status === 1 && <button type="button" className="secondary-button" disabled={isActioning} onClick={() => void handleQuickStatus(appt, 2)}>Confirmar</button>}
+                        {appt.status === 2 && <button type="button" className="secondary-button" disabled={isActioning} onClick={() => void handleQuickStatus(appt, 3)}>Iniciar</button>}
+                        {appt.status === 3 && <button type="button" className="primary-button" disabled={isActioning} onClick={() => void handleQuickStatus(appt, 4)}>Concluir</button>}
+                        {(appt.status === 1 || appt.status === 2) && <button type="button" className="secondary-button" disabled={isActioning} onClick={() => { const reason = window.prompt("Motivo do cancelamento"); if (reason?.trim()) void handleQuickStatus(appt, 5, reason.trim()); }}>Cancelar</button>}
+                      </div>
                     </div>
                   </div>
                 </li>
