@@ -41600,6 +41600,22 @@ html[data-perf="lite"] * {
   align-items: center;
   margin-bottom: 20px;
 }
+.ps-appointments-summary {
+  border-color: rgba(91, 193, 158, 0.22);
+  background: #101514;
+}
+.ps-appointments-summary .workspace-summary-head { margin-bottom: 12px; }
+.ps-appointments-summary .hero-stack h1 { font-size: clamp(1.85rem, 3.4vw, 2.7rem); }
+.ps-compact-action {
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  font-size: 0.82rem !important;
+}
+.ps-appointments-summary .primary-button { background: #72cdb0; border-color: #72cdb0; color: #07110e; }
+.ps-appointments-summary .secondary-button,
+.ps-appointments-summary .ps-date-nav,
+.ps-appointments-summary .ps-select { border-color: rgba(123, 214, 183, 0.2); background: rgba(123, 214, 183, 0.06); }
 .ps-date-nav {
   display: flex;
   align-items: center;

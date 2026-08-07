@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import styles from "./public-booking.module.css";
 import {
   createPublicAppointmentRequest,
   getPublicAppointmentTracking,
@@ -157,7 +158,7 @@ export default function PublicBookingPage() {
         ]);
         setShop(shopData);
         setServices(servicesData);
-        setStep("establishment");
+        setStep("services");
       } catch {
         setStep("error");
         setErrorMessage("Estabelecimento nao encontrado ou link invalido.");
@@ -178,7 +179,7 @@ export default function PublicBookingPage() {
         // Ignore
       }
       setTracking(null);
-      setStep("establishment");
+      setStep("services");
       if (shop === null) {
         void (async () => {
           try {
@@ -188,7 +189,7 @@ export default function PublicBookingPage() {
             ]);
             setShop(shopData);
             setServices(servicesData);
-            setStep("establishment");
+            setStep("services");
           } catch {
             setStep("error");
             setErrorMessage("Estabelecimento nao encontrado.");
@@ -368,30 +369,22 @@ export default function PublicBookingPage() {
   const tz = shop?.timeZone;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "1.5rem",
-        maxWidth: 560,
-        margin: "0 auto",
-        fontFamily: "inherit",
-      }}
-    >
+    <main className={styles.page}>
       {/* Header */}
       {shop && (
-        <div style={{ marginBottom: "2rem", textAlign: "center" }}>
+        <header className={styles.header}>
           {shop.logoUrl && (
             <img
               src={shop.logoUrl}
               alt={shop.businessName}
-              style={{ maxHeight: 64, maxWidth: 200, objectFit: "contain", marginBottom: "0.75rem" }}
+              className={styles.logo}
             />
           )}
-          <h1 style={{ fontSize: "1.5rem" }}>{escapeText(shop.businessName)}</h1>
+          <div><h1>{escapeText(shop.businessName)}</h1><small>Agendamento online</small></div>
           {currentStepLabel && (
-            <p style={{ color: "var(--color-muted, #666)", marginTop: "0.25rem" }}>{currentStepLabel}</p>
+            <p>{currentStepLabel}</p>
           )}
-        </div>
+        </header>
       )}
 
       {errorMessage && (
@@ -427,46 +420,34 @@ export default function PublicBookingPage() {
 
       {/* ─── Step: services ──────────────────────────────────────────────── */}
       {step === "services" && (
-        <div>
-          <h2 style={{ marginBottom: "1rem" }}>Escolha o servico</h2>
+        <section className={styles.catalog}>
+          <div className={styles.catalogHeading}><span>Servicos</span><h2>O que seu pet precisa?</h2></div>
           {services.length === 0 && <p>Nenhum servico disponivel no momento.</p>}
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <ul className={styles.serviceList}>
             {services.map((svc) => (
               <li key={svc.id}>
                 <button
                   type="button"
                   onClick={() => selectService(svc)}
-                  style={{
-                    width: "100%",
-                    padding: "1rem",
-                    borderRadius: 12,
-                    border: "1px solid var(--color-border, #e0e0e0)",
-                    background: "var(--color-surface, #fff)",
-                    textAlign: "left",
-                    cursor: "pointer",
-                  }}
+                  className={styles.serviceCard}
                 >
-                  {svc.imageUrl && (
+                  <span className={styles.serviceCopy}>
+                    <strong>{escapeText(svc.name)}</strong>
+                    {svc.description && <small>{escapeText(svc.description)}</small>}
+                    <b>{formatCurrencyBRL(svc.price)} <em>{svc.durationMinutes} min</em></b>
+                  </span>
+                  {svc.imageUrl ? (
                     <img
                       src={svc.imageUrl}
                       alt={svc.name}
-                      style={{ width: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8, marginBottom: "0.5rem" }}
+                      className={styles.serviceImage}
                     />
-                  )}
-                  <strong style={{ display: "block" }}>{escapeText(svc.name)}</strong>
-                  {svc.description && (
-                    <span style={{ display: "block", color: "var(--color-muted, #666)", fontSize: "0.875em", marginTop: "0.25rem" }}>
-                      {escapeText(svc.description)}
-                    </span>
-                  )}
-                  <span style={{ display: "block", marginTop: "0.5rem", fontWeight: 600 }}>
-                    {formatCurrencyBRL(svc.price)} &middot; {svc.durationMinutes} min
-                  </span>
+                  ) : <span className={styles.serviceImageFallback}>Pet</span>}
                 </button>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {/* ─── Step: customer ──────────────────────────────────────────────── */}
@@ -781,7 +762,7 @@ export default function PublicBookingPage() {
                     onClick={() => {
                       try { sessionStorage.removeItem(TRACKING_KEY); } catch { /* Ignore */ }
                       setTracking(null);
-                      setStep("establishment");
+                      setStep("services");
                       setSelectedService(null);
                       setSelectedSlot("");
                       setSelectedDate(localDateString(new Date()));
@@ -807,7 +788,7 @@ export default function PublicBookingPage() {
                 style={{ ...secondaryBtnStyle, marginTop: "1rem" }}
                 onClick={() => {
                   try { sessionStorage.removeItem(TRACKING_KEY); } catch { /* Ignore */ }
-                  setStep("establishment");
+                  setStep("services");
                 }}
               >
                 Fazer novo agendamento

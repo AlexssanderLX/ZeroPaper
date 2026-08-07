@@ -377,6 +377,12 @@ export function WorkspaceShell({
                     <small>Abrir mesa rapida</small>
                   </Link>
                 ) : null}
+                {isPetShop ? (
+                  <Link className="owner-sidebar-link owner-sidebar-cash-order-link" href="/app/agenda?novo=1" onClick={() => setIsSidebarOpen(false)}>
+                    <strong>Agendamento rapido</strong>
+                    <small>Novo atendimento</small>
+                  </Link>
+                ) : null}
                 {overview?.includesAiAssistantModule
                   ? renderSidebarLink({
                       href: "/app/atendimento/horarios",

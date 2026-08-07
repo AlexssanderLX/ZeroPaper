@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   createAppointment,
   getAppointmentAvailability,
@@ -88,7 +89,12 @@ function getWeekRange(dateStr: string): { fromUtc: string; toUtc: string } {
 }
 
 export function AppointmentsModule({ token, onUnauthorized }: { token: string; onUnauthorized: AsyncVoid }) {
+  const searchParams = useSearchParams();
   const [view, setView] = useState<View>("calendar");
+
+  useEffect(() => {
+    if (searchParams.get("novo") === "1") setView("create");
+  }, [searchParams]);
   const [calendarMode, setCalendarMode] = useState<"day" | "week">("day");
   const [operationalView, setOperationalView] = useState<"today" | "upcoming" | "completed" | "custom">("today");
   const [selectedDate, setSelectedDate] = useState(localDateString(new Date()));
@@ -993,14 +999,14 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
   const grouped = calendarMode === "week" ? groupByDay(appointments) : null;
 
   return (
-    <section className="surface-card workspace-summary-card module-summary-card simple-module-summary">
+    <section className="surface-card workspace-summary-card module-summary-card simple-module-summary ps-appointments-summary">
       <div className="workspace-summary-head">
         <div className="hero-stack">
           <h1>Meus agendamentos</h1>
           <p className="body-copy">Priorize o que precisa acontecer agora.</p>
         </div>
         <div className="toolbar-actions compact">
-          <button type="button" className="primary-button" onClick={openCreate}>
+          <button type="button" className="primary-button ps-compact-action" onClick={openCreate}>
             Novo agendamento
           </button>
         </div>
@@ -1010,19 +1016,19 @@ export function AppointmentsModule({ token, onUnauthorized }: { token: string; o
       {successMessage && <p className="success-message">{successMessage}</p>}
 
       <div className="ps-cal-toolbar">
-        <button type="button" className={operationalView === "today" ? "primary-button" : "secondary-button"} onClick={() => void loadOperationalView("today")}>Hoje</button>
-        <button type="button" className={operationalView === "upcoming" ? "primary-button" : "secondary-button"} onClick={() => void loadOperationalView("upcoming")}>Proximos</button>
-        <button type="button" className={operationalView === "completed" ? "primary-button" : "secondary-button"} onClick={() => void loadOperationalView("completed")}>Concluidos</button>
+        <button type="button" className={`${operationalView === "today" ? "primary-button" : "secondary-button"} ps-compact-action`} onClick={() => void loadOperationalView("today")}>Hoje</button>
+        <button type="button" className={`${operationalView === "upcoming" ? "primary-button" : "secondary-button"} ps-compact-action`} onClick={() => void loadOperationalView("upcoming")}>Proximos</button>
+        <button type="button" className={`${operationalView === "completed" ? "primary-button" : "secondary-button"} ps-compact-action`} onClick={() => void loadOperationalView("completed")}>Concluidos</button>
         <button
           type="button"
-          className={calendarMode === "day" ? "primary-button" : "secondary-button"}
+          className={`${calendarMode === "day" ? "primary-button" : "secondary-button"} ps-compact-action`}
           onClick={() => switchMode("day")}
         >
           Outra data
         </button>
         <button
           type="button"
-          className={calendarMode === "week" ? "primary-button" : "secondary-button"}
+          className={`${calendarMode === "week" ? "primary-button" : "secondary-button"} ps-compact-action`}
           onClick={() => switchMode("week")}
         >
           Semana
