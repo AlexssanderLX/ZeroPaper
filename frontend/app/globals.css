@@ -41520,6 +41520,17 @@ html[data-perf="lite"] * {
   color: rgba(255, 247, 236, 0.85);
   background: rgba(255, 248, 238, 0.08);
 }
+.zp-pw-toggle:focus-visible {
+  color: #80f3df;
+  background: rgba(27, 226, 194, 0.1);
+  outline: 2px solid rgba(27, 226, 194, 0.7);
+  outline-offset: 2px;
+}
+.zp-pw-toggle svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
 
 /* Tab navigation */
 .ps-tab-nav {
@@ -42027,4 +42038,21 @@ html[data-perf="lite"] * {
   border-color: rgba(255, 255, 255, 0.13);
   background: #1a1f1f;
   color: #d9e6e6;
+}
+
+/* Kitchen/cash list geometry: keep the search row visible and cards compact. */
+.page-shell.app-shell .kitchen-focus-panel {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) {
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-items: start;
+}
+
+.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) > .cash-compact-card {
+  width: 100%;
+  min-height: 0;
+  align-self: start;
 }

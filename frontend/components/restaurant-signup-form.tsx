@@ -2,6 +2,7 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { ApiError, createRestaurantSignup, type PublicCommercialPlan } from "@/lib/api";
 
 type Props = { selectedPlan: PublicCommercialPlan; segment: 1 | 2 };
@@ -10,6 +11,8 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const router = useRouter();
 
@@ -116,30 +119,52 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
           <span>Senha</span>
           <span className="field-requirement">Minimo 6 caracteres</span>
         </label>
-        <input
-          id="ownerPassword"
-          name="ownerPassword"
-          type="password"
-          placeholder="Crie uma senha"
-          minLength={6}
-          {...requiredProps}
-        />
+        <div className="zp-pw-wrapper">
+          <input
+            id="ownerPassword"
+            name="ownerPassword"
+            type={showPassword ? "text" : "password"}
+            placeholder="Crie uma senha"
+            minLength={6}
+            {...requiredProps}
+          />
+          <button
+            className="zp-pw-toggle"
+            type="button"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+          </button>
+        </div>
       </div>
       <div className="field-group">
         <label className="field-label-row" htmlFor="confirmPassword">
           <span>Confirmar senha</span>
           <span className="field-requirement">Repita a senha</span>
         </label>
-        <input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="Repita a senha"
-          minLength={6}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-        />
+        <div className="zp-pw-wrapper">
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Repita a senha"
+            minLength={6}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          <button
+            className="zp-pw-toggle"
+            type="button"
+            aria-label={showConfirmPassword ? "Ocultar confirmacao da senha" : "Mostrar confirmacao da senha"}
+            aria-pressed={showConfirmPassword}
+            onClick={() => setShowConfirmPassword((visible) => !visible)}
+          >
+            {showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+          </button>
+        </div>
       </div>
       {errorMessage ? <p className="form-feedback" role="alert">{errorMessage}</p> : null}
       <button className="primary-link button-link signup-submit" type="submit" value="pay_now" disabled={isSubmitting}>

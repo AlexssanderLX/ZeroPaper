@@ -28,6 +28,9 @@
 - As capturas `codex-clipboard-10803c96-a2c7-4883-b6bc-2c63d9cb3e77.png`, `codex-clipboard-f888241d-4699-42be-bafa-90f1551d9abc.png`, `codex-clipboard-97348379-9985-41d3-b922-1190eb05c0e7.png` e `codex-clipboard-1929be86-a9a8-40b7-83ac-fbbfcc6be1b4.png` revelaram contraste insuficiente em dados operacionais; os seletores específicos foram corrigidos.
 - A segunda revisão, baseada nas capturas de detalhes e listas de pedidos, removeu superfícies claras com texto claro. Cards compactos, chips, produtos e o modal agora usam superfícies grafite com texto branco/cinza.
 - Os dados de entrega foram separados semanticamente e visualmente da lista de produtos por título próprio, divisor e card dourado discreto.
+- Cozinha e caixa agora reservam uma linha própria para a busca; a lista ocupa apenas o espaço restante e seus cards usam linhas de altura máxima do conteúdo, eliminando a faixa sobreposta e o card esticado.
+- O cadastro recuperou a visualização de senha com ícone acessível, sem devolver o antigo botão textual "Ver".
+- Falhas internas da conta recebedora não são mais expostas no cadastro público; o detalhe permanece somente no log protegido do backend.
 - Nenhuma diferença P0, P1 ou P2 permanece no escopo solicitado.
 - P3: posições dos elementos decorativos animados variam entre capturas por projeto.
 

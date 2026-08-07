@@ -15,10 +15,14 @@ namespace ZeroPaper.Controllers;
 public class RestaurantOnboardingController : ControllerBase
 {
     private readonly IRestaurantOnboardingService _restaurantOnboardingService;
+    private readonly ILogger<RestaurantOnboardingController> _logger;
 
-    public RestaurantOnboardingController(IRestaurantOnboardingService restaurantOnboardingService)
+    public RestaurantOnboardingController(
+        IRestaurantOnboardingService restaurantOnboardingService,
+        ILogger<RestaurantOnboardingController> logger)
     {
         _restaurantOnboardingService = restaurantOnboardingService;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -43,10 +47,11 @@ public class RestaurantOnboardingController : ControllerBase
         }
         catch (InvalidOperationException exception)
         {
+            _logger.LogWarning(exception, "Public signup payment is unavailable.");
             return Conflict(new ProblemDetails
             {
                 Title = "Pagamento indisponivel",
-                Detail = exception.Message,
+                Detail = "O pagamento automatico esta temporariamente indisponivel. Tente novamente mais tarde ou use a opcao Solicitar acesso.",
                 Status = StatusCodes.Status409Conflict
             });
         }
