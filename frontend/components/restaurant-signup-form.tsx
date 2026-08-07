@@ -27,7 +27,10 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
     const contactPhone = String(formData.get("contactPhone") ?? "").trim();
     const ownerPassword = String(formData.get("ownerPassword") ?? "").trim();
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    const registrationFlow = submitter?.value === "pay_now" ? "pay_now" : "pre_registration";
+    // Pressing Enter may submit the form without a submitter in some desktop
+    // browsers. Payment is the primary action, so only an explicit click on
+    // the secondary button may create a pre-registration.
+    const registrationFlow = submitter?.value === "pre_registration" ? "pre_registration" : "pay_now";
 
     if (!businessName || !ownerName || !ownerEmail || !contactPhone || !ownerPassword) {
       setErrorMessage("Preencha todos os campos para continuar.");
