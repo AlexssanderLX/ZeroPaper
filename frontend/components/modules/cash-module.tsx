@@ -1099,18 +1099,7 @@ export function CashModule({
         </div>
       ) : null}
 
-      <section className="surface-card module-list-card">
-        <div className="module-section-head cash-header compact-order-panel-head">
-          <div className="cash-header-copy">
-            <h2>Caixa</h2>
-          </div>
-          {section === "overview" ? (
-            <Link className="zpclosing-link-btn" href="/app/caixa/fechamento">
-              Fechamento do dia
-            </Link>
-          ) : null}
-        </div>
-
+      <section className="module-list-card operational-page-frame" aria-label="Caixa">
         <div className="cash-shell">
           <section className="cash-focus-panel">
             {loading ? (
@@ -1142,6 +1131,9 @@ export function CashModule({
                       </button>
                     </div>
                   ))}
+                  <Link className="zpclosing-link-btn operational-closing-link" href="/app/caixa/fechamento">
+                    Fechamento do dia
+                  </Link>
                 </nav>
 
                 <div className="cash-quick-board" aria-label="Visao rapida do caixa">

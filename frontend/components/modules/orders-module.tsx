@@ -510,10 +510,7 @@ export function OrdersModule({
     <section className="menu-workspace">
       {errorMessage ? <p className="module-feedback error">{errorMessage}</p> : null}
 
-      <section className="surface-card module-list-card">
-        <div className="module-section-head compact-order-panel-head">
-          <h2>{panelTitle}</h2>
-        </div>
+      <section className="module-list-card operational-page-frame" aria-label={panelTitle}>
 
         {loading ? (
           <p className="loading-state">Carregando pedidos...</p>
@@ -542,6 +539,7 @@ export function OrdersModule({
                 </nav>
               ) : null}
 
+              <div className="operational-list-card">
               <div className="module-section-head kitchen-column-head kitchen-column-toolbar compact-order-column-head">
                 <div className="kitchen-column-copy">
                   <span className="eyebrow">{activeColumn.title}</span>
@@ -629,6 +627,7 @@ export function OrdersModule({
                   ))}
                 </div>
               )}
+              </div>
             </section>
           </div>
         )}

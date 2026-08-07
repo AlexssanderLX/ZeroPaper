@@ -646,7 +646,7 @@ export function OwnerLobby() {
           </div>
         ) : null}
 
-        {area === "finished" ? <span className="owner-flow-readonly-note">Somente conferencia</span> : null}
+        {area === "finished" ? <span className="owner-flow-readonly-note">Somente para consulta</span> : null}
 
         <button
           className="ghost-link button-link owner-flow-action owner-flow-print"

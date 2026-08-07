@@ -42374,3 +42374,121 @@ html[data-perf="lite"] * {
     text-overflow: ellipsis;
   }
 }
+
+/* Two-card layout for kitchen and cash: controls above, searchable orders below. */
+.page-shell.app-shell .operational-page-frame {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-shell.app-shell .operational-page-frame :is(.kitchen-shell, .cash-shell) {
+  gap: 10px;
+}
+
+.page-shell.app-shell .operational-page-frame :is(.kitchen-focus-panel, .cash-focus-panel) {
+  display: grid;
+  gap: 10px;
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-shell.app-shell .operational-page-frame .owner-flow-tabs {
+  min-height: 62px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 16px;
+  background: #121616;
+}
+
+.page-shell.app-shell .operational-list-card,
+.page-shell.app-shell .operational-page-frame .cash-quick-column {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+  height: min(680px, calc(100dvh - 210px));
+  max-height: calc(100dvh - 190px);
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 18px;
+  background: #0d1010;
+  box-shadow: none;
+}
+
+.page-shell.app-shell .operational-page-frame .cash-quick-board {
+  display: block;
+}
+
+.page-shell.app-shell .operational-page-frame .compact-order-column-head {
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 8px;
+}
+
+.page-shell.app-shell .operational-page-frame .kitchen-column-copy small {
+  display: none;
+}
+
+.page-shell.app-shell .operational-page-frame .cash-search-field {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 8px;
+}
+
+.page-shell.app-shell .operational-page-frame .cash-search-field input {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.page-shell.app-shell .operational-closing-link {
+  margin-left: auto;
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.page-shell.app-shell .owner-flow-readonly-note {
+  min-height: 0;
+  padding: 7px 10px;
+  border-color: rgba(156, 181, 184, 0.2);
+  border-radius: 8px;
+  background: #202626;
+  color: #c7d6d6;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+@media (max-width: 720px) {
+  .page-shell.app-shell .operational-page-frame .owner-flow-tabs {
+    min-height: 0;
+  }
+
+  .page-shell.app-shell .operational-closing-link {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .page-shell.app-shell .operational-list-card,
+  .page-shell.app-shell .operational-page-frame .cash-quick-column {
+    height: calc(100dvh - 250px);
+    min-height: 380px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .page-shell.app-shell .operational-page-frame .cash-search-field {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
