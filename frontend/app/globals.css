@@ -42268,3 +42268,109 @@ html[data-perf="lite"] * {
   border-color: rgba(210, 145, 85, 0.55);
   outline: none;
 }
+
+/* Final operational-order guardrails: rows scroll without being compressed. */
+.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-items: stretch;
+  align-content: initial;
+  scrollbar-gutter: stable;
+}
+
+.page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) > .zp-order-row {
+  flex: 0 0 auto;
+  min-height: 54px;
+  padding: 8px 12px;
+  grid-template-rows: minmax(18px, auto) minmax(16px, auto);
+}
+
+.page-shell.app-shell .zp-order-row-main,
+.page-shell.app-shell .zp-order-row-chips {
+  min-height: 0;
+}
+
+.page-shell.app-shell .zp-order-row-title,
+.page-shell.app-shell .zp-order-row-amount {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .zp-order-row-sub,
+.page-shell.app-shell .zp-order-row-time {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .zp-order-row-chips > :is(.zp-status-chip, .zp-tag, .zp-order-row-time) {
+  flex: 0 0 auto;
+  line-height: 1.2;
+}
+
+/* Lobby cards use dark surfaces; each tag has its own high-contrast meaning. */
+.page-shell.app-shell .owner-flow-order-card {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #151919;
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-head :is(strong, em) {
+  color: #f4fbfa;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-head span {
+  color: #a9bec0;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: #252c2c;
+  color: #dce9e9;
+  font-weight: 800;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-status.is-pending,
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-payment.is-pending {
+  border-color: rgba(255, 190, 101, 0.42);
+  background: #3a2917;
+  color: #ffd08f;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-status:is(.is-ready, .is-delivered),
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-payment.is-paid {
+  border-color: rgba(27, 226, 194, 0.38);
+  background: #10352f;
+  color: #83f5e1;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-status.is-inkitchen {
+  border-color: rgba(104, 177, 255, 0.4);
+  background: #172d42;
+  color: #9dccff;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-service {
+  border-color: rgba(157, 204, 255, 0.26);
+  background: #202b35;
+  color: #c9e2fb;
+}
+
+.page-shell.app-shell .owner-flow-order-card .owner-flow-order-tags .owner-flow-tag-time {
+  background: #272b2b;
+  color: #c6d3d3;
+}
+
+@media (max-width: 680px) {
+  .page-shell.app-shell :is(.kitchen-single-list, .cash-single-list, .cash-quick-list) > .zp-order-row {
+    min-height: 58px;
+    gap: 4px 8px;
+  }
+
+  .page-shell.app-shell .zp-order-row-amount {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

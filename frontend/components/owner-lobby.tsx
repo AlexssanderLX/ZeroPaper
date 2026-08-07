@@ -543,10 +543,14 @@ export function OwnerLobby() {
         </div>
 
         <div className="owner-flow-order-tags">
-          <span>{statusLabels[order.status] ?? order.status}</span>
-          <span>{renderServiceType(order)}</span>
-          <span>{formatPaymentStatus(order.paymentStatus)}</span>
-          <span>{formatDateTime(order.submittedAtUtc)}</span>
+          <span className={`owner-flow-tag owner-flow-tag-status is-${order.status.toLowerCase()}`}>
+            {statusLabels[order.status] ?? order.status}
+          </span>
+          <span className="owner-flow-tag owner-flow-tag-service">{renderServiceType(order)}</span>
+          <span className={`owner-flow-tag owner-flow-tag-payment is-${order.paymentStatus.toLowerCase()}`}>
+            {formatPaymentStatus(order.paymentStatus)}
+          </span>
+          <span className="owner-flow-tag owner-flow-tag-time">{formatDateTime(order.submittedAtUtc)}</span>
         </div>
 
         {area === "todo" ? (
