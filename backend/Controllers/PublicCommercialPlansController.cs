@@ -15,7 +15,7 @@ public sealed class PublicCommercialPlansController : ControllerBase
     [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public ActionResult<IReadOnlyList<PublicCommercialPlanDto>> Get([FromQuery] BusinessSegment segment)
     {
-        if (segment != BusinessSegment.Restaurant)
+        if (segment is not (BusinessSegment.Restaurant or BusinessSegment.PetShop))
         {
             return NotFound();
         }

@@ -60,7 +60,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
         RestaurantOnboardingRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        if (request.BusinessSegment != BusinessSegment.Restaurant)
+        if (request.BusinessSegment is not (BusinessSegment.Restaurant or BusinessSegment.PetShop))
         {
             throw new InvalidOperationException("Este segmento ainda esta em desenvolvimento.");
         }

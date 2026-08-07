@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plano?: string; segmento?: string }> }) {
   const params = await searchParams;
-  if (params.segmento && params.segmento !== "restaurante") {
+  if (params.segmento && params.segmento !== "restaurante" && params.segmento !== "petshop") {
     redirect("/segmentos");
   }
 

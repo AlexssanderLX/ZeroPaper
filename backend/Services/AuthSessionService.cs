@@ -93,7 +93,7 @@ public class AuthSessionService : IAuthSessionService
             throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
         }
 
-        if (!user.Company.IsActive || user.Company.BusinessSegment != BusinessSegment.Restaurant)
+        if (!user.Company.IsActive || !IsSupportedBusinessSegment(user.Company.BusinessSegment))
         {
             throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
         }
@@ -173,7 +173,7 @@ public class AuthSessionService : IAuthSessionService
         }
 
         if (!user.IsActive || !user.Company.IsActive ||
-            user.Company.BusinessSegment != BusinessSegment.Restaurant ||
+            !IsSupportedBusinessSegment(user.Company.BusinessSegment) ||
             !user.HasActiveShortcutAccess(utcNow))
         {
             throw new InvalidOperationException("Atalho expirado ou indisponivel. Entre com email e senha.");
@@ -207,6 +207,9 @@ public class AuthSessionService : IAuthSessionService
             RestaurantName = user.Company.TradeName
         };
     }
+
+    private static bool IsSupportedBusinessSegment(BusinessSegment segment) =>
+        segment is BusinessSegment.Restaurant or BusinessSegment.PetShop;
 
     private async Task<List<AppUser>> GetLoginCandidatesAsync(
         string identifier,
