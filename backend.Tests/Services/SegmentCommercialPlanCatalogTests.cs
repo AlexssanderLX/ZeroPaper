@@ -15,6 +15,7 @@ public sealed class SegmentCommercialPlanCatalogTests
         Assert.Equal("ZeroPaper Pet Shop", product.Name);
         Assert.Equal(ProductReleaseStage.Beta, product.ReleaseStage);
         Assert.False(product.RequiresPayment);
+        Assert.True(product.AvailableForSignup);
         Assert.Equal(5, product.DefaultMaxUsers);
     }
 
@@ -32,6 +33,7 @@ public sealed class SegmentCommercialPlanCatalogTests
         Assert.Equal("ZeroPaper Hospedagem", product.Name);
         Assert.Equal(ProductReleaseStage.Beta, product.ReleaseStage);
         Assert.False(product.RequiresPayment);
+        Assert.False(product.AvailableForSignup);
         Assert.Equal(5, product.DefaultMaxUsers);
     }
 }

@@ -139,6 +139,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             var selectedProduct = request.BusinessSegment == BusinessSegment.PetShop
                 ? SubscriptionProductCatalog.ResolvePet(request.PlanKey)
                 : null;
+            if (selectedProduct is { AvailableForSignup: false })
+                throw new InvalidOperationException($"O {selectedProduct.Name} nao esta disponivel para novos cadastros.");
             if (selectedProduct is { RequiresPayment: false } &&
                 request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException($"O {selectedProduct.Name} esta em {selectedProduct.ReleaseStage} e aceita somente solicitacoes de acesso.");

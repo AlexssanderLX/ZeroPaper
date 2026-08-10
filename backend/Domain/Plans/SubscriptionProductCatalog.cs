@@ -8,6 +8,7 @@ public sealed record SubscriptionProductDefinition(
     string Name,
     ProductReleaseStage ReleaseStage,
     bool RequiresPayment,
+    bool AvailableForSignup,
     int DefaultMaxUsers);
 
 public static class SubscriptionProductCatalog
@@ -18,6 +19,7 @@ public static class SubscriptionProductCatalog
         "ZeroPaper Pet Shop",
         ProductReleaseStage.Beta,
         false,
+        true,
         5);
 
     public static readonly SubscriptionProductDefinition PetHosting = new(
@@ -25,6 +27,7 @@ public static class SubscriptionProductCatalog
         "pet-hospedagem",
         "ZeroPaper Hospedagem",
         ProductReleaseStage.Beta,
+        false,
         false,
         5);
 

@@ -36,7 +36,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
 
   const selectedPlan = plans.find((plan) => plan.key === params.plano) ?? plans.find((plan) => plan.recommended) ?? plans[0];
   if (!selectedPlan) return null;
-  const shortName = (name: string) => name.replace("ZeroPaper Pet ", "").replace("ZeroPaper ", "");
+  const shortName = (name: string) => segment === 2 ? name : name.replace("ZeroPaper ", "");
 
   return (
     <main className="page-shell zp-signup-sales-page">

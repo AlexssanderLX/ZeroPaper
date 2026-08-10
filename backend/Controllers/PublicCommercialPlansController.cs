@@ -22,7 +22,9 @@ public sealed class PublicCommercialPlansController : ControllerBase
 
         if (segment == BusinessSegment.PetShop)
         {
-            return Ok(SubscriptionProductCatalog.PetProducts.Select(product => new PublicCommercialPlanDto
+            return Ok(SubscriptionProductCatalog.PetProducts
+                .Where(product => product.AvailableForSignup)
+                .Select(product => new PublicCommercialPlanDto
             {
                 Segment = segment,
                 ProductType = product.Type,

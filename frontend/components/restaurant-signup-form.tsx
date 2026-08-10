@@ -85,7 +85,7 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
   }
 
   const requiredProps = { required: true, onInvalid, onInput };
-  const shortPlanName = selectedPlan.name.replace("ZeroPaper Pet ", "").replace("ZeroPaper ", "");
+  const shortPlanName = segment === 2 ? selectedPlan.name : selectedPlan.name.replace("ZeroPaper ", "");
 
   return (
     <form className="login-form signup-form" onSubmit={handleSubmit}>
