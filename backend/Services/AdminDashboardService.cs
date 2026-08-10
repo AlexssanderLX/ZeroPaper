@@ -394,7 +394,7 @@ public class AdminDashboardService : IAdminDashboardService
 
             var product = SubscriptionProductCatalog.Resolve(productType);
             subscription.ChangeProduct(product.Type);
-            subscription.ChangePlan(product.Name, product.MonthlyPrice, request.MaxUsers);
+            subscription.ChangePlan(product.Name, 0m, request.MaxUsers);
             var petShop = product.Type == SubscriptionProductType.PetShop;
             subscription.UpdateFeatureSet(
                 includesMenuModule: petShop,

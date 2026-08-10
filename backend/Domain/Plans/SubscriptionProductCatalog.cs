@@ -6,7 +6,8 @@ public sealed record SubscriptionProductDefinition(
     SubscriptionProductType Type,
     string Key,
     string Name,
-    decimal MonthlyPrice,
+    ProductReleaseStage ReleaseStage,
+    bool RequiresPayment,
     int DefaultMaxUsers);
 
 public static class SubscriptionProductCatalog
@@ -15,14 +16,16 @@ public static class SubscriptionProductCatalog
         SubscriptionProductType.PetShop,
         "pet-shop",
         "ZeroPaper Pet Shop",
-        150m,
+        ProductReleaseStage.Beta,
+        false,
         5);
 
     public static readonly SubscriptionProductDefinition PetHosting = new(
         SubscriptionProductType.PetHosting,
         "pet-hospedagem",
         "ZeroPaper Hospedagem",
-        100m,
+        ProductReleaseStage.Beta,
+        false,
         5);
 
     public static readonly IReadOnlyList<SubscriptionProductDefinition> PetProducts =
@@ -44,4 +47,7 @@ public static class SubscriptionProductCatalog
         SubscriptionProductType.PetHosting => PetHosting,
         _ => throw new ArgumentException("O produto informado nao pertence ao catalogo Pet.", nameof(type))
     };
+
+    public static bool RequiresPayment(SubscriptionProductType type) =>
+        type == SubscriptionProductType.Restaurant || Resolve(type).RequiresPayment;
 }

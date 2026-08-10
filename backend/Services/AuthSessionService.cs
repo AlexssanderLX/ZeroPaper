@@ -100,14 +100,16 @@ public class AuthSessionService : IAuthSessionService
 
         if (user.Role != UserRole.Root)
         {
-            var paidThroughUtc = await _context.Subscriptions
+            var subscriptionAccess = await _context.Subscriptions
                 .Where(item => item.TenantId == user.TenantId && item.IsActive)
                 .OrderByDescending(item => item.StartsAtUtc)
-                .Select(item => item.PaidThroughUtc)
+                .Select(item => new { item.ProductType, item.PaidThroughUtc })
                 .FirstOrDefaultAsync(cancellationToken);
-            if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= DateTime.UtcNow)
+            if (subscriptionAccess is null) throw new SubscriptionExpiredException();
+            if (SubscriptionProductCatalog.RequiresPayment(subscriptionAccess.ProductType) &&
+                (!subscriptionAccess.PaidThroughUtc.HasValue || subscriptionAccess.PaidThroughUtc.Value <= DateTime.UtcNow))
             {
-                paidThroughUtc = await _platformBillingService.RefreshTenantPaidAccessAsync(user.TenantId, cancellationToken);
+                var paidThroughUtc = await _platformBillingService.RefreshTenantPaidAccessAsync(user.TenantId, cancellationToken);
                 if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= DateTime.UtcNow) throw new SubscriptionExpiredException();
             }
         }
@@ -284,14 +286,21 @@ public class AuthSessionService : IAuthSessionService
 
         if (session.AppUser.Role != UserRole.Root)
         {
-            var paidThroughUtc = await _context.Subscriptions
+            var subscriptionAccess = await _context.Subscriptions
                 .Where(item => item.TenantId == session.TenantId && item.IsActive)
                 .OrderByDescending(item => item.StartsAtUtc)
-                .Select(item => item.PaidThroughUtc)
+                .Select(item => new { item.ProductType, item.PaidThroughUtc })
                 .FirstOrDefaultAsync(cancellationToken);
-            if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= utcNow)
+            if (subscriptionAccess is null)
             {
-                paidThroughUtc = await _platformBillingService.RefreshTenantPaidAccessAsync(session.TenantId, cancellationToken);
+                session.Revoke(utcNow);
+                await _context.SaveChangesAsync(cancellationToken);
+                return null;
+            }
+            if (SubscriptionProductCatalog.RequiresPayment(subscriptionAccess.ProductType) &&
+                (!subscriptionAccess.PaidThroughUtc.HasValue || subscriptionAccess.PaidThroughUtc.Value <= utcNow))
+            {
+                var paidThroughUtc = await _platformBillingService.RefreshTenantPaidAccessAsync(session.TenantId, cancellationToken);
                 if (!paidThroughUtc.HasValue || paidThroughUtc.Value <= utcNow)
                 {
                     session.Revoke(utcNow);

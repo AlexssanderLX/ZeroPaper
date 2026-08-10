@@ -28,7 +28,9 @@ public sealed class PublicCommercialPlansController : ControllerBase
                 ProductType = product.Type,
                 Key = product.Key,
                 Name = product.Name,
-                MonthlyPrice = product.MonthlyPrice,
+                MonthlyPrice = 0m,
+                ReleaseStage = product.ReleaseStage,
+                RequiresPayment = product.RequiresPayment,
                 MaxUsers = product.DefaultMaxUsers,
                 Recommended = product.Type == SubscriptionProductType.PetShop,
                 Features = product.Type == SubscriptionProductType.PetShop
@@ -45,6 +47,8 @@ public sealed class PublicCommercialPlansController : ControllerBase
             Key = plan.Key,
             Name = plan.Name,
             MonthlyPrice = plan.MonthlyPrice,
+            ReleaseStage = ProductReleaseStage.Stable,
+            RequiresPayment = true,
             MaxUsers = plan.DefaultMaxUsers,
             Recommended = plan.Tier == CommercialPlanTier.Operation,
             Features = GetFeatures(segment, plan.Key)

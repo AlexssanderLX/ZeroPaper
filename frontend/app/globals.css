@@ -41600,6 +41600,28 @@ html[data-perf="lite"] * {
   align-items: center;
   margin-bottom: 20px;
 }
+
+/* Pet Shop beta communication. */
+.zp-lp-seg-beta-note {
+  display: block;
+  margin-top: 8px;
+  color: #9cb5b8;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.zp-pet-beta-banner {
+  width: min(100%, 720px);
+  margin: 6px auto 12px;
+  padding: 14px 18px;
+  border: 1px solid rgba(27, 226, 194, 0.34);
+  border-radius: 16px;
+  background: rgba(27, 226, 194, 0.08);
+  text-align: left;
+}
+
+.zp-pet-beta-banner strong { color: #83f5e1; }
+.zp-pet-beta-banner p { margin: 5px 0 0; color: #c5d6d6; font-size: 0.9rem; line-height: 1.5; }
 .ps-appointments-summary {
   border-color: rgba(91, 193, 158, 0.22);
   background: #101514;

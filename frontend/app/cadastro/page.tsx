@@ -58,20 +58,20 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
               <Link key={plan.key} className={plan.key === selectedPlan.key ? "is-active" : ""} href={`/cadastro?segmento=${segmentKey}&plano=${plan.key}`}>
                 {plan.recommended ? <span className="zp-plan-badge">Mais indicado</span> : null}
                 <strong>{shortName(plan.name)}</strong>
-                <span>R$ {plan.monthlyPrice.toFixed(0)}<small>/mes</small></span>
+                {segment === 1 ? <span>R$ {plan.monthlyPrice.toFixed(0)}<small>/mes</small></span> : <span>Beta sem cobranca</span>}
               </Link>
             ))}
           </nav>
           <article className="zp-signup-selected-plan">
             <span>O que esta incluido</span><strong>{selectedPlan.name}</strong>
-            <b>R$ {selectedPlan.monthlyPrice.toFixed(0)}<small>/mes</small></b>
+            {segment === 1 ? <b>R$ {selectedPlan.monthlyPrice.toFixed(0)}<small>/mes</small></b> : <b>Acesso por convite</b>}
             <ul>{selectedPlan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
           </article>
         </section>
 
         <section className="surface-card login-form-card zp-signup-sales-form">
-          <div className="zp-signup-form-plan-row"><div><span className="eyebrow">Plano selecionado</span><strong>{shortName(selectedPlan.name)}</strong></div><b className="zp-signup-form-price">R$ {selectedPlan.monthlyPrice.toFixed(0)}<small>/mes</small></b></div>
-          <h1 className="form-title">Criar sua conta</h1>
+          <div className="zp-signup-form-plan-row"><div><span className="eyebrow">{segment === 2 ? "Programa beta" : "Plano selecionado"}</span><strong>{shortName(selectedPlan.name)}</strong></div>{segment === 1 ? <b className="zp-signup-form-price">R$ {selectedPlan.monthlyPrice.toFixed(0)}<small>/mes</small></b> : <b className="zp-signup-form-price">Sem pagamento</b>}</div>
+          <h1 className="form-title">{segment === 2 ? "Solicitar acesso" : "Criar sua conta"}</h1>
           <RestaurantSignupForm selectedPlan={selectedPlan} segment={segment} />
         </section>
       </section>

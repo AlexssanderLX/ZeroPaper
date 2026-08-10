@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using ZeroPaper.Data;
 using ZeroPaper.Domain.Entities;
 using ZeroPaper.Domain.Enums;
+using ZeroPaper.Domain.Plans;
 using ZeroPaper.DTOs.Admin;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
@@ -109,6 +110,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
             ?? throw new InvalidOperationException("A empresa nao possui owner para a cobranca.");
         EnsureProductionCheckoutAccount(configuration, ownerEmail);
         var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
+        if (!SubscriptionProductCatalog.RequiresPayment(subscription.ProductType))
+            throw new InvalidOperationException("Produtos Pet em beta nao possuem cobranca.");
         if (subscription.MonthlyPrice <= 0) throw new InvalidOperationException("O plano precisa ter valor mensal maior que zero.");
         if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId) || !string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalPlanId))
             throw new InvalidOperationException("Essa empresa ja possui uma assinatura Mercado Pago. Sincronize o status em vez de gerar outra cobranca.");
@@ -156,6 +159,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
             ?? throw new KeyNotFoundException("Empresa nao encontrada.");
         var subscription = await _context.Subscriptions.FirstOrDefaultAsync(item => item.Id == subscriptionId && item.TenantId == company.TenantId, cancellationToken)
             ?? throw new KeyNotFoundException("Plano nao encontrado.");
+        if (!SubscriptionProductCatalog.RequiresPayment(subscription.ProductType))
+            throw new InvalidOperationException("Produtos Pet em beta nao possuem checkout.");
         if (!string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalId) || !string.IsNullOrWhiteSpace(subscription.MercadoPagoPreapprovalPlanId)) return MapCheckout(companyId, subscription);
         var rawConfirmationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         subscription.SetCheckoutConfirmationTokenHash(ComputeTokenHash(rawConfirmationToken));
@@ -192,6 +197,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
         await ValidateRootPasswordAsync(session, request.Password, cancellationToken);
         var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken) ?? throw new KeyNotFoundException("Empresa nao encontrada.");
         var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
+        if (!SubscriptionProductCatalog.RequiresPayment(subscription.ProductType))
+            throw new InvalidOperationException("Produtos Pet em beta nao recebem mensalidade.");
         var owner = await _context.Users.FirstAsync(item => item.CompanyId == companyId && item.Role == UserRole.Owner, cancellationToken);
         var payment = new SubscriptionPayment(company.TenantId, subscription.Id, "manual", Guid.NewGuid().ToString("N"), subscription.MonthlyPrice, DateTime.UtcNow, session.UserId);
         subscription.RegisterPaidMonth(payment.PaidAtUtc); owner.Activate();

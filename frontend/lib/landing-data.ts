@@ -58,10 +58,10 @@ export const businessSegments: BusinessSegment[] = [
     name: "Pet shops",
     description: "Servicos, clientes, atendimento, WhatsApp e agenda por modulo.",
     status: "available",
-    statusLabel: "Disponivel agora",
+    statusLabel: "Beta",
     icon: "🐾",
     href: "/segmentos/pet-shop",
-    ctaLabel: "Ver planos",
+    ctaLabel: "Solicitar acesso",
     modules: ["Servicos", "Clientes", "WhatsApp", "Agenda"],
   },
   {

@@ -130,7 +130,7 @@ export function AdminPlatformBillingPanel({ token, companies }: Props) {
         <div className="module-section-head"><div><span className="eyebrow">Assinaturas mensais</span><strong>Links por empresa</strong></div></div>
         <p className="admin-section-copy">O cliente autoriza a cobranca no checkout oficial do Mercado Pago. Use Sincronizar para consultar o estado diretamente na API.</p>
         <div className="module-card-list">
-          {companies.map((company) => {
+          {companies.filter((company) => company.productType === 1).map((company) => {
             const checkout = checkouts[company.companyId] ?? (company.platformBillingCheckoutUrl ? {
               companyId: company.companyId,
               subscriptionId: "",

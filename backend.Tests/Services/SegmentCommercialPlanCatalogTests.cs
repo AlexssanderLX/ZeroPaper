@@ -13,7 +13,8 @@ public sealed class SegmentCommercialPlanCatalogTests
 
         Assert.Equal(SubscriptionProductType.PetShop, product.Type);
         Assert.Equal("ZeroPaper Pet Shop", product.Name);
-        Assert.Equal(150m, product.MonthlyPrice);
+        Assert.Equal(ProductReleaseStage.Beta, product.ReleaseStage);
+        Assert.False(product.RequiresPayment);
         Assert.Equal(5, product.DefaultMaxUsers);
     }
 
@@ -25,10 +26,12 @@ public sealed class SegmentCommercialPlanCatalogTests
     }
 
     [Fact]
-    public void HostingProduct_HasSingleCanonicalPrice()
+    public void HostingProduct_IsResolvedWithoutCommercialPrice()
     {
         var product = SubscriptionProductCatalog.Resolve(SubscriptionProductType.PetHosting);
         Assert.Equal("ZeroPaper Hospedagem", product.Name);
-        Assert.Equal(100m, product.MonthlyPrice);
+        Assert.Equal(ProductReleaseStage.Beta, product.ReleaseStage);
+        Assert.False(product.RequiresPayment);
+        Assert.Equal(5, product.DefaultMaxUsers);
     }
 }

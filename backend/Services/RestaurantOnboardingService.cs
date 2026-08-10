@@ -139,6 +139,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             var selectedProduct = request.BusinessSegment == BusinessSegment.PetShop
                 ? SubscriptionProductCatalog.ResolvePet(request.PlanKey)
                 : null;
+            if (selectedProduct is { RequiresPayment: false } &&
+                request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"O {selectedProduct.Name} esta em {selectedProduct.ReleaseStage} e aceita somente solicitacoes de acesso.");
             var maxUsers = signupCode?.AllowedMaxUsers
                 ?? selectedPlan?.DefaultMaxUsers
                 ?? selectedProduct!.DefaultMaxUsers;
@@ -147,7 +150,7 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 ? new Subscription(
                     tenant.Id,
                     selectedProduct.Name,
-                    selectedProduct.MonthlyPrice,
+                    0m,
                     maxUsers,
                     DateTime.UtcNow,
                     SubscriptionStatus.Active,
@@ -207,7 +210,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
                 await _cashOrderTableService.EnsureAsync(tenant.Id, company.Id, cancellationToken);
             }
             string? checkoutUrl = null;
-            if (signupCode is null && request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase))
+            if (signupCode is null && request.RegistrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase) &&
+                (selectedProduct is null || selectedProduct.RequiresPayment))
             {
                 checkoutUrl = (await _platformBillingService.CreateSignupCheckoutAsync(subscription.Id, company.Id, owner.Email, cancellationToken)).CheckoutUrl;
             }
@@ -253,7 +257,8 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             .FirstOrDefaultAsync(cancellationToken);
 
         string? checkoutUrl = null;
-        if (!owner.IsActive && registrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase) && subscription is not null)
+        if (!owner.IsActive && registrationFlow.Equals("pay_now", StringComparison.OrdinalIgnoreCase) && subscription is not null &&
+            SubscriptionProductCatalog.RequiresPayment(subscription.ProductType))
             checkoutUrl = (await _platformBillingService.CreateSignupCheckoutAsync(subscription.Id, owner.CompanyId, owner.Email, cancellationToken)).CheckoutUrl;
 
         return new RestaurantOnboardingResponseDto
@@ -344,7 +349,9 @@ public class RestaurantOnboardingService : IRestaurantOnboardingService
             OwnerName = request.OwnerName,
             OwnerEmail = request.OwnerEmail,
             ContactPhone = request.ContactPhone,
-            Notes = $"Pre-cadastro criado e aguardando liberacao no painel admin. Plano escolhido: {subscription.PlanName} ({subscription.MonthlyPrice:C}/mes)."
+            Notes = subscription.ProductType == SubscriptionProductType.PetShop
+                ? $"Solicitacao para o beta Pet Shop aguardando liberacao manual. Produto: {subscription.PlanName}."
+                : $"Pre-cadastro criado e aguardando liberacao no painel admin. Plano escolhido: {subscription.PlanName} ({subscription.MonthlyPrice:C}/mes)."
         }, cancellationToken);
     }
 

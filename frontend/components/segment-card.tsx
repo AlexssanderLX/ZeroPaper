@@ -62,6 +62,7 @@ type Props = {
 };
 
 export function SegmentCard({ segKey, name, description, modules, available, unavailableLabel = "Indisponivel", href }: Props) {
+  const isPetBeta = segKey === "petshop";
   return (
     <article className={`zp-lp-seg-card zp-lp-reveal${available ? " is-available" : " is-unavailable"}`}>
       <div className="zp-lp-seg-head">
@@ -69,7 +70,7 @@ export function SegmentCard({ segKey, name, description, modules, available, una
           {segmentIconMap[segKey] ?? segmentIconMap.custom}
         </span>
         <span className={`zp-lp-seg-status ${available ? "zp-lp-status-available" : "zp-lp-status-unavailable"}`}>
-          {available ? "Disponível" : unavailableLabel}
+          {isPetBeta ? "Beta" : available ? "Disponível" : unavailableLabel}
         </span>
       </div>
 
@@ -86,13 +87,14 @@ export function SegmentCard({ segKey, name, description, modules, available, una
 
       {available ? (
         <Link href={href} className="zp-lp-seg-cta">
-          Ver planos →
+          {isPetBeta ? "Solicitar acesso" : "Ver planos"} →
         </Link>
       ) : (
         <span className="zp-lp-seg-cta zp-lp-seg-cta-muted" aria-disabled="true">
           {unavailableLabel}
         </span>
       )}
+      {isPetBeta ? <small className="zp-lp-seg-beta-note">Valores de teste disponiveis mediante contato.</small> : null}
     </article>
   );
 }

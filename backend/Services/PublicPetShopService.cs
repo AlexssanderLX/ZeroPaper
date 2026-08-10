@@ -150,7 +150,6 @@ public sealed class PublicPetShopService : IPublicPetShopService
 
     private async Task<Subscription> EnsurePublicBookingEnabledAsync(Guid tenantId, CancellationToken cancellationToken)
     {
-        var utcNow = DateTime.UtcNow;
         var subscription = await _context.Subscriptions
             .AsNoTracking()
             .Where(item => item.TenantId == tenantId && item.IsActive &&
@@ -159,7 +158,7 @@ public sealed class PublicPetShopService : IPublicPetShopService
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("Pet Shop nao encontrado.");
 
-        if (subscription.ProductType != SubscriptionProductType.PetShop || !subscription.HasPaidAccess(utcNow))
+        if (subscription.ProductType != SubscriptionProductType.PetShop)
         {
             throw new KeyNotFoundException("Pet Shop nao encontrado.");
         }

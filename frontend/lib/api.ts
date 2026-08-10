@@ -922,6 +922,8 @@ export type AdminSubscriptionCheckout = {
   subscriptionId: string;
   planName: string;
   monthlyPrice: number;
+  releaseStage: 1 | 2;
+  requiresPayment: boolean;
   mercadoPagoStatus?: string | null;
   checkoutUrl?: string | null;
   statusUpdatedAtUtc?: string | null;

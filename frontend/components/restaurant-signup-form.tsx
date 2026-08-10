@@ -30,7 +30,7 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
     // Pressing Enter may submit the form without a submitter in some desktop
     // browsers. Payment is the primary action, so only an explicit click on
     // the secondary button may create a pre-registration.
-    const registrationFlow = submitter?.value === "pre_registration" ? "pre_registration" : "pay_now";
+    const registrationFlow = segment === 2 || submitter?.value === "pre_registration" ? "pre_registration" : "pay_now";
 
     if (!businessName || !ownerName || !ownerEmail || !contactPhone || !ownerPassword) {
       setErrorMessage("Preencha todos os campos para continuar.");
@@ -170,13 +170,13 @@ export function RestaurantSignupForm({ selectedPlan, segment }: Props) {
         </div>
       </div>
       {errorMessage ? <p className="form-feedback" role="alert">{errorMessage}</p> : null}
-      <button className="primary-link button-link signup-submit" type="submit" value="pay_now" disabled={isSubmitting}>
+      {segment === 1 ? <button className="primary-link button-link signup-submit" type="submit" value="pay_now" disabled={isSubmitting}>
         {isSubmitting ? "Processando..." : `Pagar e liberar — ${shortPlanName}`}
-      </button>
-      <button className="ghost-link button-link signup-submit" type="submit" value="pre_registration" disabled={isSubmitting}>
+      </button> : null}
+      <button className={`${segment === 2 ? "primary-link" : "ghost-link"} button-link signup-submit`} type="submit" value="pre_registration" disabled={isSubmitting}>
         {isSubmitting ? "Enviando..." : `Solicitar acesso — ${shortPlanName}`}
       </button>
-      <p className="signup-form-hint">O plano, valor e modulos serao confirmados com seguranca pelo servidor.</p>
+      <p className="signup-form-hint">{segment === 2 ? "O Pet Shop esta em beta. Nao ha pagamento nesta etapa; a equipe entrara em contato para liberar o teste." : "O plano, valor e modulos serao confirmados com seguranca pelo servidor."}</p>
     </form>
   );
 }

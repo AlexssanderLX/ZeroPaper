@@ -3,9 +3,6 @@ import Link from "next/link";
 import { PublicSiteHeader } from "@/components/public-site-header";
 import { LandingMotion } from "@/components/landing-motion";
 import { ElectricBg } from "@/components/electric-bg";
-import { getPublicCommercialPlans, type PublicCommercialPlan } from "@/lib/api";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Planos para Pet Shops | ZeroPaper",
@@ -13,10 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/segmentos/pet-shop" },
 };
 
-export default async function PetShopPage() {
-  let plans: PublicCommercialPlan[] = [];
-  try { plans = await getPublicCommercialPlans(2); } catch { /* cadastro exibe falha segura */ }
-
+export default function PetShopPage() {
   return (
     <main className="zpld" id="pet-shop-page">
       <LandingMotion />
@@ -31,34 +25,37 @@ export default async function PetShopPage() {
       <section className="zpld-section zpld-page-hero" aria-labelledby="pet-title">
         <div className="zpld-section-head" style={{ marginBottom: "2.5rem" }}>
           <Link href="/segmentos" className="zpld-breadcrumb">Voltar aos segmentos</Link>
-          <span>Pet shops</span>
+          <span>Pet shops · Beta</span>
+          <div className="zp-pet-beta-banner" role="note">
+            <strong>Programa beta com acesso controlado</strong>
+            <p>O modulo Pet Shop ainda esta em testes e nao possui cobranca. Valores especiais de teste podem ser consultados diretamente com a ZeroPaper.</p>
+          </div>
           <h1 id="pet-title" className="zpld-h1" style={{ fontSize: "clamp(1.9rem,3vw,3.2rem)", textAlign: "center" }}>
             Agenda, tutores, animais e servicos em um unico fluxo.
           </h1>
-          <p>O MVP do ZeroPaper Pet para organizar o atendimento da sua unidade.</p>
+          <p>Teste agenda, tutores, animais e servicos com acompanhamento direto da ZeroPaper.</p>
           <div className="zpld-ctas" style={{ justifyContent: "center", marginTop: "0.5rem" }}>
-            <Link className="zpld-btn-primary" href="/cadastro?segmento=petshop&plano=pet-shop">Criar conta agora</Link>
-            <a className="zpld-btn-ghost" href="#planos-pet">Ver produtos</a>
+            <Link className="zpld-btn-primary" href="/cadastro?segmento=petshop&plano=pet-shop">Solicitar acesso ao beta</Link>
+            <Link className="zpld-btn-ghost" href="/contato">Falar sobre valores de teste</Link>
           </div>
         </div>
       </section>
 
-      <section className="zpld-section zp-lp-reveal" id="planos-pet" aria-labelledby="pet-plans-title">
+      <section className="zpld-section zp-lp-reveal" id="recursos-pet" aria-labelledby="pet-plans-title">
         <div className="zpld-section-head">
-          <span>Produtos</span>
-          <h2 id="pet-plans-title">Escolha o produto para a sua operacao.</h2>
-          <p>Mensalidade fixa por unidade, sem tiers internos.</p>
+          <span>Beta Pet Shop</span>
+          <h2 id="pet-plans-title">O que esta disponivel para teste.</h2>
+          <p>Sem checkout ou mensalidade durante esta fase. A liberacao e feita manualmente.</p>
         </div>
         <div className="zp-lp-plans-grid">
-          {plans.map((plan) => (
-            <article key={plan.key} className={`zp-lp-plan-card zp-lp-reveal${plan.recommended ? " is-spotlight" : ""}`}>
-              {plan.recommended ? <em className="zp-lp-plan-badge">Mais indicado</em> : null}
-              <h3>{plan.name.replace("ZeroPaper ", "")}</h3>
-              <div className="zp-lp-plan-price"><strong>R$ {plan.monthlyPrice.toFixed(0)}</strong><small>/mes</small></div>
-              <ul className="zp-lp-plan-features">{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
-              <Link className="zp-lp-plan-cta" href={`/cadastro?segmento=petshop&plano=${plan.key}`}>Escolher {plan.name.replace("ZeroPaper ", "")}</Link>
-            </article>
-          ))}
+          <article className="zp-lp-plan-card zp-lp-reveal is-spotlight">
+            <em className="zp-lp-plan-badge">Beta</em>
+            <h3>ZeroPaper Pet Shop</h3>
+            <ul className="zp-lp-plan-features">
+              {["Cadastro de tutores e animais", "Catalogo de servicos", "Agenda interna", "Agendamento publico"].map((feature) => <li key={feature}>{feature}</li>)}
+            </ul>
+            <Link className="zp-lp-plan-cta" href="/cadastro?segmento=petshop&plano=pet-shop">Solicitar acesso</Link>
+          </article>
         </div>
       </section>
     </main>
