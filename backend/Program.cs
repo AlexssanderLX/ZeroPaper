@@ -57,16 +57,22 @@ var httpsPort = builder.Configuration.GetValue<int?>("Security:HttpsPort");
 var dataProtectionPath = builder.Configuration["Security:DataProtectionPath"];
 var uploadsPath = builder.Configuration["Storage:UploadsPath"];
 
+// "Testing" (used by WebApplicationFactory<Program> in integration tests) must resolve
+// to the same content-root-relative paths as Development. Otherwise it falls through to
+// the hardcoded production path (/var/lib/zeropaper), which only exists with the right
+// ownership on the VPS — CI runners (and any other non-VPS host) get UnauthorizedAccessException.
+var usesLocalStoragePaths = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
+
 if (string.IsNullOrWhiteSpace(dataProtectionPath))
 {
-    dataProtectionPath = builder.Environment.IsDevelopment()
+    dataProtectionPath = usesLocalStoragePaths
         ? Path.Combine(builder.Environment.ContentRootPath, ".dataprotection")
         : Path.Combine("/var/lib/zeropaper", "dataprotection");
 }
 
 if (string.IsNullOrWhiteSpace(uploadsPath))
 {
-    uploadsPath = builder.Environment.IsDevelopment()
+    uploadsPath = usesLocalStoragePaths
         ? Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads")
         : Path.Combine("/var/lib/zeropaper", "uploads");
 }
