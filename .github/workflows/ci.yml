@@ -4,9 +4,16 @@ on:
   push:
     branches:
       - main
+      - develop
+      - 'feature/**'
+      - 'fix/**'
+      - 'test/**'
+      - 'chore/**'
+      - 'docs/**'
   pull_request:
     branches:
       - main
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -19,7 +26,6 @@ concurrency:
 jobs:
   backend:
     name: Backend (.NET)
-    if: ${{ github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -36,45 +42,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'NuGet.Config', 'backend/ZeroPaper.csproj', 'tools/TestOps/TestOps.csproj') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'NuGet.Config', 'backend/ZeroPaper.csproj', 'backend.Tests/ZeroPaper.Tests.csproj', 'tools/TestOps/TestOps.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
       - name: Restore backend
         run: dotnet restore backend/ZeroPaper.csproj
 
+      - name: Restore backend tests
+        run: dotnet restore backend.Tests/ZeroPaper.Tests.csproj
+
       - name: Build backend
         run: dotnet build backend/ZeroPaper.csproj --configuration Release --no-restore
 
-      - name: Run .NET tests when present
-        shell: bash
-        run: |
-          set -euo pipefail
+      - name: Build backend tests
+        run: dotnet build backend.Tests/ZeroPaper.Tests.csproj --configuration Release --no-restore
 
-          mapfile -t test_projects < <(
-            find backend tools \
-              -path '*/bin' -prune -o \
-              -path '*/obj' -prune -o \
-              -name '*.csproj' -print |
-            while IFS= read -r project; do
-              if grep -Eq 'Microsoft.NET.Test.Sdk|xunit|NUnit|MSTest' "$project"; then
-                printf '%s\n' "$project"
-              fi
-            done
-          )
-
-          if [ "${#test_projects[@]}" -eq 0 ]; then
-            echo "No .NET test projects found. Skipping dotnet test."
-            exit 0
-          fi
-
-          for project in "${test_projects[@]}"; do
-            dotnet test "$project" --configuration Release --no-restore --no-build
-          done
+      - name: Run backend tests
+        run: dotnet test backend.Tests/ZeroPaper.Tests.csproj --configuration Release --no-restore --no-build
 
   frontend:
     name: Frontend (Next.js)
-    if: ${{ github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -123,7 +111,6 @@ jobs:
 
   print-agent:
     name: Print Agent (Windows)
-    if: ${{ github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
     runs-on: windows-latest
     timeout-minutes: 15
 
