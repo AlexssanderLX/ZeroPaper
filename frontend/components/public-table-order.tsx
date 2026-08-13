@@ -1303,6 +1303,12 @@ export function PublicTableOrder({
     ? `Tempo estimado para entrega: ${table.deliveryEstimatedMinutes} minutos.`
     : "";
   const activeFulfillmentEstimate = isDeliveryFlow ? deliveryEstimateLabel : isPickupFlow ? pickupEstimateLabel : "";
+  // Fixed time set by the owner for the order's actual fulfillment type, shown on the success screen.
+  const createdOrderEstimatedMinutes = isDeliveryChannel
+    ? createdOrderIsPickup
+      ? table?.pickupEstimatedMinutes
+      : table?.deliveryEstimatedMinutes
+    : null;
 
   return (
     <main className="page-shell public-shell">
@@ -1425,6 +1431,12 @@ export function PublicTableOrder({
                     <span>Enviado em</span>
                     <strong>{formatDateTime(createdOrder.submittedAtUtc)}</strong>
                   </div>
+                  {createdOrderEstimatedMinutes ? (
+                    <div className="public-success-stat">
+                      <span>{createdOrderIsPickup ? "Tempo estimado p/ retirada" : "Tempo estimado p/ entrega"}</span>
+                      <strong>{createdOrderEstimatedMinutes} min</strong>
+                    </div>
+                  ) : null}
                 </div>
 
                 {createdOrder.deliveryAssistantMessage
