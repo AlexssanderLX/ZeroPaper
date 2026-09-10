@@ -75,7 +75,7 @@ public class AuthSessionService : IAuthSessionService
             }
         }
         else if (requestedProfile?.Equals("restaurant", StringComparison.OrdinalIgnoreCase) == true &&
-                 user.Role == UserRole.Root)
+                  user.Role == UserRole.Root)
         {
             return null;
         }
@@ -93,12 +93,17 @@ public class AuthSessionService : IAuthSessionService
             throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
         }
 
+        if (user.Company.IsDemoAccount)
+        {
+            return null;
+        }
+
         if (!user.Company.IsActive || !IsSupportedBusinessSegment(user.Company.BusinessSegment))
         {
             throw new InvalidOperationException("Este acesso esta temporariamente indisponivel. Entre em contato com a ZeroPaper.");
         }
 
-        if (user.Role != UserRole.Root)
+        if (user.Role != UserRole.Root && !user.Company.IsBillingExempt)
         {
             var subscriptionAccess = await _context.Subscriptions
                 .Where(item => item.TenantId == user.TenantId && item.IsActive)
@@ -143,7 +148,8 @@ public class AuthSessionService : IAuthSessionService
             Email = user.Email,
             OwnerName = user.FullName,
             Role = user.Role.ToString(),
-            RestaurantName = user.Company.TradeName
+            RestaurantName = user.Company.TradeName,
+            IsDemoAccount = false
         };
     }
 
@@ -174,7 +180,7 @@ public class AuthSessionService : IAuthSessionService
             return null;
         }
 
-        if (!user.IsActive || !user.Company.IsActive ||
+        if (!user.IsActive || !user.Company.IsActive || user.Company.IsDemoAccount ||
             !IsSupportedBusinessSegment(user.Company.BusinessSegment) ||
             !user.HasActiveShortcutAccess(utcNow))
         {
@@ -206,7 +212,58 @@ public class AuthSessionService : IAuthSessionService
             Email = user.Email,
             OwnerName = user.FullName,
             Role = user.Role.ToString(),
-            RestaurantName = user.Company.TradeName
+            RestaurantName = user.Company.TradeName,
+            IsDemoAccount = false
+        };
+    }
+
+    public async Task<LoginResponseDto?> LoginWithDemoAsync(DemoLoginRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var rawToken = request.Token?.Trim();
+        if (string.IsNullOrWhiteSpace(rawToken) || rawToken.Length is < 64 or > 256)
+        {
+            return null;
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var tokenHash = ComputeTokenHash(rawToken);
+        var link = await _context.DemoAccessLinks
+            .Include(item => item.Company)
+            .Include(item => item.AppUser)
+            .FirstOrDefaultAsync(item => item.TokenHash == tokenHash, cancellationToken);
+
+        if (link is null || !link.IsAvailable() || !link.Company.IsDemoAccount ||
+            !link.Company.IsActive || !link.AppUser.IsActive || link.AppUser.Role != UserRole.Owner)
+        {
+            return null;
+        }
+
+        await _cashOrderTableService.EnsureAsync(link.TenantId, link.CompanyId, cancellationToken);
+        var rawSessionToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        var session = new AppSession(
+            link.TenantId,
+            link.CompanyId,
+            link.AppUserId,
+            ComputeTokenHash(rawSessionToken),
+            utcNow.Add(SessionLifetime),
+            link.Id);
+
+        await RevokeExcessSessionsAsync(link.AppUserId, utcNow, cancellationToken);
+        link.RegisterUsage(utcNow);
+        link.AppUser.RegisterLogin();
+        await _context.Sessions.AddAsync(session, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new LoginResponseDto
+        {
+            Token = rawSessionToken,
+            ExpiresAtUtc = session.ExpiresAtUtc,
+            Email = string.Empty,
+            OwnerName = "Visitante demonstracao",
+            Role = UserRole.Owner.ToString(),
+            RestaurantName = link.Company.TradeName,
+            IsDemoAccount = true
         };
     }
 
@@ -272,6 +329,7 @@ public class AuthSessionService : IAuthSessionService
         var session = await _context.Sessions
             .Include(item => item.AppUser)
             .Include(item => item.Company)
+            .Include(item => item.DemoAccessLink)
             .FirstOrDefaultAsync(
                 item => item.TokenHash == tokenHash &&
                         item.IsActive &&
@@ -284,7 +342,23 @@ public class AuthSessionService : IAuthSessionService
             return null;
         }
 
-        if (session.AppUser.Role != UserRole.Root)
+        if (session.Company.IsDemoAccount)
+        {
+            if (session.DemoAccessLink is null || !session.DemoAccessLink.IsAvailable())
+            {
+                session.Revoke(utcNow);
+                await _context.SaveChangesAsync(cancellationToken);
+                return null;
+            }
+        }
+        else if (session.DemoAccessLinkId.HasValue)
+        {
+            session.Revoke(utcNow);
+            await _context.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        if (session.AppUser.Role != UserRole.Root && !session.Company.IsDemoAccount && !session.Company.IsBillingExempt)
         {
             var subscriptionAccess = await _context.Subscriptions
                 .Where(item => item.TenantId == session.TenantId && item.IsActive)
@@ -378,7 +452,8 @@ public class AuthSessionService : IAuthSessionService
             HasAdvancedReports = planFeatures.HasAdvancedReports,
             HasCoupons = planFeatures.HasCoupons,
             HasRecurringCustomers = planFeatures.HasRecurringCustomers,
-            HasSalesAgents = planFeatures.HasSalesAgents
+            HasSalesAgents = planFeatures.HasSalesAgents,
+            IsDemoAccount = session.Company.IsDemoAccount
         };
         if (httpContext is not null)
         {

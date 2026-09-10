@@ -123,6 +123,10 @@ public class Company : TenantOwnedEntity
     public TimeOnly AppointmentEndTime { get; private set; } = new(18, 0);
     public int AppointmentSlotIntervalMinutes { get; private set; } = 30;
     public string? PetShopPublicCode { get; private set; }
+    public bool IsDemoAccount { get; private set; }
+    public bool IsBillingExempt { get; private set; }
+    public DateTime? BillingExemptChangedAtUtc { get; private set; }
+    public Guid? BillingExemptChangedByUserId { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public IReadOnlyCollection<AppUser> Users => _users.AsReadOnly();
@@ -137,6 +141,25 @@ public class Company : TenantOwnedEntity
     public IReadOnlyCollection<WhatsAppConversation> WhatsAppConversations => _whatsAppConversations.AsReadOnly();
     public IReadOnlyCollection<Pet> Pets => _pets.AsReadOnly();
     public IReadOnlyCollection<Appointment> Appointments => _appointments.AsReadOnly();
+
+    public void MarkAsDemoAccount()
+    {
+        IsDemoAccount = true;
+        Touch();
+    }
+
+    public void SetBillingExemption(bool isExempt, Guid changedByUserId, DateTime changedAtUtc)
+    {
+        if (changedByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("O usuario responsavel e obrigatorio.", nameof(changedByUserId));
+        }
+
+        IsBillingExempt = isExempt;
+        BillingExemptChangedByUserId = changedByUserId;
+        BillingExemptChangedAtUtc = changedAtUtc;
+        Touch();
+    }
 
     public void ChangeBusinessSegment(BusinessSegment businessSegment)
     {

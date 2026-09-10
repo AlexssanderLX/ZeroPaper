@@ -123,6 +123,20 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("demo-login")]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-write")]
+    [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DemoLoginAsync([FromBody] DemoLoginRequestDto request, CancellationToken cancellationToken)
+    {
+        var response = await _authSessionService.LoginWithDemoAsync(request, cancellationToken);
+        if (response is null) return Unauthorized();
+        SetSessionCookie(response.Token, response.ExpiresAtUtc);
+        response.Token = string.Empty;
+        return Ok(response);
+    }
+
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)

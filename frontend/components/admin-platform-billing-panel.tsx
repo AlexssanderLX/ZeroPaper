@@ -142,12 +142,12 @@ export function AdminPlatformBillingPanel({ token, companies }: Props) {
             } : undefined);
             return (
               <article className="module-entity-card" key={company.companyId}>
-                <div className="entity-head"><div><h3>{company.restaurantName}</h3><p>{company.ownerEmail}</p></div><span className="status-chip warning">R$ {company.monthlyPrice}/mes</span></div>
-                <p className="admin-section-copy">Status: {checkout?.mercadoPagoStatus ?? "sem assinatura"} · Pago ate: {company.paidThroughUtc ? new Date(company.paidThroughUtc).toLocaleDateString("pt-BR") : "nao pago"}</p>
+                <div className="entity-head"><div><h3>{company.restaurantName}</h3><p>{company.ownerEmail}</p></div><span className={`status-chip ${company.isBillingExempt ? "available" : "warning"}`}>{company.isBillingExempt ? "Isenta" : `R$ ${company.monthlyPrice}/mes`}</span></div>
+                <p className="admin-section-copy">{company.isBillingExempt ? "Mensalidade dispensada pelo Root." : `Status: ${checkout?.mercadoPagoStatus ?? "sem assinatura"} · Pago ate: ${company.paidThroughUtc ? new Date(company.paidThroughUtc).toLocaleDateString("pt-BR") : "nao pago"}`}</p>
                 <div className="toolbar-actions compact">
-                  <button className="primary-link button-link" type="button" disabled={!status?.configured || Boolean(busy)} onClick={() => void handleCreate(company)}>{busy === `create:${company.companyId}` ? "Criando..." : "Gerar link"}</button>
+                  <button className="primary-link button-link" type="button" disabled={company.isBillingExempt || !status?.configured || Boolean(busy)} onClick={() => void handleCreate(company)}>{busy === `create:${company.companyId}` ? "Criando..." : "Gerar link"}</button>
                   <button className="ghost-link button-link" type="button" disabled={!status?.configured || Boolean(busy)} onClick={() => void handleSync(company)}>{busy === `sync:${company.companyId}` ? "Consultando..." : "Sincronizar"}</button>
-                  <button className="ghost-link button-link" type="button" disabled={Boolean(busy)} onClick={() => void handleMarkPaid(company)}>{busy === `paid:${company.companyId}` ? "Confirmando..." : "Marcar pago"}</button>
+                  <button className="ghost-link button-link" type="button" disabled={company.isBillingExempt || Boolean(busy)} onClick={() => void handleMarkPaid(company)}>{busy === `paid:${company.companyId}` ? "Confirmando..." : "Marcar pago"}</button>
                   {checkout?.checkoutUrl ? <a className="ghost-link inline-link" href={checkout.checkoutUrl} target="_blank" rel="noopener noreferrer">Abrir checkout</a> : null}
                 </div>
               </article>

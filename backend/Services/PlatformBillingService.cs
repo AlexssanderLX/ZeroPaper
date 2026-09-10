@@ -105,6 +105,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
         var accessToken = Unprotect(configuration.AccessTokenCipherText);
         var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken)
             ?? throw new KeyNotFoundException("Empresa nao encontrada.");
+        if (company.IsBillingExempt)
+            throw new InvalidOperationException("Esta empresa esta isenta de mensalidade. Reative a cobranca antes de gerar um checkout.");
         var ownerEmail = await _context.Users.Where(item => item.CompanyId == companyId && item.Role == UserRole.Owner)
             .OrderByDescending(item => item.IsActive).Select(item => item.Email).FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("A empresa nao possui owner para a cobranca.");
@@ -157,6 +159,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
         EnsureProductionCheckoutAccount(configuration, ownerEmail);
         var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken)
             ?? throw new KeyNotFoundException("Empresa nao encontrada.");
+        if (company.IsBillingExempt)
+            throw new InvalidOperationException("Esta empresa esta isenta de mensalidade e nao precisa de checkout.");
         var subscription = await _context.Subscriptions.FirstOrDefaultAsync(item => item.Id == subscriptionId && item.TenantId == company.TenantId, cancellationToken)
             ?? throw new KeyNotFoundException("Plano nao encontrado.");
         if (!SubscriptionProductCatalog.RequiresPayment(subscription.ProductType))
@@ -196,6 +200,8 @@ public sealed class PlatformBillingService : IPlatformBillingService
     {
         await ValidateRootPasswordAsync(session, request.Password, cancellationToken);
         var company = await _context.Companies.FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken) ?? throw new KeyNotFoundException("Empresa nao encontrada.");
+        if (company.IsBillingExempt)
+            throw new InvalidOperationException("Esta empresa esta isenta de mensalidade. Reative a cobranca antes de registrar pagamento.");
         var subscription = await GetSubscriptionAsync(company.TenantId, cancellationToken);
         if (!SubscriptionProductCatalog.RequiresPayment(subscription.ProductType))
             throw new InvalidOperationException("Produtos Pet em beta nao recebem mensalidade.");

@@ -22,3 +22,8 @@ public class UpdateAdminCompanyPlanRequestDto : AdminSensitiveActionRequestDto
     public bool IncludesAiAssistantModule { get; set; }
     public int MaxUsers { get; set; }
 }
+
+public sealed class UpdateAdminCompanyBillingExemptionRequestDto : AdminSensitiveActionRequestDto
+{
+    public bool IsExempt { get; set; }
+}

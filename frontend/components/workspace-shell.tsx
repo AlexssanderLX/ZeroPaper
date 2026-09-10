@@ -417,6 +417,12 @@ export function WorkspaceShell({
         </aside>
 
         <div className="workspace-app-main">
+          {session.isDemoAccount ? (
+            <div className="workspace-demo-banner" role="status">
+              <strong>Ambiente de demonstracao</strong>
+              <span>Os dados desta unidade sao apenas para testes. O acesso pode ser encerrado pelo administrador.</span>
+            </div>
+          ) : null}
           <header className="app-topbar workspace-content-topbar">
             <div className="workspace-current-context">
               <span className="eyebrow">ZeroPaper</span>
