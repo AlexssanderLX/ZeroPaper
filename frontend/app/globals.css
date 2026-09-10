@@ -41601,6 +41601,97 @@ html[data-perf="lite"] * {
   margin-bottom: 20px;
 }
 
+/* Admin root: conta de demonstracao */
+.admin-demo-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-demo-card {
+  display: grid;
+  gap: 16px;
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.admin-demo-card h2,
+.admin-demo-card p {
+  margin: 0;
+}
+
+.admin-demo-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-demo-metrics > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-demo-metrics span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.admin-demo-metrics strong {
+  overflow-wrap: anywhere;
+}
+
+.admin-demo-link-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.admin-demo-link-box input {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-demo-link-mask {
+  padding: 12px 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: var(--muted);
+}
+
+.workspace-demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(245, 178, 75, 0.35);
+  background: rgba(245, 178, 75, 0.12);
+  color: #ffe3ad;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 850px) {
+  .admin-demo-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-demo-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 540px) {
+  .admin-demo-metrics,
+  .admin-demo-link-box {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Pet Shop beta communication. */
 .zp-lp-seg-beta-note {
   display: block;

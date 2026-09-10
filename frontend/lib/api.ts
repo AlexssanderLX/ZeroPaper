@@ -40,6 +40,7 @@ export type LoginResult = {
   ownerName: string;
   role: string;
   restaurantName: string;
+  isDemoAccount?: boolean;
 };
 
 export type ShortcutLoginPayload = {
@@ -739,6 +740,21 @@ export type RestaurantSignupPayload = {
   registrationFlow: "pay_now" | "pre_registration";
 };
 
+export type AdminDemoAccount = {
+  exists: boolean;
+  companyId?: string | null;
+  restaurantName: string;
+  planName: string;
+  hasActiveLink: boolean;
+  linkCreatedAtUtc?: string | null;
+  linkLastUsedAtUtc?: string | null;
+  activeSessionCount: number;
+};
+
+export type AdminDemoLinkCreated = AdminDemoAccount & {
+  accessUrl: string;
+};
+
 export type RestaurantSignupResult = {
   tenantIdentifier: string;
   accessSlug: string;
@@ -899,6 +915,16 @@ export type AdminCompanyFlow = {
   platformBillingCheckoutUrl?: string | null;
   platformBillingStatusUpdatedAtUtc?: string | null;
   paidThroughUtc?: string | null;
+  isBillingExempt: boolean;
+  isDemoAccount: boolean;
+  billingExemptChangedAtUtc?: string | null;
+};
+
+export type AdminCompanyBillingExemption = {
+  companyId: string;
+  restaurantName: string;
+  isBillingExempt: boolean;
+  changedAtUtc?: string | null;
 };
 
 export type AdminDashboard = {
@@ -1428,6 +1454,33 @@ export async function getPublicCommercialPlans(segment: 1 | 2) {
   }));
 }
 
+export function loginWithDemo(payload: ShortcutLoginPayload) {
+  return apiRequest<LoginResult>("/api/auth/demo-login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function getAdminDemoAccount(token: string) {
+  return apiRequest<AdminDemoAccount>("/api/admin/demo-account", { token });
+}
+
+export function ensureAdminDemoAccount(token: string) {
+  return apiRequest<AdminDemoAccount>("/api/admin/demo-account", { method: "POST", token });
+}
+
+export function rotateAdminDemoLink(token: string) {
+  return apiRequest<AdminDemoLinkCreated>("/api/admin/demo-account/link", { method: "POST", token });
+}
+
+export function revokeAdminDemoLink(token: string) {
+  return apiRequest<AdminDemoAccount>("/api/admin/demo-account/link", { method: "DELETE", token });
+}
+
+export function revokeAdminDemoSessions(token: string) {
+  return apiRequest<AdminDemoAccount>("/api/admin/demo-account/sessions", { method: "DELETE", token });
+}
+
 export function getAdminDashboard(token: string) {
   return apiRequest<AdminDashboard>("/api/admin/dashboard", { token });
 }
@@ -1601,6 +1654,18 @@ export function rotateAdminMasterPassword(token: string, companyId: string, payl
 
 export function updateAdminCompanyPlan(token: string, companyId: string, payload: UpdateAdminCompanyPlanPayload) {
   return apiRequest<AdminCompanyPlanUpdate>(`/api/admin/companies/${companyId}/plan`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export function updateAdminCompanyBillingExemption(
+  token: string,
+  companyId: string,
+  payload: AdminSensitiveActionPayload & { isExempt: boolean },
+) {
+  return apiRequest<AdminCompanyBillingExemption>(`/api/admin/companies/${companyId}/billing-exemption`, {
     method: "PATCH",
     token,
     body: payload,

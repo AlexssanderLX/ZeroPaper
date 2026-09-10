@@ -23,17 +23,20 @@ public class AdminDashboardService : IAdminDashboardService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IDataProtector _dataProtector;
     private readonly OpenAiApiOptions _options;
+    private readonly ILogger<AdminDashboardService> _logger;
 
     public AdminDashboardService(
         ZeroPaperDbContext context,
         IPasswordHasher passwordHasher,
         IDataProtectionProvider dataProtectionProvider,
-        IOptions<OpenAiApiOptions> options)
+        IOptions<OpenAiApiOptions> options,
+        ILogger<AdminDashboardService> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _dataProtector = dataProtectionProvider.CreateProtector("ZeroPaper.Admin.MasterPassword.v1");
         _options = options.Value;
+        _logger = logger;
     }
 
     public async Task<AdminDashboardDto> GetDashboardAsync(WorkspaceSessionContext session, CancellationToken cancellationToken = default)
@@ -212,8 +215,11 @@ public class AdminDashboardService : IAdminDashboardService
                     .OrderByDescending(subscription => subscription.StartsAtUtc)
                     .Select(subscription => subscription.PaidThroughUtc)
                     .FirstOrDefault(),
-                IsCompanyActive = item.IsActive && _context.Subscriptions.Any(subscription =>
-                    subscription.TenantId == item.TenantId && subscription.IsActive && subscription.PaidThroughUtc > utcNow),
+                IsBillingExempt = item.IsBillingExempt,
+                IsDemoAccount = item.IsDemoAccount,
+                BillingExemptChangedAtUtc = item.BillingExemptChangedAtUtc,
+                IsCompanyActive = item.IsActive && (item.IsBillingExempt || _context.Subscriptions.Any(subscription =>
+                    subscription.TenantId == item.TenantId && subscription.IsActive && subscription.PaidThroughUtc > utcNow)),
                 TablesCount = item.Tables.Count(table => table.IsActive && !table.IsDeliveryChannel),
                 MenuItemsCount = item.MenuItems.Count(menuItem => menuItem.IsActive),
                 StockItemsCount = item.StockItems.Count(stockItem => stockItem.IsActive),
@@ -473,6 +479,57 @@ public class AdminDashboardService : IAdminDashboardService
         return MapPlanUpdate(company, subscription);
     }
 
+    public async Task<AdminCompanyBillingExemptionDto> UpdateCompanyBillingExemptionAsync(
+        WorkspaceSessionContext session,
+        Guid companyId,
+        UpdateAdminCompanyBillingExemptionRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Password);
+
+        EnsureRoot(session);
+        await ValidateRootPasswordAsync(session, request.Password, cancellationToken);
+
+        var company = await _context.Companies
+            .FirstOrDefaultAsync(item => item.Id == companyId && item.IsActive, cancellationToken)
+            ?? throw new KeyNotFoundException("Unidade nao encontrada.");
+
+        if (company.IsDemoAccount)
+        {
+            throw new InvalidOperationException("Contas demonstrativas ja possuem acesso controlado pela area Conta teste.");
+        }
+
+        var changedAtUtc = DateTime.UtcNow;
+        company.SetBillingExemption(request.IsExempt, session.UserId, changedAtUtc);
+
+        if (request.IsExempt)
+        {
+            var owners = await _context.Users
+                .Where(item => item.CompanyId == company.Id && item.Role == UserRole.Owner)
+                .ToListAsync(cancellationToken);
+            foreach (var owner in owners)
+            {
+                owner.Activate();
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogWarning(
+            "SecurityAudit action=platform_billing_exemption_changed company={CompanyId} rootUser={RootUserId} exempt={IsExempt}",
+            company.Id,
+            session.UserId,
+            request.IsExempt);
+
+        return new AdminCompanyBillingExemptionDto
+        {
+            CompanyId = company.Id,
+            RestaurantName = company.TradeName,
+            IsBillingExempt = company.IsBillingExempt,
+            ChangedAtUtc = company.BillingExemptChangedAtUtc
+        };
+    }
+
     public async Task<AdminCompanySegmentDto> UpdateCompanySegmentAsync(
         WorkspaceSessionContext session,
         Guid companyId,
@@ -518,6 +575,12 @@ public class AdminDashboardService : IAdminDashboardService
         var company = await _context.Companies
             .FirstOrDefaultAsync(item => item.Id == companyId, cancellationToken)
             ?? throw new KeyNotFoundException("Unidade nao encontrada.");
+
+        if (company.IsDemoAccount)
+        {
+            throw new InvalidOperationException(
+                "A conta demonstrativa deve ser controlada pela area Conta teste.");
+        }
 
         if (company.Id == session.CompanyId)
         {

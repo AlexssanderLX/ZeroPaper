@@ -24,9 +24,17 @@ public class LoginResponseDto
     public string OwnerName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string RestaurantName { get; set; } = string.Empty;
+    public bool IsDemoAccount { get; set; }
 }
 
 public class ShortcutLoginRequestDto
+{
+    [Required]
+    [MaxLength(256)]
+    public string Token { get; set; } = string.Empty;
+}
+
+public class DemoLoginRequestDto
 {
     [Required]
     [MaxLength(256)]

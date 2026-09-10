@@ -13,12 +13,14 @@ public class AppSession : TenantOwnedEntity
         Guid companyId,
         Guid appUserId,
         string tokenHash,
-        DateTime expiresAtUtc) : base(tenantId)
+        DateTime expiresAtUtc,
+        Guid? demoAccessLinkId = null) : base(tenantId)
     {
         CompanyId = companyId;
         AppUserId = appUserId;
         ReplaceTokenHash(tokenHash);
         ExpiresAtUtc = expiresAtUtc;
+        DemoAccessLinkId = demoAccessLinkId;
     }
 
     public Guid CompanyId { get; private set; }
@@ -27,10 +29,12 @@ public class AppSession : TenantOwnedEntity
     public DateTime ExpiresAtUtc { get; private set; }
     public DateTime? LastSeenAtUtc { get; private set; }
     public DateTime? RevokedAtUtc { get; private set; }
+    public Guid? DemoAccessLinkId { get; private set; }
 
     public Tenant Tenant { get; private set; } = null!;
     public Company Company { get; private set; } = null!;
     public AppUser AppUser { get; private set; } = null!;
+    public DemoAccessLink? DemoAccessLink { get; private set; }
 
     public bool IsAvailable(DateTime utcNow)
     {
@@ -56,4 +60,3 @@ public class AppSession : TenantOwnedEntity
         Touch();
     }
 }
-
