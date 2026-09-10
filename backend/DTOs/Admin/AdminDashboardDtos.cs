@@ -84,6 +84,17 @@ public class AdminCompanyFlowDto
     public string? PlatformBillingCheckoutUrl { get; set; }
     public DateTime? PlatformBillingStatusUpdatedAtUtc { get; set; }
     public DateTime? PaidThroughUtc { get; set; }
+    public bool IsBillingExempt { get; set; }
+    public bool IsDemoAccount { get; set; }
+    public DateTime? BillingExemptChangedAtUtc { get; set; }
+}
+
+public sealed class AdminCompanyBillingExemptionDto
+{
+    public Guid CompanyId { get; set; }
+    public string RestaurantName { get; set; } = string.Empty;
+    public bool IsBillingExempt { get; set; }
+    public DateTime? ChangedAtUtc { get; set; }
 }
 
 public class AdminCompanyPlanUpdateDto

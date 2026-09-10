@@ -22,6 +22,7 @@ import {
   revealAdminMasterPassword,
   rotateAdminMasterPassword,
   updateAdminOwner,
+  updateAdminCompanyBillingExemption,
   updateAdminCompanyPlan,
   type AdminCompanyFlow,
   type AdminDashboard,
@@ -33,6 +34,7 @@ import {
 } from "@/lib/api";
 import { useAppSession } from "@/components/app-session-provider";
 import { AdminPlatformBillingPanel } from "@/components/admin-platform-billing-panel";
+import { AdminDemoAccountPanel } from "@/components/admin-demo-account-panel";
 
 const GENERATED_CODE_KEY = "zp.admin.generated-code";
 const GENERATED_CODE_TTL_MS = 5 * 60 * 1000;
@@ -249,6 +251,7 @@ type SensitiveAction =
   | { type: "cleanup-codes" }
   | { type: "delete-code"; code: SignupCode }
   | { type: "edit-plan"; company: AdminCompanyFlow }
+  | { type: "toggle-billing-exemption"; company: AdminCompanyFlow }
   | { type: "reject-user"; user: AdminUser }
   | { type: "reject-signup"; company: AdminCompanyFlow; user: AdminUser }
   | { type: "delete-company"; company: AdminCompanyFlow }
@@ -299,6 +302,18 @@ function getSensitiveActionCopy(action: SensitiveAction | null) {
         description: `Ajuste os modulos liberados para ${action.company.restaurantName}, reveja o valor mensal e confirme com sua senha root.`,
         buttonLabel: "Salvar plano",
       };
+    case "toggle-billing-exemption":
+      return action.company.isBillingExempt
+        ? {
+            title: "Reativar cobranca mensal",
+            description: `A empresa ${action.company.restaurantName} voltara a exigir mensalidade valida no proximo acesso. Confirme com sua senha root.`,
+            buttonLabel: "Reativar cobranca",
+          }
+        : {
+            title: "Isentar mensalidade",
+            description: `A empresa ${action.company.restaurantName} podera usar o sistema sem pagar mensalidade ate voce reativar a cobranca. Confirme com sua senha root.`,
+            buttonLabel: "Isentar mensalidade",
+          };
     case "delete-company":
       return {
         title: "Apagar empresa",
@@ -374,7 +389,7 @@ function getSensitiveActionCopy(action: SensitiveAction | null) {
   }
 }
 
-type AdminSection = "overview" | "empresas" | "acessos" | "cobrancas" | "codigos";
+type AdminSection = "overview" | "demo" | "isencoes" | "empresas" | "acessos" | "cobrancas" | "codigos";
 
 export function AdminSignupCodeManager() {
   const router = useRouter();
@@ -740,6 +755,24 @@ export function AdminSignupCodeManager() {
         await loadAdminData();
       }
 
+      if (sensitiveAction.type === "toggle-billing-exemption") {
+        setProcessingKey(`billing-exemption:${sensitiveAction.company.companyId}`);
+        const response = await updateAdminCompanyBillingExemption(
+          session.token,
+          sensitiveAction.company.companyId,
+          {
+            password: confirmPassword,
+            isExempt: !sensitiveAction.company.isBillingExempt,
+          },
+        );
+        setPageMessage(
+          response.isBillingExempt
+            ? `${response.restaurantName} esta isenta de mensalidade ate nova alteracao.`
+            : `A cobranca mensal de ${response.restaurantName} foi reativada.`,
+        );
+        await loadAdminData();
+      }
+
       if (sensitiveAction.type === "delete-company" || sensitiveAction.type === "reject-signup") {
         setProcessingKey(`company:${sensitiveAction.company.companyId}`);
         await deleteAdminCompany(session.token, sensitiveAction.company.companyId, {
@@ -944,6 +977,8 @@ export function AdminSignupCodeManager() {
 
   const navSections: Array<{ key: AdminSection; label: string; hint: string; badge?: number }> = [
     { key: "overview", label: "Visao geral", hint: "Resumo e alertas", badge: alerts.length || undefined },
+    { key: "demo", label: "Conta teste", hint: "Gerar e revogar link" },
+    { key: "isencoes", label: "Isencoes", hint: "Liberar mensalidade", badge: companies.filter((company) => company.isBillingExempt).length || undefined },
     { key: "empresas", label: "Empresas", hint: "Operacao, plano, IA e senha master", badge: companies.length || undefined },
     { key: "acessos", label: "Acessos", hint: "Quem pode entrar", badge: pendingSignupUsers.length || undefined },
     { key: "cobrancas", label: "Cobrancas", hint: "Conta e assinaturas" },
@@ -952,6 +987,8 @@ export function AdminSignupCodeManager() {
 
   const sectionMeta: Record<AdminSection, { title: string; copy: string }> = {
     overview: { title: "Visao geral", copy: "Resumo operacional das unidades, uso de IA e o que precisa de atencao agora." },
+    demo: { title: "Conta teste", copy: "Controle uma unidade Restaurante Gestao acessivel somente por link de demonstracao." },
+    isencoes: { title: "Isencoes", copy: "Defina quais empresas podem acessar sem mensalidade e reative a cobranca quando quiser." },
     empresas: { title: "Empresas", copy: "Central de operacao: fluxo do dia, plano, IA e senha master por unidade." },
     acessos: { title: "Acessos", copy: "Controle quem consegue entrar em cada empresa. Crie owners, libere logins e bloqueie contas sem mexer nos pedidos." },
     cobrancas: { title: "Cobrancas", copy: "Configure a conta que recebe as mensalidades e gere assinaturas recorrentes por empresa." },
@@ -973,6 +1010,7 @@ export function AdminSignupCodeManager() {
     const isProcessingReveal =
       processingKey === `reveal-master:${company.companyId}` || processingKey === `rotate-master:${company.companyId}`;
     const isProcessingPlan = processingKey === `plan:${company.companyId}`;
+    const isProcessingBillingExemption = processingKey === `billing-exemption:${company.companyId}`;
     const close = () => setSelectedCompanyId(null);
 
     const dayFlow = [
@@ -1041,6 +1079,28 @@ export function AdminSignupCodeManager() {
 
             <section className="admin-modal-block">
               <span className="admin-modal-block-title">Plano e dados</span>
+              <div className="admin-modal-plan-row">
+                <div>
+                  <strong>{company.isBillingExempt ? "Mensalidade isenta" : "Cobranca mensal ativa"}</strong>
+                  <span>
+                    {company.isBillingExempt
+                      ? `Sem bloqueio por mensalidade desde ${formatOptionalDate(company.billingExemptChangedAtUtc)}`
+                      : "O acesso depende de uma mensalidade valida"}
+                  </span>
+                </div>
+                <button
+                  className={company.isBillingExempt ? "ghost-link button-link" : "primary-link button-link"}
+                  type="button"
+                  disabled={isProcessingBillingExemption}
+                  onClick={() => openSensitiveAction({ type: "toggle-billing-exemption", company })}
+                >
+                  {isProcessingBillingExemption
+                    ? "Salvando..."
+                    : company.isBillingExempt
+                      ? "Reativar cobranca"
+                      : "Isentar mensalidade"}
+                </button>
+              </div>
               <div className="admin-modal-plan-row">
                 <div>
                   <strong>{company.planName}</strong>
@@ -1207,6 +1267,8 @@ export function AdminSignupCodeManager() {
           {activeSection === "cobrancas" ? (
             <AdminPlatformBillingPanel token={session.token} companies={companies} />
           ) : null}
+
+          {activeSection === "demo" ? <AdminDemoAccountPanel token={session.token} /> : null}
 
       {activeSection === "overview" ? (
       <section className="surface-card module-list-card admin-pending-signups">
@@ -1477,6 +1539,64 @@ export function AdminSignupCodeManager() {
       </section>
       ) : null}
 
+      {activeSection === "isencoes" ? (
+      <section className="surface-card admin-operations-card">
+        <div className="module-section-head">
+          <div>
+            <span className="eyebrow">Controle de mensalidade</span>
+            <strong>{companies.filter((company) => company.isBillingExempt).length} empresa(s) isenta(s)</strong>
+          </div>
+          <p className="admin-section-copy">A alteracao exige sua senha Root e fica registrada com data e usuario responsavel.</p>
+        </div>
+
+        {loading ? (
+          <p className="loading-state">Carregando empresas...</p>
+        ) : companies.length === 0 ? (
+          <div className="module-empty-state"><strong>Nenhuma empresa cadastrada.</strong></div>
+        ) : (
+          <div className="module-card-list admin-scroll-list">
+            {companies.map((company) => {
+              const isProcessing = processingKey === `billing-exemption:${company.companyId}`;
+              return (
+                <article key={company.companyId} className="module-entity-card interactive-card">
+                  <div className="entity-head">
+                    <div>
+                      <h3>{company.restaurantName}</h3>
+                      <p>{company.planName} - {formatCurrency(company.monthlyPrice)} / mes</p>
+                    </div>
+                    <span className={`status-chip ${company.isBillingExempt ? "warning" : "available"}`}>
+                      {company.isBillingExempt ? "Isenta" : "Cobranca ativa"}
+                    </span>
+                  </div>
+                  <div className="entity-meta-grid admin-meta-line">
+                    <span>{company.isBillingExempt ? `Alterada em ${formatOptionalDate(company.billingExemptChangedAtUtc)}` : "Mensalidade exigida normalmente"}</span>
+                    <span>{company.isCompanyActive ? "Acesso ativo" : "Sem mensalidade valida"}</span>
+                  </div>
+                  <div className="toolbar-actions compact admin-card-actions">
+                    <button
+                      className={company.isBillingExempt ? "ghost-link button-link" : "primary-link button-link"}
+                      type="button"
+                      disabled={isProcessing || company.isDemoAccount}
+                      title={company.isDemoAccount ? "Use a area Conta teste para controlar esta empresa." : undefined}
+                      onClick={() => openSensitiveAction({ type: "toggle-billing-exemption", company })}
+                    >
+                      {company.isDemoAccount
+                        ? "Controlada em Conta teste"
+                        : isProcessing
+                          ? "Salvando..."
+                          : company.isBillingExempt
+                            ? "Reativar cobranca"
+                            : "Isentar mensalidade"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+      ) : null}
+
       {activeSection === "empresas" ? (
       <section className="surface-card admin-operations-card">
         <div className="module-section-head">
@@ -1507,6 +1627,7 @@ export function AdminSignupCodeManager() {
                   <span className={`status-chip ${company.isCompanyActive ? "available" : "inactive"}`}>
                     {company.isCompanyActive ? "Ativa" : "Inativa"}
                   </span>
+                  {company.isBillingExempt ? <span className="status-chip warning">Isenta</span> : null}
                 </div>
                 <div className="admin-company-card-metrics">
                   <div><strong>{company.ordersToday}</strong><span>Pedidos hoje</span></div>

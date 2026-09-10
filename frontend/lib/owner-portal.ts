@@ -8,6 +8,7 @@ export type PortalSession = {
   ownerName: string;
   role: string;
   expiresAtUtc: string;
+  isDemoAccount?: boolean;
 };
 
 export type PortalModule = {

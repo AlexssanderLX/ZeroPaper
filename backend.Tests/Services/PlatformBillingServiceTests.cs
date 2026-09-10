@@ -202,7 +202,11 @@ public sealed class PlatformBillingServiceTests
             }
             else if (request.RequestUri.AbsolutePath.EndsWith("/preapproval/search"))
                 body = "{\"results\":[{\"id\":\"preapproval-1\",\"preapproval_plan_id\":\"plan-1\",\"status\":\"authorized\"}]}";
-            else body = "{\"results\":[{\"transaction_amount\":\"120.00\",\"currency_id\":\"BRL\",\"debit_date\":\"2026-08-05T12:00:00Z\",\"payment\":{\"id\":998877,\"status\":\"approved\"}}]}";
+            else
+            {
+                var paidAtUtc = DateTime.UtcNow.ToString("O");
+                body = $"{{\"results\":[{{\"transaction_amount\":\"120.00\",\"currency_id\":\"BRL\",\"debit_date\":\"{paidAtUtc}\",\"payment\":{{\"id\":998877,\"status\":\"approved\"}}}}]}}";
+            }
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
         }
     }

@@ -51,6 +51,7 @@ public class ZeroPaperDbContext : DbContext
     public DbSet<AppointmentBlock> AppointmentBlocks => Set<AppointmentBlock>();
     public DbSet<PlatformBillingConfiguration> PlatformBillingConfigurations => Set<PlatformBillingConfiguration>();
     public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
+    public DbSet<DemoAccessLink> DemoAccessLinks => Set<DemoAccessLink>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -113,6 +114,8 @@ public class ZeroPaperDbContext : DbContext
                 .HasConversion<int>()
                 .HasDefaultValue(Domain.Enums.BusinessSegment.Restaurant)
                 .IsRequired();
+            entity.Property(x => x.IsDemoAccount).HasDefaultValue(false).IsRequired();
+            entity.Property(x => x.IsBillingExempt).HasDefaultValue(false).IsRequired();
             entity.Property(x => x.AppointmentServiceDays).HasMaxLength(20).HasDefaultValue("1,2,3,4,5,6").IsRequired();
             entity.Property(x => x.AppointmentStartTime).HasColumnType("time").HasDefaultValue(new TimeOnly(8, 0)).IsRequired();
             entity.Property(x => x.AppointmentEndTime).HasColumnType("time").HasDefaultValue(new TimeOnly(18, 0)).IsRequired();
@@ -384,6 +387,7 @@ public class ZeroPaperDbContext : DbContext
             entity.Property(x => x.ExpiresAtUtc).IsRequired();
 
             entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => x.DemoAccessLinkId);
 
             entity.HasOne(x => x.Tenant)
                 .WithMany(x => x.Sessions)
@@ -398,6 +402,11 @@ public class ZeroPaperDbContext : DbContext
             entity.HasOne(x => x.AppUser)
                 .WithMany(x => x.Sessions)
                 .HasForeignKey(x => x.AppUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.DemoAccessLink)
+                .WithMany()
+                .HasForeignKey(x => x.DemoAccessLinkId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -1224,6 +1233,23 @@ public class ZeroPaperDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.CustomerProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+        });
+
+        modelBuilder.Entity<DemoAccessLink>(entity =>
+        {
+            entity.ToTable("demoaccesslinks");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.CompanyId, x.IsActive });
+            entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AppUser).WithMany().HasForeignKey(x => x.AppUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Appointment>(entity =>
