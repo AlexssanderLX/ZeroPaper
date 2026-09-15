@@ -73,7 +73,6 @@ export const ownerModules: PortalModule[] = [
     slug: "estoque",
     title: "Estoque",
     eyebrow: "Estoque",
-    featureKey: "includesStockModule",
     segments: ["restaurant"],
   },
   {

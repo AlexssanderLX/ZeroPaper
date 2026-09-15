@@ -439,7 +439,7 @@ public class AuthSessionService : IAuthSessionService
             IncludesTablesModule = includesTables,
             IncludesKitchenModule = includesKitchen,
             IncludesCashModule = includesCash,
-            IncludesStockModule = activeSubscription?.IncludesStockModule ?? true,
+            IncludesStockModule = session.Company.BusinessSegment == BusinessSegment.Restaurant || (activeSubscription?.IncludesStockModule ?? true),
             IncludesDeliveryModule = includesDelivery,
             IncludesPrintingModule = includesPrinting,
             IncludesWaiterCallModule = includesWaiterCalls,
