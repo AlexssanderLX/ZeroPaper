@@ -7,6 +7,7 @@ using ZeroPaper.DTOs.Workspace.Reports;
 using ZeroPaper.Services.Interfaces;
 using ZeroPaper.Services.Models;
 using ZeroPaper.Services.Reports;
+using ZeroPaper.Domain.Enums;
 
 namespace ZeroPaper.Controllers;
 
@@ -811,7 +812,7 @@ public class WorkspaceController : ControllerBase
             return Unauthorized();
         }
 
-        var accessResult = EnsureModuleEnabled(session.IncludesStockModule, "Estoque");
+        var accessResult = EnsureModuleEnabled(session.IncludesStockModule || session.BusinessSegment == BusinessSegment.Restaurant, "Estoque");
         return accessResult ?? Ok(await _workspaceService.GetStockItemsAsync(session, cancellationToken));
     }
 
@@ -902,7 +903,7 @@ public class WorkspaceController : ControllerBase
             return Unauthorized();
         }
 
-        var accessResult = EnsureModuleEnabled(session.IncludesStockModule, "Estoque");
+        var accessResult = EnsureModuleEnabled(session.IncludesStockModule || session.BusinessSegment == BusinessSegment.Restaurant, "Estoque");
         if (accessResult is not null)
         {
             return accessResult;
@@ -922,7 +923,7 @@ public class WorkspaceController : ControllerBase
             return Unauthorized();
         }
 
-        var accessResult = EnsureModuleEnabled(session.IncludesStockModule, "Estoque");
+        var accessResult = EnsureModuleEnabled(session.IncludesStockModule || session.BusinessSegment == BusinessSegment.Restaurant, "Estoque");
         return accessResult ?? Ok(await _workspaceService.UpdateStockItemAsync(session, stockItemId, request, cancellationToken));
     }
 
